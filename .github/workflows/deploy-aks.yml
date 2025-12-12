@@ -6,12 +6,6 @@ on:
             - main
     workflow_dispatch:
 
-env:
-    ACR_NAME: splitsnetwork
-    ACR_LOGIN_SERVER: splitsnetwork.azurecr.io
-    AKS_CLUSTER_NAME: splits-network-aks
-    AKS_RESOURCE_GROUP: splits-network-rg
-
 jobs:
     build-and-push:
         name: Build and Push Images
@@ -44,17 +38,17 @@ jobs:
 
             - name: Login to ACR
               run: |
-                  az acr login --name ${{ env.ACR_NAME }}
+                  az acr login --name ${{ secrets.ACR_NAME }}
 
             - name: Build and push image
               run: |
-                  IMAGE_TAG=${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:${{ github.sha }}
+                  IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:${{ github.sha }}
                   docker build -f ${{ matrix.service.path }}/Dockerfile -t $IMAGE_TAG --target production .
                   docker push $IMAGE_TAG
 
                   # Also tag as latest
-                  docker tag $IMAGE_TAG ${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:latest
-                  docker push ${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:latest
+                  docker tag $IMAGE_TAG ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:latest
+                  docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:latest
 
     deploy:
         name: Deploy to AKS
@@ -72,8 +66,8 @@ jobs:
             - name: Get AKS credentials
               run: |
                   az aks get-credentials \
-                    --resource-group ${{ env.AKS_RESOURCE_GROUP }} \
-                    --name ${{ env.AKS_CLUSTER_NAME }} \
+                    --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} \
+                    --name ${{ secrets.AKS_CLUSTER_NAME }} \
                     --overwrite-existing
 
             - name: Create namespace if not exists
@@ -111,7 +105,7 @@ jobs:
             - name: Update image tags in manifests
               run: |
                   export IMAGE_TAG=${{ github.sha }}
-                  export ACR_SERVER=${{ env.ACR_LOGIN_SERVER }}
+                  export ACR_SERVER=${{ secrets.ACR_LOGIN_SERVER }}
 
                   # Use envsubst to replace image tags in all deployment files
                   for file in infra/k8s/*/deployment.yaml; do

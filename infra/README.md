@@ -48,16 +48,29 @@ infra/
 
 1. **Configure GitHub Repository Secrets** (Settings → Secrets and variables → Actions):
    ```
+   # Azure Infrastructure
    AZURE_CREDENTIALS          # Azure service principal JSON
+   ACR_NAME                   # Azure Container Registry name (e.g., "splitsnetwork")
+   ACR_LOGIN_SERVER           # ACR FQDN (e.g., "splitsnetwork.azurecr.io")
+   AKS_CLUSTER_NAME           # AKS cluster name (e.g., "splits-network-aks")
+   AKS_RESOURCE_GROUP         # Azure resource group (e.g., "splits-network-rg")
+   
+   # Supabase
    SUPABASE_URL
    SUPABASE_ANON_KEY
    SUPABASE_SERVICE_ROLE_KEY
+   
+   # Clerk
    CLERK_PUBLISHABLE_KEY
    CLERK_SECRET_KEY
    CLERK_JWKS_URL
+   
+   # Stripe
    STRIPE_SECRET_KEY
    STRIPE_WEBHOOK_SECRET
    STRIPE_PUBLISHABLE_KEY
+   
+   # Resend
    RESEND_API_KEY
    RESEND_API_KEY
    ```
@@ -190,49 +203,14 @@ All changes must go through GitHub Actions to maintain consistency.
 
 ## 🔄 Rollback Process
 
-If a deployment fails or causes issues:
+If a deployment fails:
 
-1. **Automatic Rollback** - GitHub Actions will fail and not complete deployment
-2. **Manual Rollback** - Revert the merge commit and push:
+1. **Automatic** - GitHub Actions stops deployment on failure
+2. **Revert the commit**:
    ```bash
    git revert <commit-hash>
    git push origin main
-   # GitHub Actions will deploy the previous version
    ```
-
-3. **Emergency Rollback** (Platform Admin Only):
-   ```bash
-   # Only for emergency situations with proper approval
-   kubectl rollout undo deployment/<service-name> -n splits-network
-   ```
-
-## 📊 Production Access Control
-
-### Recommended RBAC Policies
-
-```yaml
-# Developers: Read-only access
-kind: RoleBinding
-roleRef:
-  kind: ClusterRole
-  name: view
-subjects:
-  - kind: Group
-    name: developers
-
-# GitHub Actions: Full deployment access
-kind: RoleBinding
-roleRef:
-  kind: ClusterRole
-  name: edit
-subjects:
-  - kind: ServiceAccount
-    name: github-actions
-```
-
-## 🔧 Configuration Updates
-
-### Updating Secrets
 
 ## 🏗️ Architecture
 
