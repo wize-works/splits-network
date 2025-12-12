@@ -1,0 +1,166 @@
+name: Deploy to AKS
+
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+env:
+    ACR_NAME: splitsnetwork
+    ACR_LOGIN_SERVER: splitsnetwork.azurecr.io
+    AKS_CLUSTER_NAME: splits-network-aks
+    AKS_RESOURCE_GROUP: splits-network-rg
+
+jobs:
+    build-and-push:
+        name: Build and Push Images
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                service:
+                    - name: api-gateway
+                      path: services/api-gateway
+                    - name: identity-service
+                      path: services/identity-service
+                    - name: ats-service
+                      path: services/ats-service
+                    - name: network-service
+                      path: services/network-service
+                    - name: billing-service
+                      path: services/billing-service
+                    - name: notification-service
+                      path: services/notification-service
+                    - name: portal
+                      path: apps/portal
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Login to Azure
+              uses: azure/login@v2
+              with:
+                  creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+            - name: Login to ACR
+              run: |
+                  az acr login --name ${{ env.ACR_NAME }}
+
+            - name: Build and push image
+              run: |
+                  IMAGE_TAG=${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:${{ github.sha }}
+                  docker build -f ${{ matrix.service.path }}/Dockerfile -t $IMAGE_TAG --target production .
+                  docker push $IMAGE_TAG
+
+                  # Also tag as latest
+                  docker tag $IMAGE_TAG ${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:latest
+                  docker push ${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:latest
+
+    deploy:
+        name: Deploy to AKS
+        runs-on: ubuntu-latest
+        needs: build-and-push
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Login to Azure
+              uses: azure/login@v2
+              with:
+                  creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+            - name: Get AKS credentials
+              run: |
+                  az aks get-credentials \
+                    --resource-group ${{ env.AKS_RESOURCE_GROUP }} \
+                    --name ${{ env.AKS_CLUSTER_NAME }} \
+                    --overwrite-existing
+
+            - name: Create namespace if not exists
+              run: |
+                  kubectl create namespace splits-network --dry-run=client -o yaml | kubectl apply -f -
+
+            - name: Create secrets
+              run: |
+                  kubectl create secret generic supabase-secrets \
+                    --from-literal=supabase-url=${{ secrets.SUPABASE_URL }} \
+                    --from-literal=supabase-anon-key=${{ secrets.SUPABASE_ANON_KEY }} \
+                    --from-literal=supabase-service-role-key=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} \
+                    --namespace=splits-network \
+                    --dry-run=client -o yaml | kubectl apply -f -
+
+                  kubectl create secret generic clerk-secrets \
+                    --from-literal=clerk-publishable-key=${{ secrets.CLERK_PUBLISHABLE_KEY }} \
+                    --from-literal=clerk-secret-key=${{ secrets.CLERK_SECRET_KEY }} \
+                    --from-literal=clerk-jwks-url=${{ secrets.CLERK_JWKS_URL }} \
+                    --namespace=splits-network \
+                    --dry-run=client -o yaml | kubectl apply -f -
+
+                  kubectl create secret generic stripe-secrets \
+                    --from-literal=stripe-secret-key=${{ secrets.STRIPE_SECRET_KEY }} \
+                    --from-literal=stripe-webhook-secret=${{ secrets.STRIPE_WEBHOOK_SECRET }} \
+                    --from-literal=stripe-publishable-key=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
+                    --namespace=splits-network \
+                    --dry-run=client -o yaml | kubectl apply -f -
+
+                  kubectl create secret generic resend-secrets \
+                    --from-literal=resend-api-key=${{ secrets.RESEND_API_KEY }} \
+                    --namespace=splits-network \
+                    --dry-run=client -o yaml | kubectl apply -f -
+
+            - name: Update image tags in manifests
+              run: |
+                  export IMAGE_TAG=${{ github.sha }}
+                  export ACR_SERVER=${{ env.ACR_LOGIN_SERVER }}
+
+                  # Use envsubst to replace image tags in all deployment files
+                  for file in infra/k8s/*/deployment.yaml; do
+                    envsubst < "$file" > "${file}.tmp"
+                    mv "${file}.tmp" "$file"
+                  done
+
+            - name: Deploy infrastructure (Redis, RabbitMQ)
+              run: |
+                  kubectl apply -f infra/k8s/redis/ --namespace=splits-network
+                  kubectl apply -f infra/k8s/rabbitmq/ --namespace=splits-network
+
+            - name: Wait for infrastructure to be ready
+              run: |
+                  kubectl wait --for=condition=ready pod -l app=redis --timeout=120s --namespace=splits-network
+                  kubectl wait --for=condition=ready pod -l app=rabbitmq --timeout=120s --namespace=splits-network
+
+            - name: Deploy services
+              run: |
+                  kubectl apply -f infra/k8s/identity-service/ --namespace=splits-network
+                  kubectl apply -f infra/k8s/ats-service/ --namespace=splits-network
+                  kubectl apply -f infra/k8s/network-service/ --namespace=splits-network
+                  kubectl apply -f infra/k8s/billing-service/ --namespace=splits-network
+                  kubectl apply -f infra/k8s/notification-service/ --namespace=splits-network
+
+            - name: Wait for services to be ready
+              run: |
+                  kubectl wait --for=condition=ready pod -l app=identity-service --timeout=120s --namespace=splits-network
+                  kubectl wait --for=condition=ready pod -l app=ats-service --timeout=120s --namespace=splits-network
+                  kubectl wait --for=condition=ready pod -l app=network-service --timeout=120s --namespace=splits-network
+                  kubectl wait --for=condition=ready pod -l app=billing-service --timeout=120s --namespace=splits-network
+                  kubectl wait --for=condition=ready pod -l app=notification-service --timeout=120s --namespace=splits-network
+
+            - name: Deploy API Gateway
+              run: |
+                  kubectl apply -f infra/k8s/api-gateway/ --namespace=splits-network
+
+            - name: Wait for API Gateway to be ready
+              run: |
+                  kubectl wait --for=condition=ready pod -l app=api-gateway --timeout=120s --namespace=splits-network
+
+            - name: Deploy Portal
+              run: |
+                  kubectl apply -f infra/k8s/portal/ --namespace=splits-network
+
+            - name: Wait for Portal to be ready
+              run: |
+                  kubectl wait --for=condition=ready pod -l app=portal --timeout=120s --namespace=splits-network
+
+            - name: Get deployment status
+              run: |
+                  kubectl get all --namespace=splits-network

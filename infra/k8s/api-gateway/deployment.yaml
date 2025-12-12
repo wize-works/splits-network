@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: splits-network
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: ${ACR_SERVER}/api-gateway:${IMAGE_TAG}
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: CORS_ORIGIN
+              value: "https://app.splits.network"
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secrets
+                  key: supabase-url
+            - name: SUPABASE_ANON_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secrets
+                  key: supabase-anon-key
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secrets
+                  key: supabase-service-role-key
+            - name: CLERK_PUBLISHABLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: clerk-secrets
+                  key: clerk-publishable-key
+            - name: CLERK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: clerk-secrets
+                  key: clerk-secret-key
+            - name: CLERK_JWKS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: clerk-secrets
+                  key: clerk-jwks-url
+            - name: REDIS_URL
+              value: "redis://redis:6379"
+            - name: IDENTITY_SERVICE_URL
+              value: "http://identity-service:3001"
+            - name: ATS_SERVICE_URL
+              value: "http://ats-service:3002"
+            - name: NETWORK_SERVICE_URL
+              value: "http://network-service:3003"
+            - name: BILLING_SERVICE_URL
+              value: "http://billing-service:3004"
+            - name: NOTIFICATION_SERVICE_URL
+              value: "http://notification-service:3005"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: splits-network
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 3000
+      name: http
+  selector:
+    app: api-gateway
