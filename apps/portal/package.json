@@ -1,0 +1,30 @@
+{
+  "name": "@splits-network/portal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3100",
+    "build": "next build",
+    "start": "next start --port 3100",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.36.0",
+    "@splits-network/shared-config": "workspace:*",
+    "@splits-network/shared-types": "workspace:*",
+    "@supabase/supabase-js": "^2.47.10",
+    "next": "^16.0.7",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "daisyui": "^5.5.8",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.2",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3"
+  }
+}

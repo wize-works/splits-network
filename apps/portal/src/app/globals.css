@@ -1,0 +1,7 @@
+@layer base;
+
+@import "tailwindcss";
+@plugin "daisyui";
+
+@import "./themes/light.css";
+@import "./themes/dark.css";

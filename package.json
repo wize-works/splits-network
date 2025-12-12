@@ -1,0 +1,26 @@
+{
+    "name": "@splits-network/monorepo",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Splits Network - Split-fee recruiting marketplace platform",
+    "scripts": {
+        "dev": "pnpm --parallel --filter \"./apps/**\" --filter \"./services/**\" dev",
+        "build": "pnpm --filter \"./packages/**\" build && pnpm --filter \"./services/**\" build && pnpm --filter \"./apps/**\" build",
+        "test": "pnpm --filter \"./packages/**\" --filter \"./services/**\" --filter \"./apps/**\" test",
+        "lint": "pnpm --filter \"./packages/**\" --filter \"./services/**\" --filter \"./apps/**\" lint",
+        "clean": "pnpm --filter \"./packages/**\" --filter \"./services/**\" --filter \"./apps/**\" clean",
+        "vault:setup": "psql $DATABASE_URL -f infra/migrations/001_setup_vault.sql -f infra/migrations/002_vault_helpers.sql",
+        "vault:populate": "node scripts/populate-vault.js"
+    },
+    "engines": {
+        "node": ">=20.0.0",
+        "pnpm": ">=9.0.0"
+    },
+    "packageManager": "pnpm@9.14.4",
+    "keywords": [
+        "recruiting",
+        "ats",
+        "marketplace",
+        "split-fee"
+    ]
+}

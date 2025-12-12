@@ -1,0 +1,406 @@
+{
+    "folders": [
+        {
+            "name": "🏠 Root",
+            "path": "."
+        },
+        {
+            "name": "📱 Portal (Next.js)",
+            "path": "apps/portal"
+        },
+        {
+            "name": "🔐 Identity Service",
+            "path": "services/identity-service"
+        },
+        {
+            "name": "💼 ATS Service",
+            "path": "services/ats-service"
+        },
+        {
+            "name": "🌐 Network Service",
+            "path": "services/network-service"
+        },
+        {
+            "name": "💳 Billing Service",
+            "path": "services/billing-service"
+        },
+        {
+            "name": "📧 Notification Service",
+            "path": "services/notification-service"
+        },
+        {
+            "name": "🚪 API Gateway",
+            "path": "services/api-gateway"
+        },
+        {
+            "name": "📦 Shared Packages",
+            "path": "packages"
+        },
+        {
+            "name": "☸️ Infrastructure",
+            "path": "infra"
+        },
+        {
+            "name": "📚 Documentation",
+            "path": "docs"
+        }
+    ],
+    "settings": {
+        "files.exclude": {
+            "**/node_modules": true,
+            "**/.next": true,
+            "**/dist": true,
+            "**/.turbo": true
+        },
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/.next": true,
+            "**/dist": true,
+            "**/pnpm-lock.yaml": true
+        },
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "typescript.enablePromptUseWorkspaceTsdk": true,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "explicit"
+        },
+        "[typescript]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescriptreact]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[javascript]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "files.associations": {
+            "*.css": "tailwindcss"
+        },
+        "tailwindCSS.experimental.classRegex": [
+            [
+                "cva\\(([^)]*)\\)",
+                "[\"'`]([^\"'`]*).*?[\"'`]"
+            ],
+            [
+                "cn\\(([^)]*)\\)",
+                "[\"'`]([^\"'`]*).*?[\"'`]"
+            ]
+        ]
+    },
+    "extensions": {
+        "recommendations": [
+            "dbaeumer.vscode-eslint",
+            "esbenp.prettier-vscode",
+            "bradlc.vscode-tailwindcss",
+            "ms-vscode.vscode-typescript-next",
+            "firsttris.vscode-jest-runner",
+            "orta.vscode-jest",
+            "github.copilot",
+            "github.copilot-chat",
+            "supabase.supabase-vscode"
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Portal (Next.js)",
+                "type": "node",
+                "request": "launch",
+                "cwd": "${workspaceFolder:📱 Portal (Next.js)}",
+                "runtimeExecutable": "pnpm",
+                "runtimeArgs": [
+                    "dev"
+                ],
+                "console": "integratedTerminal",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            },
+            {
+                "name": "Identity Service",
+                "type": "node",
+                "request": "launch",
+                "cwd": "${workspaceFolder:🔐 Identity Service}",
+                "runtimeExecutable": "pnpm",
+                "runtimeArgs": [
+                    "dev"
+                ],
+                "console": "integratedTerminal",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            },
+            {
+                "name": "ATS Service",
+                "type": "node",
+                "request": "launch",
+                "cwd": "${workspaceFolder:💼 ATS Service}",
+                "runtimeExecutable": "pnpm",
+                "runtimeArgs": [
+                    "dev"
+                ],
+                "console": "integratedTerminal",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            },
+            {
+                "name": "Network Service",
+                "type": "node",
+                "request": "launch",
+                "cwd": "${workspaceFolder:🌐 Network Service}",
+                "runtimeExecutable": "pnpm",
+                "runtimeArgs": [
+                    "dev"
+                ],
+                "console": "integratedTerminal",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            },
+            {
+                "name": "Billing Service",
+                "type": "node",
+                "request": "launch",
+                "cwd": "${workspaceFolder:💳 Billing Service}",
+                "runtimeExecutable": "pnpm",
+                "runtimeArgs": [
+                    "dev"
+                ],
+                "console": "integratedTerminal",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            },
+            {
+                "name": "Notification Service",
+                "type": "node",
+                "request": "launch",
+                "cwd": "${workspaceFolder:📧 Notification Service}",
+                "runtimeExecutable": "pnpm",
+                "runtimeArgs": [
+                    "dev"
+                ],
+                "console": "integratedTerminal",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            },
+            {
+                "name": "API Gateway",
+                "type": "node",
+                "request": "launch",
+                "cwd": "${workspaceFolder:🚪 API Gateway}",
+                "runtimeExecutable": "pnpm",
+                "runtimeArgs": [
+                    "dev"
+                ],
+                "console": "integratedTerminal",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            }
+        ],
+        "compounds": [
+            {
+                "name": "All Services",
+                "configurations": [
+                    "Identity Service",
+                    "ATS Service",
+                    "Network Service",
+                    "Billing Service",
+                    "Notification Service",
+                    "API Gateway"
+                ],
+                "stopAll": true
+            },
+            {
+                "name": "Full Stack",
+                "configurations": [
+                    "Portal (Next.js)",
+                    "Identity Service",
+                    "ATS Service",
+                    "Network Service",
+                    "Billing Service",
+                    "Notification Service",
+                    "API Gateway"
+                ],
+                "stopAll": true
+            }
+        ]
+    },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "Install Dependencies",
+                "type": "shell",
+                "command": "pnpm install",
+                "options": {
+                    "cwd": "${workspaceFolder:🏠 Root}"
+                },
+                "group": "build",
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated"
+                }
+            },
+            {
+                "label": "Build All",
+                "type": "shell",
+                "command": "pnpm -r build",
+                "options": {
+                    "cwd": "${workspaceFolder:🏠 Root}"
+                },
+                "group": "build",
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated"
+                }
+            },
+            {
+                "label": "Dev: Portal",
+                "type": "shell",
+                "command": "pnpm dev",
+                "options": {
+                    "cwd": "${workspaceFolder:📱 Portal (Next.js)}"
+                },
+                "group": "none",
+                "isBackground": true,
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated",
+                    "group": "dev-servers"
+                }
+            },
+            {
+                "label": "Dev: API Gateway",
+                "type": "shell",
+                "command": "pnpm dev",
+                "options": {
+                    "cwd": "${workspaceFolder:🚪 API Gateway}"
+                },
+                "group": "none",
+                "isBackground": true,
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated",
+                    "group": "dev-servers"
+                }
+            },
+            {
+                "label": "Dev: Identity Service",
+                "type": "shell",
+                "command": "pnpm dev",
+                "options": {
+                    "cwd": "${workspaceFolder:🔐 Identity Service}"
+                },
+                "group": "none",
+                "isBackground": true,
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated",
+                    "group": "dev-servers"
+                }
+            },
+            {
+                "label": "Dev: ATS Service",
+                "type": "shell",
+                "command": "pnpm dev",
+                "options": {
+                    "cwd": "${workspaceFolder:💼 ATS Service}"
+                },
+                "group": "none",
+                "isBackground": true,
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated",
+                    "group": "dev-servers"
+                }
+            },
+            {
+                "label": "Dev: Network Service",
+                "type": "shell",
+                "command": "pnpm dev",
+                "options": {
+                    "cwd": "${workspaceFolder:🌐 Network Service}"
+                },
+                "group": "none",
+                "isBackground": true,
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated",
+                    "group": "dev-servers"
+                }
+            },
+            {
+                "label": "Dev: Billing Service",
+                "type": "shell",
+                "command": "pnpm dev",
+                "options": {
+                    "cwd": "${workspaceFolder:💳 Billing Service}"
+                },
+                "group": "none",
+                "isBackground": true,
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated",
+                    "group": "dev-servers"
+                }
+            },
+            {
+                "label": "Dev: Notification Service",
+                "type": "shell",
+                "command": "pnpm dev",
+                "options": {
+                    "cwd": "${workspaceFolder:📧 Notification Service}"
+                },
+                "group": "none",
+                "isBackground": true,
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated",
+                    "group": "dev-servers"
+                }
+            },
+            {
+                "label": "Dev: All Services",
+                "dependsOn": [
+                    "Dev: API Gateway",
+                    "Dev: Identity Service",
+                    "Dev: ATS Service",
+                    "Dev: Network Service",
+                    "Dev: Billing Service",
+                    "Dev: Notification Service"
+                ],
+                "group": "none",
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated"
+                }
+            },
+            {
+                "label": "Dev: Full Stack",
+                "dependsOn": [
+                    "Dev: Portal",
+                    "Dev: API Gateway",
+                    "Dev: Identity Service",
+                    "Dev: ATS Service",
+                    "Dev: Network Service",
+                    "Dev: Billing Service",
+                    "Dev: Notification Service"
+                ],
+                "group": "none",
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated"
+                }
+            }
+        ]
+    }
+}

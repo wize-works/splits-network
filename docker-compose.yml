@@ -1,0 +1,240 @@
+services:
+  # Infrastructure Services
+  redis:
+    image: redis:7-alpine
+    container_name: splits-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - splits-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: splits-rabbitmq
+    ports:
+      - "5672:5672" # AMQP port
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: splits
+      RABBITMQ_DEFAULT_PASS: splits_local_dev
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - splits-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Backend Services
+  identity-service:
+    build:
+      context: .
+      dockerfile: services/identity-service/Dockerfile
+      target: development
+    container_name: splits-identity-service
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+    volumes:
+      - ./services/identity-service/src:/app/services/identity-service/src
+    networks:
+      - splits-network
+    depends_on:
+      - redis
+    command: sh -c "cd /app/services/identity-service && /app/node_modules/.pnpm/node_modules/.bin/tsx watch src/index.ts"
+
+  ats-service:
+    build:
+      context: .
+      dockerfile: services/ats-service/Dockerfile
+      target: development
+    container_name: splits-ats-service
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      RABBITMQ_URL: amqp://splits:splits_local_dev@rabbitmq:5672
+    volumes:
+      - ./services/ats-service/src:/app/services/ats-service/src
+      - ./packages:/app/packages
+      - /app/node_modules
+    networks:
+      - splits-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: sh -c "cd /app/services/ats-service && /app/node_modules/.pnpm/node_modules/.bin/tsx watch src/index.ts"
+  network-service:
+    build:
+      context: .
+      dockerfile: services/network-service/Dockerfile
+      target: development
+    container_name: splits-network-service
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+    volumes:
+      - ./services/network-service/src:/app/services/network-service/src
+      - ./packages:/app/packages
+      - /app/node_modules
+    networks:
+      - splits-network
+    depends_on:
+      - redis
+    command: sh -c "cd /app/services/network-service && /app/node_modules/.pnpm/node_modules/.bin/tsx watch src/index.ts"
+  billing-service:
+    build:
+      context: .
+      dockerfile: services/billing-service/Dockerfile
+      target: development
+    container_name: splits-billing-service
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      RABBITMQ_URL: amqp://splits:splits_local_dev@rabbitmq:5672
+    volumes:
+      - ./services/billing-service/src:/app/services/billing-service/src
+      - ./packages:/app/packages
+      - /app/node_modules
+    networks:
+      - splits-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: sh -c "cd /app/services/billing-service && /app/node_modules/.pnpm/node_modules/.bin/tsx watch src/index.ts"
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+      target: development
+    container_name: splits-notification-service
+    ports:
+      - "3005:3005"
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      RABBITMQ_URL: amqp://splits:splits_local_dev@rabbitmq:5672
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-noreply@splits.network}
+    volumes:
+      - ./services/notification-service/src:/app/services/notification-service/src
+      - ./packages:/app/packages
+      - /app/node_modules
+    networks:
+      - splits-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+      target: development
+    container_name: splits-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      IDENTITY_SERVICE_URL: http://identity-service:3001
+      ATS_SERVICE_URL: http://ats-service:3002
+      NETWORK_SERVICE_URL: http://network-service:3003
+      BILLING_SERVICE_URL: http://billing-service:3004
+      CORS_ORIGIN: http://localhost:3100
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_JWKS_URL: ${CLERK_JWKS_URL}
+    volumes:
+      - ./services/api-gateway/src:/app/services/api-gateway/src
+      - ./packages:/app/packages
+      - /app/node_modules
+    networks:
+      - splits-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
+      ats-service:
+        condition: service_started
+      network-service:
+        condition: service_started
+      billing-service:
+        condition: service_started
+    command: sh -c "cd /app/services/api-gateway && /app/node_modules/.pnpm/node_modules/.bin/tsx watch src/index.ts"
+
+  # Frontend
+  portal:
+    build:
+      context: .
+      dockerfile: apps/portal/Dockerfile
+      target: development
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3000/api
+        SUPABASE_URL: ${SUPABASE_URL}
+        SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+    container_name: splits-portal
+    ports:
+      - "3100:3100"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3000/api
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+    volumes:
+      - ./apps/portal/src:/app/apps/portal/src
+      - ./apps/portal/public:/app/apps/portal/public
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/portal/.next
+    networks:
+      - splits-network
+    depends_on:
+      - api-gateway
+    command: pnpm --filter @splits-network/portal dev
+
+networks:
+  splits-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  rabbitmq-data:

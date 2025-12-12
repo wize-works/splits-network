@@ -1,0 +1,43 @@
+/* Splits Network – DaisyUI Dark Theme */
+
+@plugin "daisyui/theme" {
+    name: "splits-dark";
+  color-scheme: dark;
+
+  /* Brand (slightly brighter for dark backgrounds) */
+  --color-primary: #3b5ccc;            /* brighter indigo */
+  --color-primary-content: #e5e7eb;
+
+  --color-secondary: #14b8a6;          /* teal-500 */
+  --color-secondary-content: #ecfeff;
+
+  --color-accent: #60a5fa;             /* blue-400 */
+  --color-accent-content: #0b1120;
+
+  --color-neutral: #111827;            /* slate-900 */
+  --color-neutral-content: #e5e7eb;
+
+  /* Base surfaces */
+  --color-base-100: #020617;           /* slate-950 – page bg */
+  --color-base-200: #111827;           /* cards / nav */
+  --color-base-300: #1f2937;           /* raised surfaces */
+  --color-base-content: #e5e7eb;       /* main text */
+
+  /* Semantic */
+  --color-info: #38bdf8;
+  --color-info-content: #0b1120;
+
+  --color-success: #22c55e;
+  --color-success-content: #022c22;
+
+  --color-warning: #facc15;
+  --color-warning-content: #422006;
+
+  --color-error: #f87171;
+  --color-error-content: #450a0a;
+
+  /* Radii / sizing (same as light for consistency) */
+  --radius-selector: 0.25rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
+}

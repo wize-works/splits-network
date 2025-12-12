@@ -1,0 +1,28 @@
+{
+    "name": "@splits-network/api-gateway",
+    "version": "0.1.0",
+    "private": true,
+    "main": "./dist/index.js",
+    "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc -b",
+        "start": "node dist/index.js",
+        "clean": "rm -rf dist *.tsbuildinfo"
+    },
+    "dependencies": {
+        "@clerk/backend": "^1.18.4",
+        "@fastify/http-proxy": "^11.4.1",
+        "@fastify/rate-limit": "^10.1.1",
+        "@splits-network/shared-config": "workspace:*",
+        "@splits-network/shared-fastify": "workspace:*",
+        "@splits-network/shared-logging": "workspace:*",
+        "@splits-network/shared-types": "workspace:*",
+        "fastify": "^5.6.2",
+        "ioredis": "^5.8.2"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.1",
+        "tsx": "^4.19.2",
+        "typescript": "^5.9.3"
+    }
+}
