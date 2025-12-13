@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { UserButton } from '@clerk/nextjs';
 
 const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: 'fa-house' },
@@ -18,38 +17,28 @@ export function Sidebar() {
     return (
         <div className="drawer-side">
             <label htmlFor="sidebar-drawer" className="drawer-overlay"></label>
-            <aside className="bg-base-200 w-64 min-h-screen flex flex-col">
-                {/* Logo/Brand */}
-                <div className="p-4 border-b border-base-300">
-                    <Link href="/dashboard" className="text-xl font-bold">
-                        Splits Network
-                    </Link>
-                </div>
+            <aside className="bg-base-100 w-64 min-h-screen flex flex-col border-r border-base-200">
 
                 {/* Navigation */}
-                <ul className="menu p-4 flex-1">
-                    {navItems.map((item) => (
-                        <li key={item.href}>
+                <nav className="flex-1 px-3 py-2">
+                    {navItems.map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
                             <Link
+                                key={item.href}
                                 href={item.href}
-                                className={pathname === item.href ? 'active' : ''}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors mb-1 ${
+                                    isActive
+                                        ? 'bg-primary text-primary-content font-medium'
+                                        : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
+                                }`}
                             >
-                                <i className={`fa-solid ${item.icon} w-5`}></i>
+                                <i className={`fa-solid ${item.icon} w-4 text-center`}></i>
                                 {item.label}
                             </Link>
-                        </li>
-                    ))}
-                </ul>
-
-                {/* User Profile */}
-                <div className="p-4 border-t border-base-300">
-                    <div className="flex items-center gap-3">
-                        <UserButton afterSignOutUrl="/" />
-                        <div className="flex-1">
-                            <div className="text-sm font-medium">Profile</div>
-                        </div>
-                    </div>
-                </div>
+                        );
+                    })}
+                </nav>
             </aside>
         </div>
     );
