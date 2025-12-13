@@ -11,27 +11,7 @@ export default async function HomePage() {
     }
 
     return (
-        <div className="min-h-screen">
-            {/* Navigation */}
-            <nav className="navbar bg-base-100 shadow-lg sticky top-0 z-50">
-                <div className="container mx-auto">
-                    <div className="flex-1">
-                        <Link href="/" className="btn btn-ghost text-xl">
-                            <i className="fa-solid fa-network-wired text-primary"></i>
-                            <span className="ml-2 font-bold">The Splits Network</span>
-                        </Link>
-                    </div>
-                    <div className="flex-none gap-2">
-                        <Link href="/sign-in" className="btn btn-ghost">
-                            Sign In
-                        </Link>
-                        <Link href="/sign-up" className="btn btn-primary">
-                            Get Started
-                        </Link>
-                    </div>
-                </div>
-            </nav>
-
+        <>
             {/* Hero Section */}
             <section className="hero min-h-[80vh] bg-gradient-to-br from-primary/10 via-base-100 to-secondary/10">
                 <div className="hero-content text-center max-w-5xl">
@@ -148,7 +128,7 @@ export default async function HomePage() {
             </section>
 
             {/* Features Section */}
-            <section className="py-20 bg-base-200">
+            <section id="features" className="py-20 bg-base-200">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-16">
                         <h2 className="text-4xl font-bold mb-4">Everything You Need</h2>
@@ -252,7 +232,7 @@ export default async function HomePage() {
                                     "Splits Network helped me triple my placement rate. The collaboration tools make working with other recruiters seamless."
                                 </p>
                                 <div className="flex items-center gap-3">
-                                    <div className="avatar avatar-placeholder">
+                                    <div className="avatar placeholder">
                                         <div className="bg-primary text-primary-content rounded-full w-12">
                                             <span>SJ</span>
                                         </div>
@@ -279,7 +259,7 @@ export default async function HomePage() {
                                     "As a company, this platform gave us access to specialized recruiters we couldn't afford to hire full-time. Game changer."
                                 </p>
                                 <div className="flex items-center gap-3">
-                                    <div className="avatar avatar-placeholder">
+                                    <div className="avatar placeholder">
                                         <div className="bg-secondary text-secondary-content rounded-full w-12">
                                             <span>MC</span>
                                         </div>
@@ -306,7 +286,7 @@ export default async function HomePage() {
                                     "The transparency and fair fee splits make this the only platform I use for split placements now. Highly recommended!"
                                 </p>
                                 <div className="flex items-center gap-3">
-                                    <div className="avatar avatar-placeholder">
+                                    <div className="avatar placeholder">
                                         <div className="bg-accent text-accent-content rounded-full w-12">
                                             <span>ER</span>
                                         </div>
@@ -323,7 +303,7 @@ export default async function HomePage() {
             </section>
 
             {/* CTA Section */}
-            <section className="py-20 bg-gradient-to-br from-primary to-secondary text-primary-content">
+            <section id="pricing" className="py-20 bg-gradient-to-br from-primary to-secondary text-primary-content">
                 <div className="container mx-auto px-4 text-center">
                     <h2 className="text-4xl font-bold mb-6">Ready to Grow Your Recruiting Business?</h2>
                     <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90">
@@ -343,34 +323,6 @@ export default async function HomePage() {
                     </p>
                 </div>
             </section>
-
-            {/* Footer */}
-            <footer className="footer footer-center p-10 bg-base-200 text-base-content">
-                <div>
-                    <div className="flex items-center gap-2 mb-4">
-                        <i className="fa-solid fa-network-wired text-2xl text-primary"></i>
-                        <span className="text-2xl font-bold">Splits Network</span>
-                    </div>
-                    <p className="max-w-md">
-                        The modern platform for split-fee recruiting.
-                        <br />
-                        Connecting recruiters and companies since 2024.
-                    </p>
-                </div>
-                <div>
-                    <div className="grid grid-flow-col gap-4">
-                        <a className="link link-hover">About</a>
-                        <a className="link link-hover">Contact</a>
-                        <a className="link link-hover">Privacy Policy</a>
-                        <a className="link link-hover">Terms of Service</a>
-                    </div>
-                </div>
-                <div>
-                    <p className="text-sm text-base-content/60">
-                        © 2024 Splits Network. All rights reserved.
-                    </p>
-                </div>
-            </footer>
-        </div>
+        </>
     );
 }

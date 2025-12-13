@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -33,7 +35,13 @@ export default async function RootLayout({
                         referrerPolicy="no-referrer"
                     />
                 </head>
-                <body>{children}</body>
+                <body className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow">
+                        {children}
+                    </main>
+                    <Footer />
+                </body>
             </html>
         </ClerkProvider>
     );
