@@ -31,6 +31,7 @@ COPY services/network-service ./services/network-service
 RUN pnpm --filter @splits-network/shared-config build
 RUN pnpm --filter @splits-network/shared-types build
 RUN pnpm --filter @splits-network/shared-logging build
+RUN pnpm --filter @splits-network/shared-fastify build
 # Then build service
 RUN pnpm --filter @splits-network/network-service build
 
@@ -46,6 +47,8 @@ COPY --from=build /app/packages/shared-types/dist ./node_modules/@splits-network
 COPY --from=build /app/packages/shared-types/package.json ./node_modules/@splits-network/shared-types/
 COPY --from=build /app/packages/shared-logging/dist ./node_modules/@splits-network/shared-logging/dist
 COPY --from=build /app/packages/shared-logging/package.json ./node_modules/@splits-network/shared-logging/
+COPY --from=build /app/packages/shared-fastify/dist ./node_modules/@splits-network/shared-fastify/dist
+COPY --from=build /app/packages/shared-fastify/package.json ./node_modules/@splits-network/shared-fastify/
 COPY --from=build /app/services/network-service/dist ./services/network-service/dist
 COPY --from=build /app/services/network-service/package.json ./services/network-service/
 EXPOSE 3003

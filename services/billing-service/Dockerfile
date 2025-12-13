@@ -31,6 +31,7 @@ COPY services/billing-service ./services/billing-service
 RUN pnpm --filter @splits-network/shared-config build
 RUN pnpm --filter @splits-network/shared-types build
 RUN pnpm --filter @splits-network/shared-logging build
+RUN pnpm --filter @splits-network/shared-fastify build
 # Then build service
 RUN pnpm --filter @splits-network/billing-service build
 
@@ -46,6 +47,8 @@ COPY --from=build /app/packages/shared-types/dist ./node_modules/@splits-network
 COPY --from=build /app/packages/shared-types/package.json ./node_modules/@splits-network/shared-types/
 COPY --from=build /app/packages/shared-logging/dist ./node_modules/@splits-network/shared-logging/dist
 COPY --from=build /app/packages/shared-logging/package.json ./node_modules/@splits-network/shared-logging/
+COPY --from=build /app/packages/shared-fastify/dist ./node_modules/@splits-network/shared-fastify/dist
+COPY --from=build /app/packages/shared-fastify/package.json ./node_modules/@splits-network/shared-fastify/
 COPY --from=build /app/services/billing-service/dist ./services/billing-service/dist
 COPY --from=build /app/services/billing-service/package.json ./services/billing-service/
 EXPOSE 3004
