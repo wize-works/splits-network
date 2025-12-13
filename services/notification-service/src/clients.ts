@@ -29,7 +29,7 @@ export class ServiceClient {
                 );
             }
 
-            return await response.json();
+            return await response.json() as T;
         } catch (error) {
             this.logger.error(
                 { error, url, service: this.serviceName },
