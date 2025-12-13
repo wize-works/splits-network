@@ -144,8 +144,8 @@ jobs:
 
             - name: Wait for infrastructure to be ready
               run: |
-                  kubectl wait --for=condition=ready pod -l app=redis --timeout=120s --namespace=splits-network
-                  kubectl wait --for=condition=ready pod -l app=rabbitmq --timeout=120s --namespace=splits-network
+                  kubectl rollout status deployment/redis --timeout=120s --namespace=splits-network
+                  kubectl rollout status deployment/rabbitmq --timeout=120s --namespace=splits-network
 
             - name: Deploy services
               run: |
@@ -157,11 +157,11 @@ jobs:
 
             - name: Wait for services to be ready
               run: |
-                  kubectl wait --for=condition=ready pod -l app=identity-service --timeout=120s --namespace=splits-network
-                  kubectl wait --for=condition=ready pod -l app=ats-service --timeout=120s --namespace=splits-network
-                  kubectl wait --for=condition=ready pod -l app=network-service --timeout=120s --namespace=splits-network
-                  kubectl wait --for=condition=ready pod -l app=billing-service --timeout=120s --namespace=splits-network
-                  kubectl wait --for=condition=ready pod -l app=notification-service --timeout=120s --namespace=splits-network
+                  kubectl rollout status deployment/identity-service --timeout=180s --namespace=splits-network
+                  kubectl rollout status deployment/ats-service --timeout=180s --namespace=splits-network
+                  kubectl rollout status deployment/network-service --timeout=180s --namespace=splits-network
+                  kubectl rollout status deployment/billing-service --timeout=180s --namespace=splits-network
+                  kubectl rollout status deployment/notification-service --timeout=180s --namespace=splits-network
 
             - name: Deploy API Gateway
               run: |
@@ -169,7 +169,7 @@ jobs:
 
             - name: Wait for API Gateway to be ready
               run: |
-                  kubectl wait --for=condition=ready pod -l app=api-gateway --timeout=120s --namespace=splits-network
+                  kubectl rollout status deployment/api-gateway --timeout=180s --namespace=splits-network
 
             - name: Deploy Portal
               run: |
@@ -177,7 +177,7 @@ jobs:
 
             - name: Wait for Portal to be ready
               run: |
-                  kubectl wait --for=condition=ready pod -l app=portal --timeout=120s --namespace=splits-network
+                  kubectl rollout status deployment/portal --timeout=180s --namespace=splits-network
 
             - name: Get deployment status
               run: |
