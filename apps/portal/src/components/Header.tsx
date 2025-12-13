@@ -3,10 +3,33 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth, UserButton } from '@clerk/nextjs';
+import { useEffect, useState } from 'react';
 
 export function Header() {
     const pathname = usePathname();
     const { isSignedIn } = useAuth();
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        // Initialize theme from localStorage on mount
+        try {
+            const saved = localStorage.getItem('theme');
+            if (saved) {
+                document.documentElement.setAttribute('data-theme', saved);
+                setIsDark(saved === 'splits-dark');
+            }
+        } catch {}
+    }, []);
+
+    const handleThemeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const checked = e.currentTarget.checked;
+        const theme = checked ? 'splits-dark' : 'splits-light';
+        document.documentElement.setAttribute('data-theme', theme);
+        setIsDark(checked);
+        try {
+            localStorage.setItem('theme', theme);
+        } catch {}
+    };
 
     // Don't show header on auth pages
     const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up') || pathname?.startsWith('/sso-callback');
@@ -51,6 +74,20 @@ export function Header() {
                             </ul>
                         </div>
                     )}
+                
+                <div className="flex-none gap-2 ml-auto">
+                    {/* Theme Toggle */}
+                    <label className="swap swap-rotate">
+                        <input 
+                            type="checkbox" 
+                            checked={isDark}
+                            onChange={handleThemeChange}
+                            className="theme-controller"
+                        />
+                        <i className="fa-solid fa-sun swap-off text-xl"></i>
+                        <i className="fa-solid fa-moon swap-on text-xl"></i>
+                    </label>
+                    
                     {isSignedIn ? (
                         <>
                             {!isAuthenticatedPage && (
@@ -62,17 +99,18 @@ export function Header() {
                             <UserButton afterSignOutUrl="/" />
                         </>
                     ) : (
-                        <div className='ml-auto'>
+                        <>
                             <Link href="/sign-in" className="btn btn-ghost">
                                 Sign In
                             </Link>
                             <Link href="/sign-up" className="btn btn-primary">
                                 Get Started
                             </Link>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>
+                </div>
         </header>
     );
 }
