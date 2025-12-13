@@ -42,7 +42,9 @@ jobs:
 
             - name: Build and push image
               run: |
+                  VERSION=$(cat VERSION)
                   IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:${{ github.sha }}
+                  VERSION_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:v${VERSION}
 
                   # Build with appropriate build args based on service
                   if [ "${{ matrix.service.name }}" = "portal" ]; then
@@ -61,9 +63,14 @@ jobs:
                       .
                   fi
 
+                  # Push with commit SHA
                   docker push $IMAGE_TAG
 
-                  # Also tag as latest
+                  # Tag and push with version
+                  docker tag $IMAGE_TAG $VERSION_TAG
+                  docker push $VERSION_TAG
+
+                  # Tag and push as latest
                   docker tag $IMAGE_TAG ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:latest
                   docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service.name }}:latest
 
