@@ -1,12 +1,22 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { createClerkClient, verifyToken } from '@clerk/backend';
-import { UnauthorizedError } from '@splits-network/shared-fastify';
+import { UnauthorizedError, ForbiddenError } from '@splits-network/shared-fastify';
+
+export type UserRole = 'recruiter' | 'company_admin' | 'hiring_manager' | 'platform_admin';
+
+export interface MembershipContext {
+    id: string;
+    organization_id: string;
+    organization_name: string;
+    role: UserRole;
+}
 
 export interface AuthContext {
     userId: string;
     clerkUserId: string;
     email: string;
     name: string;
+    memberships: MembershipContext[];
 }
 
 export class AuthMiddleware {
@@ -49,6 +59,7 @@ export class AuthMiddleware {
                 clerkUserId: user.id,
                 email: user.emailAddresses[0]?.emailAddress || '',
                 name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+                memberships: [], // Will be filled when resolving user context
             };
         } catch (error: any) {
             request.log.error({

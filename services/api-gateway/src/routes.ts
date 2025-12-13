@@ -1,13 +1,10 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { ServiceRegistry } from './clients';
 import { AuthContext } from './auth';
+import { requireRoles, AuthenticatedRequest, isRecruiter, isCompanyUser, isAdmin } from './rbac';
 
-interface AuthenticatedRequest extends FastifyRequest {
-    auth: AuthContext;
-}
-
-// Helper to resolve internal user ID from Clerk ID
-async function resolveUserId(services: ServiceRegistry, auth: AuthContext): Promise<string> {
+// Helper to resolve internal user ID and memberships from Clerk ID
+async function resolveUserContext(services: ServiceRegistry, auth: AuthContext): Promise<void> {
     const identityService = services.get('identity');
     
     // Sync the Clerk user (idempotent - creates if missing, updates if changed)
@@ -17,24 +14,39 @@ async function resolveUserId(services: ServiceRegistry, auth: AuthContext): Prom
         name: auth.name,
     });
     
-    return syncResponse.data.id;
+    const userId = syncResponse.data.id;
+    
+    // Get full user profile with memberships
+    const profileResponse: any = await identityService.get(`/users/${userId}`);
+    
+    // Update auth context with user ID and memberships
+    auth.userId = userId;
+    auth.memberships = profileResponse.data.memberships || [];
 }
 
 export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) {
+    // Middleware to resolve user context (userId + memberships) for all /api routes
+    app.addHook('onRequest', async (request, reply) => {
+        if (request.url.startsWith('/api/')) {
+            const req = request as AuthenticatedRequest;
+            if (req.auth) {
+                await resolveUserContext(services, req.auth);
+            }
+        }
+    });
+
     // Identity service routes
     app.get('/api/me', async (request: FastifyRequest, reply: FastifyReply) => {
         const req = request as AuthenticatedRequest;
         const identityService = services.get('identity');
         
-        // Resolve internal user ID
-        const userId = await resolveUserId(services, req.auth);
-        
-        // Get the full profile
-        const profile = await identityService.get(`/users/${userId}`);
+        // User context already resolved by middleware
+        const profile = await identityService.get(`/users/${req.auth.userId}`);
         return reply.send(profile);
     });
 
     // ATS service routes - Jobs
+    // Anyone authenticated can view jobs (later we'll filter by recruiter assignments)
     app.get('/api/jobs', async (request: FastifyRequest, reply: FastifyReply) => {
         const atsService = services.get('ats');
         const queryString = new URLSearchParams(request.query as any).toString();
@@ -50,13 +62,19 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         return reply.send(data);
     });
 
-    app.post('/api/jobs', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Only company admins and platform admins can create jobs
+    app.post('/api/jobs', {
+        preHandler: requireRoles(['company_admin', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
         const atsService = services.get('ats');
         const data = await atsService.post('/jobs', request.body);
         return reply.send(data);
     });
 
-    app.patch('/api/jobs/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Only company admins and platform admins can update jobs
+    app.patch('/api/jobs/:id', {
+        preHandler: requireRoles(['company_admin', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
         const atsService = services.get('ats');
         const data = await atsService.patch(`/jobs/${id}`, request.body);
@@ -71,26 +89,28 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         return reply.send(data);
     });
 
-    app.post('/api/applications', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Only recruiters can submit applications
+    app.post('/api/applications', {
+        preHandler: requireRoles(['recruiter']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
         const req = request as AuthenticatedRequest;
-        const userId = await resolveUserId(services, req.auth);
         const atsService = services.get('ats');
         const data = await atsService.post('/applications', {
             ...(request.body as any),
-            recruiter_id: userId,
+            recruiter_id: req.auth.userId,
         });
         return reply.send(data);
     });
 
-    app.patch(
-        '/api/applications/:id/stage',
-        async (request: FastifyRequest, reply: FastifyReply) => {
-            const { id } = request.params as { id: string };
-            const atsService = services.get('ats');
-            const data = await atsService.patch(`/applications/${id}/stage`, request.body);
-            return reply.send(data);
-        }
-    );
+    // Company users and admins can change application stages
+    app.patch('/api/applications/:id/stage', {
+        preHandler: requireRoles(['company_admin', 'hiring_manager', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const atsService = services.get('ats');
+        const data = await atsService.patch(`/applications/${id}/stage`, request.body);
+        return reply.send(data);
+    });
 
     app.get('/api/jobs/:jobId/applications', async (request: FastifyRequest, reply: FastifyReply) => {
         const { jobId } = request.params as { jobId: string };
@@ -100,6 +120,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     });
 
     // ATS service routes - Placements
+    // Recruiters and company users can view placements
     app.get('/api/placements', async (request: FastifyRequest, reply: FastifyReply) => {
         const atsService = services.get('ats');
         const data = await atsService.get('/placements');
@@ -113,24 +134,26 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         return reply.send(data);
     });
 
-    app.post('/api/placements', async (request: FastifyRequest, reply: FastifyReply) => {
-        const req = request as AuthenticatedRequest;
-        const userId = await resolveUserId(services, req.auth);
+    // Only company admins and platform admins can create placements
+    app.post('/api/placements', {
+        preHandler: requireRoles(['company_admin', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
         const atsService = services.get('ats');
-        const data = await atsService.post('/placements', {
-            ...(request.body as any),
-            recruiter_id: userId,
-        });
+        const data = await atsService.post('/placements', request.body);
         return reply.send(data);
     });
 
     // Network service routes - Recruiters
-    app.get('/api/recruiters', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Platform admins can view all recruiters
+    app.get('/api/recruiters', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
         const networkService = services.get('network');
         const data = await networkService.get('/recruiters');
         return reply.send(data);
     });
 
+    // Anyone can view a specific recruiter profile
     app.get('/api/recruiters/:id', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
         const networkService = services.get('network');
@@ -138,54 +161,67 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         return reply.send(data);
     });
 
+    // Users can create their own recruiter profile
     app.post('/api/recruiters', async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
         const networkService = services.get('network');
-        const data = await networkService.post('/recruiters', request.body);
+        const data = await networkService.post('/recruiters', {
+            ...(request.body as any),
+            user_id: req.auth.userId,
+        });
         return reply.send(data);
     });
 
     // Network service routes - Role assignments
-    app.get(
-        '/api/recruiters/:recruiterId/jobs',
-        async (request: FastifyRequest, reply: FastifyReply) => {
-            const { recruiterId } = request.params as { recruiterId: string };
-            const networkService = services.get('network');
-            const data = await networkService.get(`/recruiters/${recruiterId}/jobs`);
-            return reply.send(data);
-        }
-    );
+    // Recruiters can view their assigned jobs
+    app.get('/api/recruiters/:recruiterId/jobs', async (request: FastifyRequest, reply: FastifyReply) => {
+        const { recruiterId } = request.params as { recruiterId: string };
+        const networkService = services.get('network');
+        const data = await networkService.get(`/recruiters/${recruiterId}/jobs`);
+        return reply.send(data);
+    });
 
-    app.post('/api/assignments', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Only platform admins can assign recruiters to roles
+    app.post('/api/assignments', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
         const networkService = services.get('network');
         const data = await networkService.post('/assignments', request.body);
         return reply.send(data);
     });
 
     // Billing service routes
+    // Anyone authenticated can view plans
     app.get('/api/plans', async (request: FastifyRequest, reply: FastifyReply) => {
         const billingService = services.get('billing');
         const data = await billingService.get('/plans');
         return reply.send(data);
     });
 
-    app.get(
-        '/api/subscriptions/recruiter/:recruiterId',
-        async (request: FastifyRequest, reply: FastifyReply) => {
-            const { recruiterId } = request.params as { recruiterId: string };
-            const billingService = services.get('billing');
-            const data = await billingService.get(`/subscriptions/recruiter/${recruiterId}`);
-            return reply.send(data);
-        }
-    );
+    // Recruiters can view their own subscription, admins can view any
+    app.get('/api/subscriptions/recruiter/:recruiterId', async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const { recruiterId } = request.params as { recruiterId: string };
+        const billingService = services.get('billing');
+        
+        // TODO: Add check to ensure user can only view their own subscription unless admin
+        const data = await billingService.get(`/subscriptions/recruiter/${recruiterId}`);
+        return reply.send(data);
+    });
 
-    app.post('/api/subscriptions', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Recruiters can create their own subscriptions
+    app.post('/api/subscriptions', {
+        preHandler: requireRoles(['recruiter']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
         const billingService = services.get('billing');
         const data = await billingService.post('/subscriptions', request.body);
         return reply.send(data);
     });
 
-    // Companies
-    app.post('/api/companies', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Companies - only company admins and platform admins can create companies
+    app.post('/api/companies', {
+        preHandler: requireRoles(['company_admin', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
         const atsService = services.get('ats');
         const data = await atsService.post('/companies', request.body);
         return reply.send(data);
