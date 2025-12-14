@@ -22,16 +22,29 @@ async function main() {
     });
 
     // Initialize Redis for rate limiting
+    if (baseConfig.nodeEnv === 'production' && !redisConfig.password) {
+        throw new Error('REDIS_PASSWORD is required in production environment');
+    }
+
     const redis = new Redis({
         host: redisConfig.host,
         port: redisConfig.port,
         password: redisConfig.password,
     });
 
+    // CORS configuration - stricter in production
+    const allowedOrigins = baseConfig.nodeEnv === 'production'
+        ? (process.env.CORS_ORIGIN || '').split(',').filter(Boolean)
+        : true;
+
+    if (baseConfig.nodeEnv === 'production' && (!allowedOrigins || (allowedOrigins as string[]).length === 0)) {
+        throw new Error('CORS_ORIGIN must be set in production environment');
+    }
+
     const app = await buildServer({
         logger,
         cors: {
-            origin: process.env.CORS_ORIGIN || true,
+            origin: allowedOrigins,
             credentials: true,
         },
     });

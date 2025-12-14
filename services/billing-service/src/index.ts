@@ -1,4 +1,4 @@
-import { loadBaseConfig, loadDatabaseConfig, loadStripeConfigFromVault } from '@splits-network/shared-config';
+import { loadBaseConfig, loadDatabaseConfig, loadStripeConfig } from '@splits-network/shared-config';
 import { createLogger } from '@splits-network/shared-logging';
 import { buildServer, errorHandler } from '@splits-network/shared-fastify';
 import swagger from '@fastify/swagger';
@@ -10,7 +10,7 @@ import { registerRoutes } from './routes';
 async function main() {
     const baseConfig = loadBaseConfig('billing-service');
     const dbConfig = loadDatabaseConfig();
-    const stripeConfig = await loadStripeConfigFromVault();
+    const stripeConfig = loadStripeConfig();
 
     const logger = createLogger({
         serviceName: baseConfig.serviceName,

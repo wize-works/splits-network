@@ -2,7 +2,7 @@ import {
     loadBaseConfig,
     loadDatabaseConfig,
     loadRabbitMQConfig,
-    loadResendConfigFromVault,
+    loadResendConfig,
 } from '@splits-network/shared-config';
 import { createLogger } from '@splits-network/shared-logging';
 import { buildServer, errorHandler } from '@splits-network/shared-fastify';
@@ -15,7 +15,7 @@ async function main() {
     const baseConfig = loadBaseConfig('notification-service');
     const dbConfig = loadDatabaseConfig();
     const rabbitConfig = loadRabbitMQConfig();
-    const resendConfig = await loadResendConfigFromVault();
+    const resendConfig = loadResendConfig();
 
     // Load service URLs from environment
     const identityServiceUrl = process.env.IDENTITY_SERVICE_URL || 'http://localhost:3001';

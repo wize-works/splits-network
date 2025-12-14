@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { loadClerkConfigFromVault } from '@splits-network/shared-config';
+import { loadClerkConfig } from '@splits-network/shared-config';
 
 export async function GET() {
     try {
-        const config = await loadClerkConfigFromVault();
+        const config = loadClerkConfig();
         
         // Only return the publishable key (public)
         return NextResponse.json({

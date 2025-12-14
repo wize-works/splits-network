@@ -34,9 +34,12 @@ export function requireRoles(allowedRoles: UserRole[]) {
                 path: request.url,
             }, 'Access denied: insufficient permissions');
 
-            throw new ForbiddenError(
-                `Access denied. Required roles: ${allowedRoles.join(' or ')}. Your roles: ${userRoles.join(', ')}`
-            );
+            const isDevelopment = process.env.NODE_ENV === 'development';
+            const errorMessage = isDevelopment
+                ? `Access denied. Required roles: ${allowedRoles.join(' or ')}. Your roles: ${userRoles.join(', ')}`
+                : 'Access denied: insufficient permissions';
+
+            throw new ForbiddenError(errorMessage);
         }
     };
 }

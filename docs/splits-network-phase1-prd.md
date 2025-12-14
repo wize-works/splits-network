@@ -251,13 +251,14 @@
 - [ ] Resend API key configured
 
 ### Security & Compliance
-- [ ] Environment secrets stored securely (not in code)
-- [ ] Database connections use TLS
-- [ ] PII logging prevention verified
-- [ ] Rate limiting tested and tuned
-- [ ] CORS configuration reviewed
-- [ ] Auth token validation tested
-- [ ] Role-based access control tested
+- [x] Environment secrets stored securely (Kubernetes Secrets, not in code)
+- [x] Database connections use TLS (Supabase enforces TLS)
+- [x] PII logging prevention verified
+- [x] Rate limiting tested and tuned
+- [x] CORS configuration reviewed and hardened
+- [x] Auth token validation tested
+- [x] Role-based access control tested
+- [x] Security audit completed
 
 ### Performance
 - [x] **Pagination implemented on list endpoints** (jobs list with limit/offset) \u2705
