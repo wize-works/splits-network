@@ -52,29 +52,29 @@ export function Footer() {
                         <h3 className="font-bold text-lg mb-4">Product</h3>
                         <ul className="space-y-2">
                             <li>
-                                <Link href="/#features" className="link link-hover text-base-content/70 hover:text-base-content">
+                                <Link href="/features" className="link link-hover text-base-content/70 hover:text-base-content">
                                     Features
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/#pricing" className="link link-hover text-base-content/70 hover:text-base-content">
+                                <Link href="/pricing" className="link link-hover text-base-content/70 hover:text-base-content">
                                     Pricing
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/#how-it-works" className="link link-hover text-base-content/70 hover:text-base-content">
+                                <Link href="/how-it-works" className="link link-hover text-base-content/70 hover:text-base-content">
                                     How It Works
                                 </Link>
                             </li>
                             <li>
-                                <a href="#" className="link link-hover text-base-content/70 hover:text-base-content">
+                                <Link href="/integrations" className="link link-hover text-base-content/70 hover:text-base-content">
                                     Integrations
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="link link-hover text-base-content/70 hover:text-base-content">
+                                <Link href="/updates" className="link link-hover text-base-content/70 hover:text-base-content">
                                     Updates
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
