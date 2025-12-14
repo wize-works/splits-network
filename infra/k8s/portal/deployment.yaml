@@ -26,6 +26,8 @@ spec:
               value: "3100"
             - name: NEXT_PUBLIC_API_URL
               value: "https://api.splits.network/api"
+            - name: NEXT_PUBLIC_API_GATEWAY_URL
+              value: "https://api.splits.network"
             - name: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
               valueFrom:
                 secretKeyRef:
