@@ -157,7 +157,7 @@ export default function RolesList() {
 
             {/* Roles List - Grid View */}
             {viewMode === 'grid' && filteredJobs.length > 0 && (
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {filteredJobs.map((job) => (
                         <div key={job.id} className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
                             <div className="card-body">
