@@ -181,7 +181,7 @@ services:
       - /app/node_modules
     networks:
       - splits-network
-    command: sh -c "cd /app/services/document-service && /app/node_modules/.pnpm/node_modules/.bin/tsx watch src/index.ts"
+    command: ["pnpm", "--filter", "@splits-network/document-service", "dev"]
 
   api-gateway:
     build:

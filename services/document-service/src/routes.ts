@@ -249,6 +249,10 @@ export async function registerRoutes(fastify: FastifyInstance, service: Document
      * Health check endpoint
      */
     fastify.get('/health', async (_request, reply) => {
-        return reply.send({ status: 'ok', service: 'document-service' });
+        return reply.send({ 
+            status: 'healthy', 
+            service: 'document-service',
+            timestamp: new Date().toISOString(),
+        });
     });
 }
