@@ -153,7 +153,7 @@ export default function EditRolePage() {
                                 <label className="label">Job Title *</label>
                                 <input
                                     type="text"
-                                    className="input"
+                                    className="input w-full"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                     required
@@ -163,7 +163,7 @@ export default function EditRolePage() {
                                 <label className="label">Company ID</label>
                                 <input
                                     type="text"
-                                    className="input"
+                                    className="input w-full"
                                     value={formData.company_id}
                                     disabled
                                 />
@@ -176,7 +176,7 @@ export default function EditRolePage() {
                                 <label className="label">Location</label>
                                 <input
                                     type="text"
-                                    className="input"
+                                    className="input w-full"
                                     value={formData.location}
                                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                                 />
@@ -186,7 +186,7 @@ export default function EditRolePage() {
                                 <label className="label">Department</label>
                                 <input
                                     type="text"
-                                    className="input"
+                                    className="input w-full"
                                     value={formData.department}
                                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                                 />
@@ -196,7 +196,7 @@ export default function EditRolePage() {
                                 <label className="label">Fee Percentage *</label>
                                 <input
                                     type="number"
-                                    className="input"
+                                    className="input w-full"
                                     value={formData.fee_percentage}
                                     onChange={(e) => setFormData({ ...formData, fee_percentage: parseFloat(e.target.value) })}
                                     required
@@ -212,7 +212,7 @@ export default function EditRolePage() {
                             <div className="fieldset">
                                 <label className="label">Status *</label>
                                 <select
-                                    className="select"
+                                    className="select w-full"
                                     value={formData.status}
                                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                     required
@@ -232,7 +232,7 @@ export default function EditRolePage() {
                                 <label className="label">Minimum Salary</label>
                                 <input
                                     type="number"
-                                    className="input"
+                                    className="input w-full"
                                     value={formData.salary_min}
                                     onChange={(e) => setFormData({ ...formData, salary_min: e.target.value })}
                                 />
@@ -242,7 +242,7 @@ export default function EditRolePage() {
                                 <label className="label">Maximum Salary</label>
                                 <input
                                     type="number"
-                                    className="input"
+                                    className="input w-full"
                                     value={formData.salary_max}
                                     onChange={(e) => setFormData({ ...formData, salary_max: e.target.value })}
                                 />
@@ -253,10 +253,13 @@ export default function EditRolePage() {
                         <div className="fieldset">
                             <label className="label">Job Description</label>
                             <textarea
-                                className="textarea h-32"
+                                className="textarea w-full h-32 w-full"
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                             ></textarea>
+                            <p className='label'>
+                                A detailed description of the role, responsibilities, and requirements.  It is recommended to write this in an external editor and paste it in.
+                            </p>
                         </div>
 
                         {/* Actions */}

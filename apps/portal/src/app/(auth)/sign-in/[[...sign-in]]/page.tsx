@@ -66,14 +66,12 @@ export default function SignInPage() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Email</span>
-                            </label>
+                        <div className="fieldset">
+                            <label className="label">Email</label>
                             <input
                                 type="email"
                                 placeholder="you@example.com"
-                                className="input input-bordered w-full"
+                                className="input w-full"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -81,14 +79,12 @@ export default function SignInPage() {
                             />
                         </div>
 
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Password</span>
-                            </label>
+                        <div className="fieldset">
+                            <label className="label">Password</label>
                             <input
                                 type="password"
                                 placeholder="••••••••"
-                                className="input input-bordered w-full"
+                                className="input w-full"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required

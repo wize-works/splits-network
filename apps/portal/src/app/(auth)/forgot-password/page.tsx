@@ -110,14 +110,12 @@ export default function ForgotPasswordPage() {
                         )}
 
                         <form onSubmit={handleReset} className="space-y-4">
-                            <div className="form-control">
-                                <label className="label">
-                                    <span className="label-text">Reset Code</span>
-                                </label>
+                            <div className="fieldset">
+                                <label className="label">Reset Code</label>
                                 <input
                                     type="text"
                                     placeholder="123456"
-                                    className="input input-bordered w-full text-center text-2xl tracking-widest"
+                                    className="input w-full text-center text-2xl tracking-widest"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value)}
                                     required
@@ -193,14 +191,12 @@ export default function ForgotPasswordPage() {
                     )}
 
                     <form onSubmit={handleSendCode} className="space-y-4">
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Email</span>
-                            </label>
+                        <div className="fieldset">
+                            <label className="label">Email</label>
                             <input
                                 type="email"
                                 placeholder="you@example.com"
-                                className="input input-bordered w-full"
+                                className="input w-full"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required

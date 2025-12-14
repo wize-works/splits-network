@@ -60,51 +60,43 @@ export default function SubmitCandidateModal({ roleId, onClose }: SubmitCandidat
                         </div>
                     )}
 
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text">Full Name *</span>
-                        </label>
+                    <div className="fieldset">
+                        <label className="label">Full Name *</label>
                         <input
                             type="text"
-                            className="input input-bordered"
+                            className="input w-full"
                             value={formData.full_name}
                             onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                             required
                         />
                     </div>
 
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text">Email *</span>
-                        </label>
+                    <div className="fieldset">
+                        <label className="label">Email *</label>
                         <input
                             type="email"
-                            className="input input-bordered"
+                            className="input w-full"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             required
                         />
                     </div>
 
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text">LinkedIn URL</span>
-                        </label>
+                    <div className="fieldset">
+                        <label className="label">LinkedIn URL</label>
                         <input
                             type="url"
-                            className="input input-bordered"
+                            className="input w-full"
                             value={formData.linkedin_url}
                             onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
                             placeholder="https://linkedin.com/in/..."
                         />
                     </div>
 
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text">Notes</span>
-                        </label>
+                    <div className="fieldset">
+                        <label className="label">Notes</label>
                         <textarea
-                            className="textarea textarea-bordered h-24"
+                            className="textarea w-full h-24"
                             value={formData.notes}
                             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                             placeholder="Why is this candidate a great fit?"

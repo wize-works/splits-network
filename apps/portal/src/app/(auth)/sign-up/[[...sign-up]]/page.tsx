@@ -101,14 +101,12 @@ export default function SignUpPage() {
                         )}
 
                         <form onSubmit={handleVerification} className="space-y-4">
-                            <div className="form-control">
-                                <label className="label">
-                                    <span className="label-text">Verification Code</span>
-                                </label>
+                            <div className="fieldset">
+                                <label className="label">Verification Code</label>
                                 <input
                                     type="text"
                                     placeholder="123456"
-                                    className="input input-bordered w-full text-center text-2xl tracking-widest"
+                                    className="input w-full text-center text-2xl tracking-widest"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value)}
                                     required
@@ -162,28 +160,24 @@ export default function SignUpPage() {
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="form-control">
-                                <label className="label">
-                                    <span className="label-text">First Name</span>
-                                </label>
+                            <div className="fieldset">
+                                <label className="label">First Name</label>
                                 <input
                                     type="text"
                                     placeholder="John"
-                                    className="input input-bordered w-full"
+                                    className="input w-full"
                                     value={firstName}
                                     onChange={(e) => setFirstName(e.target.value)}
                                     required
                                     disabled={isLoading}
                                 />
                             </div>
-                            <div className="form-control">
-                                <label className="label">
-                                    <span className="label-text">Last Name</span>
-                                </label>
+                            <div className="fieldset">
+                                <label className="label">Last Name</label>
                                 <input
                                     type="text"
                                     placeholder="Doe"
-                                    className="input input-bordered w-full"
+                                    className="input w-full"
                                     value={lastName}
                                     onChange={(e) => setLastName(e.target.value)}
                                     required
@@ -192,14 +186,12 @@ export default function SignUpPage() {
                             </div>
                         </div>
 
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Email</span>
-                            </label>
+                        <div className="fieldset">
+                            <label className="label">Email</label>
                             <input
                                 type="email"
                                 placeholder="you@example.com"
-                                className="input input-bordered w-full"
+                                className="input w-full"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -207,14 +199,12 @@ export default function SignUpPage() {
                             />
                         </div>
 
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Password</span>
-                            </label>
+                        <div className="fieldset">
+                            <label className="label">Password</label>
                             <input
                                 type="password"
                                 placeholder="••••••••"
-                                className="input input-bordered w-full"
+                                className="input w-full"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required

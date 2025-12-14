@@ -182,7 +182,7 @@ export default function RoleAssignmentsPage() {
                         <div className="fieldset">
                             <label className="label">Select Job</label>
                             <select
-                                className="select"
+                                className="select w-full"
                                 value={selectedJob}
                                 onChange={(e) => {
                                     setSelectedJob(e.target.value);
@@ -202,7 +202,7 @@ export default function RoleAssignmentsPage() {
                         <div className="fieldset">
                             <label className="label">Select Recruiter</label>
                             <select
-                                className="select"
+                                className="select w-full"
                                 value={selectedRecruiter}
                                 onChange={(e) => setSelectedRecruiter(e.target.value)}
                                 disabled={!selectedJob}

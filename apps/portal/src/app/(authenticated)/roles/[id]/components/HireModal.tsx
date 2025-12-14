@@ -70,13 +70,11 @@ export default function HireModal({ application, onClose, onSuccess }: HireModal
                         <span>This will create a placement record and calculate your earnings.</span>
                     </div>
 
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text">Annual Salary (USD) *</span>
-                        </label>
+                    <div className="fieldset">
+                        <label className="label">Annual Salary (USD) *</label>
                         <input
                             type="number"
-                            className="input input-bordered"
+                            className="input w-full"
                             value={salary}
                             onChange={(e) => setSalary(e.target.value)}
                             placeholder="150000"
@@ -89,13 +87,11 @@ export default function HireModal({ application, onClose, onSuccess }: HireModal
                         </label>
                     </div>
 
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text">Start Date</span>
-                        </label>
+                    <div className="fieldset">
+                        <label className="label">Start Date</label>
                         <input
                             type="date"
-                            className="input input-bordered"
+                            className="input w-full"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                         />
