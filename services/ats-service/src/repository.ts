@@ -56,6 +56,19 @@ export class AtsRepository {
         return data;
     }
 
+    async updateCompany(id: string, updates: Partial<Company>): Promise<Company> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('companies')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
     // Job methods
     async findJobs(filters?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<Job[]> {
         let query = this.supabase.schema('ats').from('jobs').select('*');
@@ -192,6 +205,34 @@ export class AtsRepository {
     }
 
     // Application methods
+    async findApplications(filters?: { 
+        recruiter_id?: string; 
+        job_id?: string; 
+        stage?: string 
+    }): Promise<Application[]> {
+        let query = this.supabase
+            .schema('ats')
+            .from('applications')
+            .select('*');
+
+        if (filters?.recruiter_id) {
+            query = query.eq('recruiter_id', filters.recruiter_id);
+        }
+        if (filters?.job_id) {
+            query = query.eq('job_id', filters.job_id);
+        }
+        if (filters?.stage) {
+            query = query.eq('stage', filters.stage);
+        }
+
+        query = query.order('created_at', { ascending: false });
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        return data || [];
+    }
+
     async findApplicationById(id: string): Promise<Application | null> {
         const { data, error } = await this.supabase
             .schema('ats')
@@ -257,12 +298,33 @@ export class AtsRepository {
     }
 
     // Placement methods
-    async findAllPlacements(): Promise<Placement[]> {
-        const { data, error } = await this.supabase
+    async findAllPlacements(filters?: {
+        recruiter_id?: string;
+        company_id?: string;
+        date_from?: string;
+        date_to?: string;
+    }): Promise<Placement[]> {
+        let query = this.supabase
             .schema('ats')
             .from('placements')
-            .select('*')
-            .order('hired_at', { ascending: false });
+            .select('*');
+
+        if (filters?.recruiter_id) {
+            query = query.eq('recruiter_id', filters.recruiter_id);
+        }
+        if (filters?.company_id) {
+            query = query.eq('company_id', filters.company_id);
+        }
+        if (filters?.date_from) {
+            query = query.gte('hired_at', filters.date_from);
+        }
+        if (filters?.date_to) {
+            query = query.lte('hired_at', filters.date_to);
+        }
+
+        query = query.order('hired_at', { ascending: false });
+
+        const { data, error } = await query;
 
         if (error) throw error;
         return data || [];

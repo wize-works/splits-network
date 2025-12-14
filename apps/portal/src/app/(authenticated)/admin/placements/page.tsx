@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { apiClient } from '@/lib/api-client';
+import { auth } from '@clerk/nextjs/server';
+import { ApiClient } from '@/lib/api-client';
 
 interface Placement {
     id: string;
@@ -14,9 +15,10 @@ interface Placement {
     created_at: string;
 }
 
-async function getPlacements(): Promise<Placement[]> {
+async function getPlacements(token: string): Promise<Placement[]> {
     try {
-        const response = await apiClient.get('/placements');
+        const client = new ApiClient(undefined, token);
+        const response = await client.get('/placements');
         return response.data || [];
     } catch (error) {
         console.error('Failed to fetch placements:', error);
@@ -25,7 +27,14 @@ async function getPlacements(): Promise<Placement[]> {
 }
 
 export default async function PlacementAuditPage() {
-    const placements = await getPlacements();
+    const { getToken } = await auth();
+    const token = await getToken();
+    
+    if (!token) {
+        return <div>Unauthorized</div>;
+    }
+    
+    const placements = await getPlacements(token);
 
     const totalValue = placements.reduce((sum, p) => sum + p.salary, 0);
     const totalFees = placements.reduce((sum, p) => sum + p.fee_amount, 0);

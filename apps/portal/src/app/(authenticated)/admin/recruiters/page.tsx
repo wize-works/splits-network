@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@clerk/nextjs';
+import { createAuthenticatedClient } from '@/lib/api-client';
 
 interface Recruiter {
     id: string;
@@ -13,6 +14,7 @@ interface Recruiter {
 }
 
 export default function RecruiterManagementPage() {
+    const { getToken } = useAuth();
     const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'suspended'>('all');
@@ -24,6 +26,11 @@ export default function RecruiterManagementPage() {
 
     async function loadRecruiters() {
         try {
+            const token = await getToken();
+            if (!token) {
+                throw new Error('No auth token');
+            }
+            const apiClient = createAuthenticatedClient(token);
             const response = await apiClient.get('/recruiters');
             setRecruiters(response.data || []);
         } catch (error) {
@@ -36,6 +43,11 @@ export default function RecruiterManagementPage() {
     async function updateRecruiterStatus(recruiterId: string, newStatus: 'active' | 'suspended' | 'pending') {
         setUpdatingId(recruiterId);
         try {
+            const token = await getToken();
+            if (!token) {
+                throw new Error('No auth token');
+            }
+            const apiClient = createAuthenticatedClient(token);
             await apiClient.patch(`/recruiters/${recruiterId}/status`, { status: newStatus });
             
             // Update local state

@@ -82,6 +82,15 @@ export function registerRoutes(app: FastifyInstance, service: AtsService) {
 
     // Application routes
     app.get(
+        '/applications',
+        async (request: FastifyRequest<{ Querystring: { recruiter_id?: string; job_id?: string; stage?: string } }>, reply: FastifyReply) => {
+            const { recruiter_id, job_id, stage } = request.query;
+            const applications = await service.getApplications({ recruiter_id, job_id, stage });
+            return reply.send({ data: applications });
+        }
+    );
+
+    app.get(
         '/applications/:id',
         async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
             const application = await service.getApplicationById(request.params.id);
@@ -152,8 +161,21 @@ export function registerRoutes(app: FastifyInstance, service: AtsService) {
     // Placement routes
     app.get(
         '/placements',
-        async (request: FastifyRequest, reply: FastifyReply) => {
-            const placements = await service.getPlacements();
+        async (request: FastifyRequest<{ 
+            Querystring: { 
+                recruiter_id?: string; 
+                company_id?: string; 
+                date_from?: string; 
+                date_to?: string;
+            } 
+        }>, reply: FastifyReply) => {
+            const { recruiter_id, company_id, date_from, date_to } = request.query;
+            const placements = await service.getPlacements({
+                recruiter_id,
+                company_id,
+                date_from,
+                date_to,
+            });
             return reply.send({ data: placements });
         }
     );
@@ -186,6 +208,14 @@ export function registerRoutes(app: FastifyInstance, service: AtsService) {
     );
 
     // Company routes
+    app.get(
+        '/companies/:id',
+        async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+            const company = await service.getCompanyById(request.params.id);
+            return reply.send({ data: company });
+        }
+    );
+
     app.post(
         '/companies',
         async (request: FastifyRequest<{ Body: { name: string; identity_organization_id?: string } }>, reply: FastifyReply) => {
@@ -197,6 +227,23 @@ export function registerRoutes(app: FastifyInstance, service: AtsService) {
 
             const company = await service.createCompany(name, identity_organization_id);
             return reply.status(201).send({ data: company });
+        }
+    );
+
+    app.patch(
+        '/companies/:id',
+        async (request: FastifyRequest<{ 
+            Params: { id: string }; 
+            Body: { name?: string; identity_organization_id?: string } 
+        }>, reply: FastifyReply) => {
+            const { name, identity_organization_id } = request.body;
+
+            if (!name && !identity_organization_id) {
+                throw new BadRequestError('At least one field must be provided');
+            }
+
+            const company = await service.updateCompany(request.params.id, { name, identity_organization_id });
+            return reply.send({ data: company });
         }
     );
 }

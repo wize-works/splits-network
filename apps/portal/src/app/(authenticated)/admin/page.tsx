@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { apiClient } from '@/lib/api-client';
+import { auth } from '@clerk/nextjs/server';
+import { ApiClient } from '@/lib/api-client';
 
 interface AdminStats {
     totalRecruiters: number;
@@ -11,18 +12,25 @@ interface AdminStats {
     totalPlacements: number;
 }
 
-async function getAdminStats(): Promise<AdminStats> {
+async function getAdminStats(token: string): Promise<AdminStats> {
     try {
+        // Create authenticated API client
+        const client = new ApiClient(undefined, token);
+        
         // Fetch recruiters
-        const recruitersResponse = await apiClient.get('/recruiters');
+        const recruitersResponse = await client.get('/recruiters');
         const recruiters = recruitersResponse.data || [];
         
         // Fetch jobs
-        const jobsResponse = await apiClient.get('/jobs');
+        const jobsResponse = await client.get('/jobs');
         const jobs = jobsResponse.data || [];
         
+        // Fetch applications
+        const applicationsResponse = await client.get('/applications');
+        const applications = applicationsResponse.data || [];
+        
         // Fetch placements
-        const placementsResponse = await apiClient.get('/placements');
+        const placementsResponse = await client.get('/placements');
         const placements = placementsResponse.data || [];
 
         return {
@@ -31,7 +39,7 @@ async function getAdminStats(): Promise<AdminStats> {
             pendingRecruiters: recruiters.filter((r: any) => r.status === 'pending').length,
             totalJobs: jobs.length,
             activeJobs: jobs.filter((j: any) => j.status === 'active').length,
-            totalApplications: 0, // TODO: Add when applications list endpoint available
+            totalApplications: applications.length,
             totalPlacements: placements.length,
         };
     } catch (error) {
@@ -49,7 +57,14 @@ async function getAdminStats(): Promise<AdminStats> {
 }
 
 export default async function AdminPage() {
-    const stats = await getAdminStats();
+    const { getToken } = await auth();
+    const token = await getToken();
+    
+    if (!token) {
+        return <div>Unauthorized</div>;
+    }
+    
+    const stats = await getAdminStats(token);
 
     return (
         <div className="space-y-6">

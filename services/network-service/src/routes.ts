@@ -19,6 +19,27 @@ interface AssignRecruiterBody {
 
 export function registerRoutes(app: FastifyInstance, service: NetworkService) {
     // Recruiter routes
+    app.get('/recruiters', async (request: FastifyRequest, reply: FastifyReply) => {
+        const recruiters = await service.getAllRecruiters();
+        return reply.send({ data: recruiters });
+    });
+
+    // Stats route MUST come before :id route to avoid matching "stats" as an ID
+    app.get(
+        '/recruiters/:id/stats',
+        async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+            try {
+                const stats = await service.getRecruiterStats(request.params.id);
+                return reply.send({ data: stats });
+            } catch (error: any) {
+                if (error.message.includes('not found')) {
+                    throw new NotFoundError('Recruiter', request.params.id);
+                }
+                throw error;
+            }
+        }
+    );
+
     app.get(
         '/recruiters/:id',
         async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
@@ -33,11 +54,6 @@ export function registerRoutes(app: FastifyInstance, service: NetworkService) {
             }
         }
     );
-
-    app.get('/recruiters', async (request: FastifyRequest, reply: FastifyReply) => {
-        const recruiters = await service.getAllRecruiters();
-        return reply.send({ data: recruiters });
-    });
 
     app.get(
         '/recruiters/by-user/:userId',

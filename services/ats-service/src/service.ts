@@ -31,6 +31,12 @@ export class AtsService {
         });
     }
 
+    async updateCompany(id: string, updates: { name?: string; identity_organization_id?: string }): Promise<Company> {
+        // Verify company exists
+        await this.getCompanyById(id);
+        return await this.repository.updateCompany(id, updates);
+    }
+
     // Job methods
     async getJobs(filters?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<Job[]> {
         const jobs = await this.repository.findJobs(filters);
@@ -121,6 +127,14 @@ export class AtsService {
     }
 
     // Application methods
+    async getApplications(filters?: { 
+        recruiter_id?: string; 
+        job_id?: string; 
+        stage?: string 
+    }): Promise<Application[]> {
+        return await this.repository.findApplications(filters);
+    }
+
     async getApplicationById(id: string): Promise<Application> {
         const application = await this.repository.findApplicationById(id);
         if (!application) {
@@ -212,8 +226,13 @@ export class AtsService {
     }
 
     // Placement methods
-    async getPlacements(): Promise<Placement[]> {
-        return await this.repository.findAllPlacements();
+    async getPlacements(filters?: {
+        recruiter_id?: string;
+        company_id?: string;
+        date_from?: string;
+        date_to?: string;
+    }): Promise<Placement[]> {
+        return await this.repository.findAllPlacements(filters);
     }
 
     async getPlacementById(id: string): Promise<Placement> {

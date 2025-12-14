@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@clerk/nextjs';
+import { createAuthenticatedClient } from '@/lib/api-client';
 
 interface Job {
     id: string;
@@ -25,6 +26,7 @@ interface Assignment {
 }
 
 export default function RoleAssignmentsPage() {
+    const { getToken } = useAuth();
     const [jobs, setJobs] = useState<Job[]>([]);
     const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
     const [selectedJob, setSelectedJob] = useState<string>('');
@@ -39,6 +41,12 @@ export default function RoleAssignmentsPage() {
 
     async function loadData() {
         try {
+            const token = await getToken();
+            if (!token) {
+                throw new Error('No auth token');
+            }
+            const apiClient = createAuthenticatedClient(token);
+            
             const [jobsResponse, recruitersResponse] = await Promise.all([
                 apiClient.get('/jobs?status=active'),
                 apiClient.get('/recruiters'),
@@ -78,6 +86,12 @@ export default function RoleAssignmentsPage() {
 
         setAssigning(true);
         try {
+            const token = await getToken();
+            if (!token) {
+                throw new Error('No auth token');
+            }
+            const apiClient = createAuthenticatedClient(token);
+            
             await apiClient.post('/assignments', {
                 job_id: selectedJob,
                 recruiter_id: selectedRecruiter,
@@ -110,6 +124,12 @@ export default function RoleAssignmentsPage() {
         }
 
         try {
+            const token = await getToken();
+            if (!token) {
+                throw new Error('No auth token');
+            }
+            const apiClient = createAuthenticatedClient(token);
+            
             await apiClient.delete(`/assignments/${jobId}/${recruiterId}`);
 
             // Update local state
@@ -159,12 +179,10 @@ export default function RoleAssignmentsPage() {
                     <h2 className="card-title">Assign Recruiter to Role</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                         {/* Job Selection */}
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Select Job</span>
-                            </label>
+                        <div className="fieldset">
+                            <label className="label">Select Job</label>
                             <select
-                                className="select select-bordered"
+                                className="select"
                                 value={selectedJob}
                                 onChange={(e) => {
                                     setSelectedJob(e.target.value);
@@ -181,12 +199,10 @@ export default function RoleAssignmentsPage() {
                         </div>
 
                         {/* Recruiter Selection */}
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Select Recruiter</span>
-                            </label>
+                        <div className="fieldset">
+                            <label className="label">Select Recruiter</label>
                             <select
-                                className="select select-bordered"
+                                className="select"
                                 value={selectedRecruiter}
                                 onChange={(e) => setSelectedRecruiter(e.target.value)}
                                 disabled={!selectedJob}

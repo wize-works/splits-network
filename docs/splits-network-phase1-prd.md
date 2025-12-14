@@ -56,6 +56,7 @@
 - [x] Supabase client configured to use schema properly with .schema() method
 - [x] Companies endpoints (POST)
 - [x] Jobs endpoints (GET list by company, GET by ID, POST, PATCH) - Fully tested and working
+- [x] **Pagination support for jobs list (limit/offset parameters)** ✅
 - [x] Candidates endpoints (GET by ID, create via application flow)
 - [x] Applications endpoints (POST, GET by job, GET by ID, PATCH stage)
 - [ ] Notes endpoints (POST, GET by application) - Deferred to later phase
@@ -71,9 +72,10 @@
 - [x] Database schema `network.*` created in Supabase
 - [x] Recruiter profile endpoints (GET /recruiters/:id, GET by user, POST, GET all)
 - [x] Recruiter status management (PATCH status: pending, active, suspended)
-- [x] Role assignments endpoints (POST assign, DELETE unassign)
+- [x] Role assignments endpoints (POST assign, DELETE unassign with query params)
 - [x] GET /recruiters/:recruiterId/jobs (jobs assigned to recruiter)
 - [x] GET /jobs/:jobId/recruiters (recruiters assigned to job)
+- [x] **All network service endpoints wired through API Gateway** ✅
 - [ ] Basic recruiter stats (submissions, placements count) - To be added
 - [ ] Integration tests
 
@@ -161,14 +163,18 @@
 - [x] Submit candidate form/modal (wired to real API)
 - [x] Candidate pipeline table component (wired to real API)
 - [x] Candidates page - `/candidates` (page structure implemented)
-- [x] Admin page - `/admin` (page structure implemented)
+- [x] **Admin pages - Full implementation** ✅
+  - [x] Admin dashboard (`/admin`) with platform metrics ✅
+  - [x] Recruiter management page (`/admin/recruiters`) with approval workflow ✅
+  - [x] Role assignments page (`/admin/assignments`) with assign/unassign functionality ✅
+  - [x] Placement audit page (`/admin/placements`) with financial summary ✅
+  - [x] Admin layout with role-based authorization and redirects ✅
 - [x] Placements & earnings page (recruiter view) - `/placements` (full implementation)
 - [ ] Candidate detail page - To be added
 - [x] Stage change UI (dropdown in pipeline table)
 - [x] Hire flow (mark as hired with salary input)
 - [ ] Role management page (company view) - Deferred
-- [ ] Role assignment UI (admin) - Deferred
-- [ ] Placement audit view (admin) - Deferred
+- [x] Sidebar navigation with role-based admin link visibility
 - [x] Subscription status indicator
 - [x] FontAwesome icons integrated inline
 - [x] API client singleton for gateway calls
@@ -219,7 +225,7 @@
 - [ ] Stripe products and prices created
 - [ ] Stripe webhooks configured
 - [x] Resend account setup
-- [ ] Resend sender domain verified
+- [x] Resend sender domain verified
 - [ ] Resend API key configured
 
 ### Security & Compliance
@@ -232,7 +238,7 @@
 - [ ] Role-based access control tested
 
 ### Performance
-- [ ] Pagination implemented on list endpoints
+- [x] **Pagination implemented on list endpoints** (jobs list with limit/offset) \u2705
 - [ ] Redis caching strategy for expensive queries
 - [ ] Database indexes created for common queries
 - [ ] Dashboard load time < 500ms server-side

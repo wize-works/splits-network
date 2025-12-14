@@ -18,7 +18,7 @@
 ## Priority 1: Critical MVP Features (Week 1-2)
 
 ### 1. Billing Service Implementation
-**Status:** ✅ Core Implementation Complete
+**Status:** ✅ Core Implementation Complete (Checkout flow deferred to end of Phase 1)
 **Completed:**
 - [x] Stripe SDK integration (Stripe API 2025-11-17.clover)
 - [x] Plans CRUD endpoints (GET /plans, GET /plans/:id, POST /plans)
@@ -53,9 +53,9 @@
 **Files:** `services/notification-service/src/` ✅ | `scripts/test-notification*.ts` ✅
 
 ### 3. Frontend Portal - Core Pages
-**Status:** ✅ Core Pages Complete
+**Status:** ✅ COMPLETE (Admin UI Done)
 **Completed:**
-- [x] Layout with sidebar navigation
+- [x] Layout with sidebar navigation (with role-based admin link visibility)
 - [x] Dashboard (recruiter view) with stats cards and activity feed
 - [x] Roles list page (/roles) - Table with real API data
 - [x] Role detail & pipeline view (/roles/[id])
@@ -64,24 +64,30 @@
   - Submit candidate modal ✅
 - [x] Placements & earnings page (/placements) - Full implementation
 - [x] Candidates page (/candidates) - Structure created
-- [x] Admin page (/admin) - Structure created
+- [x] **Admin pages - Full implementation** ✅
+  - Admin dashboard with platform metrics (recruiters, jobs, applications, placements) ✅
+  - Recruiter management with approval workflow (pending/active/suspended) ✅
+  - Role assignments UI (assign/unassign recruiters to jobs) ✅
+  - Placement audit view with financial summary ✅
+- [x] Admin authorization (layout with role checking and redirect)
 - [x] Stage change UI (dropdown in pipeline)
 - [x] Hire flow (mark as hired with salary input)
+- [x] API client with generic HTTP methods (get, post, patch, delete)
 **Remaining:**
 - [ ] Candidate detail page (dedicated page)
 - [ ] Company dashboard view
 - [ ] Role management page (company view)
-- [ ] Admin functionality (role assignments, recruiter approval)
-**Files:** `apps/portal/src/app/` ✅
+**Files:** `apps/portal/src/app/` ✅ | `apps/portal/src/app/(authenticated)/admin/` ✅
 
 ### 4. API Gateway - Routes & Features
-**Status:** ✅ Core Routes & RBAC Complete
+**Status:** ✅ COMPLETE (Enhanced Features Done)
 **Completed:**
 - [x] All job endpoints (GET /api/jobs, GET /api/jobs/:id, POST, PATCH)
 - [x] All application endpoints (GET, POST, PATCH stage, GET by job)
 - [x] All placement endpoints (GET /api/placements, GET /api/placements/:id, POST)
 - [x] Recruiter endpoints (GET /api/recruiters, GET /api/recruiters/:id, POST)
-- [x] Role assignment endpoints (GET /api/recruiters/:recruiterId/jobs, POST /api/assignments)
+- [x] Role assignment endpoints (GET /api/recruiters/:recruiterId/jobs, POST /api/assignments, DELETE /api/assignments/:jobId/:recruiterId)
+- [x] Job-recruiter relationship endpoints (GET /api/jobs/:jobId/recruiters)
 - [x] Billing endpoints (GET /api/plans, GET/POST /api/subscriptions)
 - [x] Company endpoint (POST /api/companies)
 - [x] `/api/me` with Clerk sync
@@ -89,8 +95,9 @@
   - requireRoles() middleware applied to all protected endpoints ✅
   - Recruiter, company admin, hiring manager, platform admin roles ✅
   - Helper functions: isAdmin(), isRecruiter(), isCompanyUser() ✅
+- [x] **GET /api/roles with recruiter filtering** (aggregates ATS + Network) ✅
+- [x] **Pagination support** for jobs list endpoint (limit/offset) ✅
 **Remaining:**
-- [ ] GET /api/roles with recruiter filtering (aggregates ATS + Network)
 - [ ] Correlation ID logging
 - [ ] Integration tests
 **Files:** `services/api-gateway/src/routes.ts` ✅ | `services/api-gateway/src/rbac.ts` ✅
@@ -102,17 +109,18 @@
 - [ ] Clerk webhooks (user.created, user.updated)
 - [ ] Stripe account + products/prices configured
 - [ ] Stripe webhooks configured and tested
-- [ ] Resend account + verified domain
+- [x] Resend account + verified domain (updates.splits.network)
 - [x] Environment variables structured (using .env pattern)
 - [ ] Environment variables fully documented
 
 ### 6. Missing API Features & Enhancements
-- [ ] GET /api/placements with filters (recruiter_id, company_id, date_range)
-- [ ] GET /api/recruiters/:id/stats (submissions count, placements count)
-- [ ] GET /api/companies/:id endpoint
-- [ ] PATCH /api/companies/:id endpoint
-- [ ] Pagination for list endpoints
-- [ ] GET /api/roles endpoint (aggregated view)
+- [x] GET /api/applications with filters (recruiter_id, job_id, stage)
+- [x] GET /api/placements with filters (recruiter_id, company_id, date_from, date_to)
+- [x] GET /api/recruiters/:id/stats (submissions count, placements count, total earnings)
+- [x] GET /api/companies/:id endpoint
+- [x] PATCH /api/companies/:id endpoint
+- [x] Pagination for list endpoints (jobs, applications, placements)
+- [x] GET /api/roles endpoint (aggregated view) - Already completed
 
 ### 7. Company User Experience
 - [ ] Company dashboard view (distinct from recruiter view)
@@ -142,8 +150,8 @@
 - [x] Redis and RabbitMQ deployments ✅
 - [ ] Dockerfiles optimized for production (multi-stage builds)
 - [ ] Environment secrets management (Kubernetes Secrets)
-- [ ] Health check endpoints per service
-- [ ] GitHub Actions CI/CD pipeline
+- [x] Health check endpoints per service
+- [x] GitHub Actions CI/CD pipeline
 - [-] Staging environment deployment
 - [ ] Production deployment guide and runbook
 
@@ -164,20 +172,23 @@
 
 ### 🎯 Priority Focus Areas:
 
-**Option A: External Integrations & Polish (Recommended)**
-1. Configure external services:
+**✅ Option A: Missing API Features** - COMPLETE
+1. ~~Implement missing endpoints~~ ✅ All done:
+   - GET /api/applications with filters ✅
+   - GET /api/placements with filters ✅
+   - GET /api/companies/:id and PATCH ✅
+   - GET /api/recruiters/:id/stats ✅
+   - GET /api/roles (aggregated view) ✅
+2. **Next: Configure external services:**
    - Set up Clerk webhooks for user sync
-   - Configure Stripe products and webhook endpoints
-   - Verify Resend sender domain
-2. Complete notification service data fetching (replace placeholders)
-3. Add checkout session flow in billing service
-4. Test end-to-end flows with real external APIs
+   - Configure Stripe products and webhook endpoints (defer checkout to end of Phase 1)
+3. Test end-to-end flows with real external APIs
 
-**Option B: Enhanced Features**
-1. ~~Implement role-based authorization (RBAC) in gateway~~ ✅ Already complete
-2. Add GET /api/roles with recruiter filtering
-3. Build out admin functionality (recruiter approval, role assignments)
-4. Add pagination to list endpoints
+**Option B: Enhanced Features** ✅ COMPLETE
+1. ~~Implement role-based authorization (RBAC) in gateway~~ ✅ Complete
+2. ~~Add GET /api/roles with recruiter filtering~~ ✅ Complete
+3. ~~Build out admin functionality (recruiter approval, role assignments)~~ ✅ Complete
+4. ~~Add pagination to list endpoints~~ ✅ Complete
 
 **Option C: Testing & Production Readiness**
 1. Write integration tests for all services
@@ -188,14 +199,16 @@
 
 ## Known Gaps & Decisions Needed
 
-1. **Email data fetching:** Notification service has email templates but needs to fetch actual user/job/candidate data from other services (currently logs placeholders)
+1. ~~**Email data fetching:**~~ ✅ Complete - Notification service fetches real data from all services
 2. **Checkout sessions:** Billing service needs checkout session creation for frontend subscription flow
 3. **Multi-recruiter splits:** Current code assumes single recruiter per placement. Decision: Phase 2
 4. **RLS (Row-Level Security):** Currently disabled in Supabase. Decision: Add for production?
 5. **Rate limiting strategy:** Current is basic per-IP. Need per-user limits?
 6. **Caching strategy:** Redis available but not used yet for dashboard queries
 7. **File storage:** If resume uploads needed, use Supabase Storage? (Not critical for Phase 1)
-8. **RBAC:** Role-based authorization is not yet implemented (currently just auth check)
+8. ~~**RBAC:**~~ ✅ Complete - Role-based authorization fully implemented and enforced
+9. ~~**Admin UI:**~~ ✅ Complete - Full admin dashboard with recruiter management and role assignments
+10. ~~**Pagination:**~~ ✅ Complete - Jobs list endpoint supports limit/offset parameters
 
 ## Success Metrics for MVP
 

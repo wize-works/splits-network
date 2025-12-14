@@ -15,6 +15,15 @@ interface Job {
     created_at: string;
 }
 
+interface Membership {
+    role: string;
+    organization_id: string;
+}
+
+interface UserProfile {
+    memberships: Membership[];
+}
+
 function getStatusBadge(status: string) {
     const styles = {
         active: 'badge-success',
@@ -31,10 +40,34 @@ export default function RolesList() {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [userRole, setUserRole] = useState<string | null>(null);
+
+    // Check if user can manage roles
+    const canManageRole = userRole === 'company_admin' || userRole === 'platform_admin';
 
     useEffect(() => {
+        fetchUserRole();
         fetchJobs();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [statusFilter]);
+
+    const fetchUserRole = async () => {
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            const client = createAuthenticatedClient(token);
+            const response: any = await client.getCurrentUser();
+            const profile: UserProfile = response.data;
+            
+            // Get the first membership role (Phase 1: users have one membership)
+            if (profile.memberships && profile.memberships.length > 0) {
+                setUserRole(profile.memberships[0].role);
+            }
+        } catch (error) {
+            console.error('Failed to fetch user role:', error);
+        }
+    };
 
     const fetchJobs = async () => {
         try {
@@ -76,12 +109,10 @@ export default function RolesList() {
             <div className="card bg-base-100 shadow-sm">
                 <div className="card-body">
                     <div className="flex flex-wrap gap-4">
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Status</span>
-                            </label>
+                        <div className="fieldset">
+                            <label className="label">Status</label>
                             <select 
-                                className="select select-bordered w-full max-w-xs"
+                                className="select w-full max-w-xs"
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
                             >
@@ -92,14 +123,12 @@ export default function RolesList() {
                                 <option value="closed">Closed</option>
                             </select>
                         </div>
-                        <div className="form-control flex-1">
-                            <label className="label">
-                                <span className="label-text">Search</span>
-                            </label>
+                        <div className="fieldset flex-1">
+                            <label className="label">Search</label>
                             <input
                                 type="text"
                                 placeholder="Search roles..."
-                                className="input input-bordered w-full"
+                                className="input w-full"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -112,47 +141,59 @@ export default function RolesList() {
             {filteredJobs.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
                     {filteredJobs.map((job) => (
-                        <Link key={job.id} href={`/roles/${job.id}`}>
-                            <div className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                                <div className="card-body">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
+                        <div key={job.id} className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="card-body">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <Link href={`/roles/${job.id}`} className="hover:text-primary transition-colors">
                                             <h3 className="card-title text-xl">{job.title}</h3>
-                                            <div className="flex items-center gap-4 mt-2 text-sm text-base-content/70">
+                                        </Link>
+                                        <div className="flex items-center gap-4 mt-2 text-sm text-base-content/70">
+                                            <span className="flex items-center gap-1">
+                                                <i className="fa-solid fa-building"></i>
+                                                Company {job.company_id.substring(0, 8)}
+                                            </span>
+                                            {job.location && (
                                                 <span className="flex items-center gap-1">
-                                                    <i className="fa-solid fa-building"></i>
-                                                    Company {job.company_id.substring(0, 8)}
+                                                    <i className="fa-solid fa-location-dot"></i>
+                                                    {job.location}
                                                 </span>
-                                                {job.location && (
-                                                    <span className="flex items-center gap-1">
-                                                        <i className="fa-solid fa-location-dot"></i>
-                                                        {job.location}
-                                                    </span>
-                                                )}
-                                                <span className="flex items-center gap-1">
-                                                    <i className="fa-solid fa-percent"></i>
-                                                    {job.fee_percentage}% fee
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-2">
-                                            <div className={`badge ${getStatusBadge(job.status)}`}>
-                                                {job.status}
-                                            </div>
+                                            )}
+                                            <span className="flex items-center gap-1">
+                                                <i className="fa-solid fa-percent"></i>
+                                                {job.fee_percentage}% fee
+                                            </span>
                                         </div>
                                     </div>
-                                    <div className="card-actions justify-between items-center mt-4">
-                                        <span className="text-sm text-base-content/60">
-                                            Posted {new Date(job.created_at).toLocaleDateString()}
-                                        </span>
-                                        <button className="btn btn-primary btn-sm gap-2">
+                                    <div className="flex flex-col items-end gap-2">
+                                        <div className={`badge ${getStatusBadge(job.status)}`}>
+                                            {job.status}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="card-actions justify-between items-center mt-4">
+                                    <span className="text-sm text-base-content/60">
+                                        Posted {new Date(job.created_at).toLocaleDateString()}
+                                    </span>
+                                    <div className="flex gap-2">
+                                        {canManageRole && (
+                                            <Link 
+                                                href={`/roles/${job.id}/edit`}
+                                                className="btn btn-ghost btn-sm gap-2"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <i className="fa-solid fa-pen"></i>
+                                                Edit
+                                            </Link>
+                                        )}
+                                        <Link href={`/roles/${job.id}`} className="btn btn-primary btn-sm gap-2">
                                             View Pipeline
                                             <i className="fa-solid fa-arrow-right"></i>
-                                        </button>
+                                        </Link>
                                     </div>
                                 </div>
                             </div>
-                        </Link>
+                        </div>
                     ))}
                 </div>
             ) : (

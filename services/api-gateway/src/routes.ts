@@ -81,7 +81,16 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         return reply.send(data);
     });
 
+    // ATS service routes - Applications    app.get('/api/applications', async (request: FastifyRequest, reply: FastifyReply) => {
     // ATS service routes - Applications
+    app.get('/api/applications', async (request: FastifyRequest, reply: FastifyReply) => {
+        const atsService = services.get('ats');
+        const queryString = new URLSearchParams(request.query as any).toString();
+        const path = queryString ? `/applications?${queryString}` : '/applications';
+        const data = await atsService.get(path);
+        return reply.send(data);
+    });
+
     app.get('/api/applications/:id', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
         const atsService = services.get('ats');
@@ -123,7 +132,9 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     // Recruiters and company users can view placements
     app.get('/api/placements', async (request: FastifyRequest, reply: FastifyReply) => {
         const atsService = services.get('ats');
-        const data = await atsService.get('/placements');
+        const queryString = new URLSearchParams(request.query as any).toString();
+        const path = queryString ? `/placements?${queryString}` : '/placements';
+        const data = await atsService.get(path);
         return reply.send(data);
     });
 
@@ -158,6 +169,13 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const { id } = request.params as { id: string };
         const networkService = services.get('network');
         const data = await networkService.get(`/recruiters/${id}`);
+        return reply.send(data);
+    });
+
+    app.get('/api/recruiters/:id/stats', async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const networkService = services.get('network');
+        const data = await networkService.get(`/recruiters/${id}/stats`);
         return reply.send(data);
     });
 
@@ -238,11 +256,27 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     });
 
     // Companies - only company admins and platform admins can create companies
+    app.get('/api/companies/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const atsService = services.get('ats');
+        const data = await atsService.get(`/companies/${id}`);
+        return reply.send(data);
+    });
+
     app.post('/api/companies', {
         preHandler: requireRoles(['company_admin', 'platform_admin']),
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const atsService = services.get('ats');
         const data = await atsService.post('/companies', request.body);
+        return reply.send(data);
+    });
+
+    app.patch('/api/companies/:id', {
+        preHandler: requireRoles(['company_admin', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const atsService = services.get('ats');
+        const data = await atsService.patch(`/companies/${id}`, request.body);
         return reply.send(data);
     });
 
