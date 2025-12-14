@@ -181,6 +181,14 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         return reply.send(data);
     });
 
+    // Get recruiters assigned to a specific job
+    app.get('/api/jobs/:jobId/recruiters', async (request: FastifyRequest, reply: FastifyReply) => {
+        const { jobId } = request.params as { jobId: string };
+        const networkService = services.get('network');
+        const data = await networkService.get(`/jobs/${jobId}/recruiters`);
+        return reply.send(data);
+    });
+
     // Only platform admins can assign recruiters to roles
     app.post('/api/assignments', {
         preHandler: requireRoles(['platform_admin']),
@@ -188,6 +196,17 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const networkService = services.get('network');
         const data = await networkService.post('/assignments', request.body);
         return reply.send(data);
+    });
+
+    // Only platform admins can unassign recruiters from roles
+    app.delete('/api/assignments/:jobId/:recruiterId', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { jobId, recruiterId } = request.params as { jobId: string; recruiterId: string };
+        const networkService = services.get('network');
+        // Network service expects query params, so we convert path params
+        await networkService.delete(`/assignments?job_id=${jobId}&recruiter_id=${recruiterId}`);
+        return reply.status(204).send();
     });
 
     // Billing service routes
@@ -225,5 +244,44 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const atsService = services.get('ats');
         const data = await atsService.post('/companies', request.body);
         return reply.send(data);
+    });
+
+    // Roles - Aggregated view of jobs with recruiter assignments
+    // Recruiters see only jobs assigned to them, admins see all jobs
+    app.get('/api/roles', async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const atsService = services.get('ats');
+        const networkService = services.get('network');
+
+        // Get query parameters for filtering
+        const queryString = new URLSearchParams(request.query as any).toString();
+        const path = queryString ? `/jobs?${queryString}` : '/jobs';
+
+        // Get all jobs
+        const jobsResponse: any = await atsService.get(path);
+        const jobs = jobsResponse.data || [];
+
+        // If user is a recruiter (not an admin), filter to only assigned jobs
+        if (isRecruiter(req.auth) && !isAdmin(req.auth)) {
+            // Get recruiter profile for this user
+            const recruiterResponse: any = await networkService.get(`/recruiters/by-user/${req.auth.userId}`);
+            const recruiter = recruiterResponse.data;
+
+            if (recruiter) {
+                // Get jobs assigned to this recruiter
+                const assignedJobsResponse: any = await networkService.get(`/recruiters/${recruiter.id}/jobs`);
+                const assignedJobIds = assignedJobsResponse.data || [];
+
+                // Filter jobs to only those assigned to this recruiter
+                const filteredJobs = jobs.filter((job: any) => assignedJobIds.includes(job.id));
+                return reply.send({ data: filteredJobs });
+            } else {
+                // Recruiter profile not found, return empty list
+                return reply.send({ data: [] });
+            }
+        }
+
+        // Admins and company users see all jobs
+        return reply.send({ data: jobs });
     });
 }

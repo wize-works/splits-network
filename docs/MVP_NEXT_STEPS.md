@@ -31,7 +31,7 @@
 **Files:** `services/billing-service/src/` ✅
 
 ### 2. Notification Service Implementation
-**Status:** ✅ Core Implementation Complete
+**Status:** ✅ COMPLETE
 **Completed:**
 - [x] Resend SDK integration
 - [x] Email templates (inline HTML)
@@ -42,10 +42,15 @@
 - [x] Email sending logic with error handling
 - [x] Notification logging to database (status tracking)
 - [x] Error handling with nack/requeue logic
+- [x] Full data fetching from identity, ATS, and network services via HTTP clients
+- [x] Service-to-service communication implemented and tested
+- [x] Email content enriched with real user/job/candidate data
+- [x] Test scripts created (basic + end-to-end)
+- [x] Testing documentation (README-NOTIFICATIONS.md)
 **Remaining:**
-- [ ] Fetch actual user/job/candidate data from services (currently logs placeholders)
-- [ ] Integration tests
-**Files:** `services/notification-service/src/` ✅
+- [ ] Integration tests with assertions
+- [ ] Production Resend domain verification
+**Files:** `services/notification-service/src/` ✅ | `scripts/test-notification*.ts` ✅
 
 ### 3. Frontend Portal - Core Pages
 **Status:** ✅ Core Pages Complete
@@ -70,7 +75,7 @@
 **Files:** `apps/portal/src/app/` ✅
 
 ### 4. API Gateway - Routes & Features
-**Status:** ✅ Core Routes Complete
+**Status:** ✅ Core Routes & RBAC Complete
 **Completed:**
 - [x] All job endpoints (GET /api/jobs, GET /api/jobs/:id, POST, PATCH)
 - [x] All application endpoints (GET, POST, PATCH stage, GET by job)
@@ -80,12 +85,15 @@
 - [x] Billing endpoints (GET /api/plans, GET/POST /api/subscriptions)
 - [x] Company endpoint (POST /api/companies)
 - [x] `/api/me` with Clerk sync
+- [x] **Role-based authorization (RBAC) fully implemented and enforced**
+  - requireRoles() middleware applied to all protected endpoints ✅
+  - Recruiter, company admin, hiring manager, platform admin roles ✅
+  - Helper functions: isAdmin(), isRecruiter(), isCompanyUser() ✅
 **Remaining:**
 - [ ] GET /api/roles with recruiter filtering (aggregates ATS + Network)
-- [ ] Role-based authorization middleware (RBAC)
 - [ ] Correlation ID logging
 - [ ] Integration tests
-**Files:** `services/api-gateway/src/routes.ts` ✅
+**Files:** `services/api-gateway/src/routes.ts` ✅ | `services/api-gateway/src/rbac.ts` ✅
 
 ## Priority 2: Polish & Integration (Week 3)
 
@@ -166,7 +174,7 @@
 4. Test end-to-end flows with real external APIs
 
 **Option B: Enhanced Features**
-1. Implement role-based authorization (RBAC) in gateway
+1. ~~Implement role-based authorization (RBAC) in gateway~~ ✅ Already complete
 2. Add GET /api/roles with recruiter filtering
 3. Build out admin functionality (recruiter approval, role assignments)
 4. Add pagination to list endpoints

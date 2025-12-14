@@ -103,7 +103,12 @@
 - [x] Notification logging to database (status: pending/sent/failed)
 - [x] Full data fetching from services (HTTP client for identity, ats, network services)
 - [x] Service URLs configured via environment variables
-- [ ] Integration tests
+- [x] Email content enriched with real user/job/candidate data
+- [x] Service-to-service HTTP calls fully implemented
+- [x] Test scripts created (basic event publishing + end-to-end flow)
+- [x] Testing documentation created (README-NOTIFICATIONS.md)
+- [ ] Integration tests with assertions
+- [ ] Production Resend domain verification
 ### API Gateway
 - [x] Fastify server setup
 - [x] Clerk JWT authentication middleware (using @clerk/backend verifyToken)
@@ -131,8 +136,12 @@
 - [x] `/api/subscriptions/recruiter/:recruiterId` → billing-service proxy
 - [x] `/api/companies` POST → ats-service proxy
 - [x] `/api/placements` GET with full list support
-- [ ] Authorization logic (role-based access control) - Currently auth only, no RBAC
-- [ ] Recruiter-specific job filtering (GET /api/jobs with recruiter context)
+- [x] **Role-based access control (RBAC) fully implemented**
+  - [x] `requireRoles()` middleware with membership checking
+  - [x] Applied to all protected endpoints (jobs, applications, placements, assignments, etc.)
+  - [x] Helper functions: `isAdmin()`, `isRecruiter()`, `isCompanyUser()`, `hasRole()`
+  - [x] Proper 403 Forbidden responses for insufficient permissions
+- [ ] Recruiter-specific job filtering (GET /api/roles endpoint with aggregated data)
 - [ ] Request/response logging with correlation IDs
 - [ ] Integration tests
 
@@ -197,19 +206,19 @@
 - [x] Namespace configuration (splits-network)
 - [x] Redis and RabbitMQ deployments created
 - [ ] Dockerfiles optimized for production
-- [ ] Secret management in Kubernetes (currently using env vars)
-- [ ] Health check endpoints per service
+- [-] Secret management in Kubernetes (currently using env vars)
+- [x] Health check endpoints per service
 - [ ] Monitoring setup (metrics, logs)
 - [-] Staging environment deployment (later phase)
-- [ ] Production environment deployment
+- [x] Production environment deployment
 
 ### External Integrations
-- [ ] Clerk tenant configured for Splits Network
+- [x] Clerk tenant configured for Splits Network
 - [ ] Clerk webhooks configured (user.created, user.updated)
 - [ ] Stripe account setup
 - [ ] Stripe products and prices created
 - [ ] Stripe webhooks configured
-- [ ] Resend account setup
+- [x] Resend account setup
 - [ ] Resend sender domain verified
 - [ ] Resend API key configured
 

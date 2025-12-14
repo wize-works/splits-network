@@ -57,7 +57,7 @@ export class AtsRepository {
     }
 
     // Job methods
-    async findJobs(filters?: { status?: string; search?: string }): Promise<Job[]> {
+    async findJobs(filters?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<Job[]> {
         let query = this.supabase.schema('ats').from('jobs').select('*');
 
         if (filters?.status) {
@@ -69,6 +69,14 @@ export class AtsRepository {
         }
 
         query = query.order('created_at', { ascending: false });
+
+        // Add pagination
+        if (filters?.limit) {
+            query = query.limit(filters.limit);
+        }
+        if (filters?.offset) {
+            query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
+        }
 
         const { data, error } = await query;
         if (error) throw error;

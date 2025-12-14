@@ -32,7 +32,7 @@ export class AtsService {
     }
 
     // Job methods
-    async getJobs(filters?: { status?: string; search?: string }): Promise<Job[]> {
+    async getJobs(filters?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<Job[]> {
         const jobs = await this.repository.findJobs(filters);
         
         // Enrich with company data

@@ -1,9 +1,24 @@
 // API client for communicating with the backend gateway
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+// Use internal Docker URL for server-side calls, public URL for client-side
+const getApiBaseUrl = () => {
+    // Server-side (inside Docker container)
+    if (typeof window === 'undefined') {
+        return process.env.NEXT_PUBLIC_API_GATEWAY_URL 
+            ? `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api`
+            : 'http://api-gateway:3000/api';
+    }
+    
+    // Client-side (browser)
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Debug: Log the actual base URL being used
 if (typeof window !== 'undefined') {
-    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('API_BASE_URL (client):', API_BASE_URL);
+} else {
+    console.log('API_BASE_URL (server):', API_BASE_URL);
 }
 
 export class ApiClient {
@@ -41,7 +56,35 @@ export class ApiClient {
             throw new Error(error.message || `HTTP ${response.status}`);
         }
 
+        // Handle 204 No Content responses
+        if (response.status === 204) {
+            return undefined as any;
+        }
+
         return response.json();
+    }
+
+    // Generic HTTP methods for admin operations
+    async get<T = any>(endpoint: string): Promise<T> {
+        return this.request<T>(endpoint, { method: 'GET' });
+    }
+
+    async post<T = any>(endpoint: string, data?: any): Promise<T> {
+        return this.request<T>(endpoint, {
+            method: 'POST',
+            body: data ? JSON.stringify(data) : undefined,
+        });
+    }
+
+    async patch<T = any>(endpoint: string, data?: any): Promise<T> {
+        return this.request<T>(endpoint, {
+            method: 'PATCH',
+            body: data ? JSON.stringify(data) : undefined,
+        });
+    }
+
+    async delete<T = any>(endpoint: string): Promise<T> {
+        return this.request<T>(endpoint, { method: 'DELETE' });
     }
 
     // Identity

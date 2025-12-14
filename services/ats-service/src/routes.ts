@@ -12,9 +12,14 @@ export function registerRoutes(app: FastifyInstance, service: AtsService) {
     // Job routes
     app.get(
         '/jobs',
-        async (request: FastifyRequest<{ Querystring: { status?: string; search?: string } }>, reply: FastifyReply) => {
-            const { status, search } = request.query;
-            const jobs = await service.getJobs({ status, search });
+        async (request: FastifyRequest<{ Querystring: { status?: string; search?: string; limit?: string; offset?: string } }>, reply: FastifyReply) => {
+            const { status, search, limit, offset } = request.query;
+            const jobs = await service.getJobs({ 
+                status, 
+                search,
+                limit: limit ? parseInt(limit) : undefined,
+                offset: offset ? parseInt(offset) : undefined,
+            });
             return reply.send({ data: jobs });
         }
     );

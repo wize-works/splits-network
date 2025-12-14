@@ -10,7 +10,15 @@
         "lint": "pnpm --filter \"./packages/**\" --filter \"./services/**\" --filter \"./apps/**\" lint",
         "clean": "pnpm --filter \"./packages/**\" --filter \"./services/**\" --filter \"./apps/**\" clean",
         "vault:setup": "psql $DATABASE_URL -f infra/migrations/001_setup_vault.sql -f infra/migrations/002_vault_helpers.sql",
-        "vault:populate": "node scripts/populate-vault.js"
+        "vault:populate": "node scripts/populate-vault.js",
+        "test:notifications": "tsx scripts/test-notifications.ts",
+        "test:notifications:e2e": "tsx scripts/test-notification-e2e.ts"
+    },
+    "devDependencies": {
+        "tsx": "^4.19.2",
+        "@types/node": "^22.10.2",
+        "amqplib": "^0.10.5",
+        "@types/amqplib": "^0.10.6"
     },
     "engines": {
         "node": ">=20.0.0",
