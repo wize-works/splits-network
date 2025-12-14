@@ -218,7 +218,7 @@
 - [x] Architecture doc created (splits-network-architecture.md)
 - [x] Phase 1 PRD created (splits-network-phase1-prd.md)
 - [x] Copilot instructions created
-- [ ] API documentation (OpenAPI/Swagger per service)
+- [x] API documentation (OpenAPI/Swagger per service)
 - [ ] Database schema documentation
 - [x] Deployment guide (Kubernetes)
 - [x] Local development setup guide

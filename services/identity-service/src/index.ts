@@ -1,6 +1,8 @@
 import { loadBaseConfig, loadDatabaseConfig } from '@splits-network/shared-config';
 import { createLogger } from '@splits-network/shared-logging';
 import { buildServer, errorHandler } from '@splits-network/shared-fastify';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import { IdentityRepository } from './repository';
 import { IdentityService } from './service';
 import { registerRoutes } from './routes';
@@ -25,6 +27,37 @@ async function main() {
 
     // Set error handler
     app.setErrorHandler(errorHandler);
+
+    // Register Swagger
+    await app.register(swagger, {
+        openapi: {
+            info: {
+                title: 'Identity Service API',
+                description: 'User identity, organizations, and membership management',
+                version: '1.0.0',
+            },
+            servers: [
+                {
+                    url: 'http://localhost:3001',
+                    description: 'Development server',
+                },
+            ],
+            tags: [
+                { name: 'users', description: 'User management' },
+                { name: 'organizations', description: 'Organization management' },
+                { name: 'memberships', description: 'User-organization memberships' },
+                { name: 'webhooks', description: 'Webhook endpoints' },
+            ],
+        },
+    });
+
+    await app.register(swaggerUi, {
+        routePrefix: '/docs',
+        uiConfig: {
+            docExpansion: 'list',
+            deepLinking: true,
+        },
+    });
 
     // Initialize repository and service
     const repository = new IdentityRepository(

@@ -1,6 +1,8 @@
 import { loadBaseConfig, loadDatabaseConfig, loadRabbitMQConfig } from '@splits-network/shared-config';
 import { createLogger } from '@splits-network/shared-logging';
 import { buildServer, errorHandler } from '@splits-network/shared-fastify';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import { AtsRepository } from './repository';
 import { AtsService } from './service';
 import { EventPublisher } from './events';
@@ -26,6 +28,38 @@ async function main() {
     });
 
     app.setErrorHandler(errorHandler);
+
+    // Register Swagger
+    await app.register(swagger, {
+        openapi: {
+            info: {
+                title: 'ATS Service API',
+                description: 'Applicant Tracking System - Jobs, candidates, applications, and placements',
+                version: '1.0.0',
+            },
+            servers: [
+                {
+                    url: 'http://localhost:3002',
+                    description: 'Development server',
+                },
+            ],
+            tags: [
+                { name: 'companies', description: 'Company management' },
+                { name: 'jobs', description: 'Job/role management' },
+                { name: 'candidates', description: 'Candidate management' },
+                { name: 'applications', description: 'Job applications and pipeline' },
+                { name: 'placements', description: 'Successful hires and placements' },
+            ],
+        },
+    });
+
+    await app.register(swaggerUi, {
+        routePrefix: '/docs',
+        uiConfig: {
+            docExpansion: 'list',
+            deepLinking: true,
+        },
+    });
 
     // Initialize event publisher
     const eventPublisher = new EventPublisher(rabbitConfig.url, logger);

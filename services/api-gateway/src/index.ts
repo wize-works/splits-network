@@ -2,6 +2,8 @@ import { loadBaseConfig, loadClerkConfig, loadRedisConfig } from '@splits-networ
 import { createLogger } from '@splits-network/shared-logging';
 import { buildServer, errorHandler } from '@splits-network/shared-fastify';
 import rateLimit from '@fastify/rate-limit';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import Redis from 'ioredis';
 import { randomUUID } from 'crypto';
 import { AuthMiddleware } from './auth';
@@ -36,6 +38,52 @@ async function main() {
 
     app.setErrorHandler(errorHandler);
 
+    // Register Swagger
+    await app.register(swagger, {
+        openapi: {
+            info: {
+                title: 'Splits Network API Gateway',
+                description: 'API Gateway for Splits Network - Routes requests to backend services',
+                version: '1.0.0',
+            },
+            servers: [
+                {
+                    url: 'http://localhost:3000',
+                    description: 'Development server',
+                },
+                {
+                    url: 'https://api.splits.network',
+                    description: 'Production server',
+                },
+            ],
+            components: {
+                securitySchemes: {
+                    clerkAuth: {
+                        type: 'http',
+                        scheme: 'bearer',
+                        bearerFormat: 'JWT',
+                        description: 'Clerk JWT token from authentication',
+                    },
+                },
+            },
+            tags: [
+                { name: 'identity', description: 'User and organization management' },
+                { name: 'ats', description: 'Jobs, candidates, applications, and placements' },
+                { name: 'network', description: 'Recruiter profiles and role assignments' },
+                { name: 'billing', description: 'Subscription plans and billing' },
+                { name: 'documents', description: 'Document storage and retrieval' },
+            ],
+        },
+    });
+
+    await app.register(swaggerUi, {
+        routePrefix: '/docs',
+        uiConfig: {
+            docExpansion: 'list',
+            deepLinking: true,
+        },
+    });
+
     // Register rate limiting
     await app.register(rateLimit, {
         max: 100,
@@ -48,8 +96,9 @@ async function main() {
         // Generate or use existing correlation ID
         const correlationId = (request.headers['x-correlation-id'] as string) || randomUUID();
         
-        // Store correlation ID in request context
+        // Store correlation ID and start time in request context
         (request as any).correlationId = correlationId;
+        (request as any).startTime = Date.now();
         
         // Add correlation ID to response headers
         reply.header('x-correlation-id', correlationId);
@@ -70,14 +119,15 @@ async function main() {
     // Add response logging middleware
     app.addHook('onResponse', async (request, reply) => {
         const correlationId = (request as any).correlationId;
-        const responseTime = reply.getResponseTime();
+        const startTime = (request as any).startTime;
+        const responseTime = Date.now() - startTime;
         
         logger.info({
             correlationId,
             method: request.method,
             url: request.url,
             statusCode: reply.statusCode,
-            responseTime: `${responseTime.toFixed(2)}ms`,
+            responseTime: `${responseTime}ms`,
         }, 'Request completed');
     });
 

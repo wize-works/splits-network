@@ -1,6 +1,8 @@
 import { loadBaseConfig, loadDatabaseConfig } from '@splits-network/shared-config';
 import { createLogger } from '@splits-network/shared-logging';
 import { buildServer, errorHandler } from '@splits-network/shared-fastify';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import { NetworkRepository } from './repository';
 import { NetworkService } from './service';
 import { registerRoutes } from './routes';
@@ -24,6 +26,36 @@ async function main() {
     });
 
     app.setErrorHandler(errorHandler);
+
+    // Register Swagger
+    await app.register(swagger, {
+        openapi: {
+            info: {
+                title: 'Network Service API',
+                description: 'Recruiter network management - profiles, assignments, and statistics',
+                version: '1.0.0',
+            },
+            servers: [
+                {
+                    url: 'http://localhost:3003',
+                    description: 'Development server',
+                },
+            ],
+            tags: [
+                { name: 'recruiters', description: 'Recruiter profile management' },
+                { name: 'assignments', description: 'Job role assignments to recruiters' },
+                { name: 'stats', description: 'Recruiter performance statistics' },
+            ],
+        },
+    });
+
+    await app.register(swaggerUi, {
+        routePrefix: '/docs',
+        uiConfig: {
+            docExpansion: 'list',
+            deepLinking: true,
+        },
+    });
 
     // Initialize repository and service
     const repository = new NetworkRepository(

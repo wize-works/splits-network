@@ -1,6 +1,8 @@
 import { loadBaseConfig, loadDatabaseConfig, loadStripeConfigFromVault } from '@splits-network/shared-config';
 import { createLogger } from '@splits-network/shared-logging';
 import { buildServer, errorHandler } from '@splits-network/shared-fastify';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import { BillingRepository } from './repository';
 import { BillingService } from './service';
 import { registerRoutes } from './routes';
@@ -25,6 +27,36 @@ async function main() {
     });
 
     app.setErrorHandler(errorHandler);
+
+    // Register Swagger
+    await app.register(swagger, {
+        openapi: {
+            info: {
+                title: 'Billing Service API',
+                description: 'Subscription management and Stripe integration',
+                version: '1.0.0',
+            },
+            servers: [
+                {
+                    url: 'http://localhost:3004',
+                    description: 'Development server',
+                },
+            ],
+            tags: [
+                { name: 'plans', description: 'Subscription plan management' },
+                { name: 'subscriptions', description: 'Recruiter subscription management' },
+                { name: 'webhooks', description: 'Stripe webhook endpoints' },
+            ],
+        },
+    });
+
+    await app.register(swaggerUi, {
+        routePrefix: '/docs',
+        uiConfig: {
+            docExpansion: 'list',
+            deepLinking: true,
+        },
+    });
 
     // Add raw body for Stripe webhooks
     app.addContentTypeParser(

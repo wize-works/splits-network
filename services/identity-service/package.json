@@ -10,6 +10,8 @@
         "clean": "rm -rf dist *.tsbuildinfo"
     },
     "dependencies": {
+        "@fastify/swagger": "^9.5.0",
+        "@fastify/swagger-ui": "^5.2.3",
         "@splits-network/shared-config": "workspace:*",
         "@splits-network/shared-fastify": "workspace:*",
         "@splits-network/shared-logging": "workspace:*",

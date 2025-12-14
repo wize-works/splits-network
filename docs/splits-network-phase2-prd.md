@@ -1,239 +1,150 @@
 
-# Splits Network – Phase 2 Product Requirements Document (PRD)
+# Splits Network – Phase 2 Product Requirements Document (Refactored & Aligned)
 
-Phase 2 focuses on **network depth, trust, leverage, and scalability**.
+This Phase 2 PRD refactors and extends the original Phase 2 plan to explicitly align with the TSN MASTER PRD.
 
-Phase 1 proved the core loop:
-- Roles enter the system.
-- Recruiters submit candidates.
-- Companies hire.
-- Placements and splits are tracked.
+Phase 1 proved the core execution loop:
+- Roles enter the system
+- Recruiters submit candidates
+- Companies hire
+- Placements and splits are tracked
 
-Phase 2 turns Splits Network from “a solid recruiting platform” into **a true recruiting marketplace with compounding value**.
+Phase 2 compounds this system into a true recruiting marketplace, while strictly preserving the economic, ownership, and control models defined in the MASTER PRD.
+
+Nothing in Phase 2 replaces or weakens the MASTER PRD.
+All Phase 2 features consume, extend, or surface those mechanics.
+
+---
+
+## 0. Phase 2 Alignment Assumptions
+
+Phase 2 explicitly assumes the following as immutable truths:
+
+- Candidate ownership, sourcer attribution, protection windows, and payout eligibility are governed by the MASTER PRD.
+- TSN may act as a first-class sourcer.
+- Recruiter tiers, load limits, and RM authority remain primary control mechanisms.
+- CandidateRoleAssignment is a state machine, not an ad-hoc workflow.
+- All placement math is authoritative and locked at hire.
+
+Phase 2 features must not introduce parallel ownership models or bypass paths.
 
 ---
 
 ## 1. Phase 2 Objectives
 
-Primary goals for Phase 2:
+Primary goals:
 
-1. Increase **network value** (more reasons to stay and grow inside Splits).
-2. Improve **trust and transparency** between recruiters and companies.
-3. Enable **collaboration and leverage** between recruiters.
-4. Lay groundwork for **automation, reputation, and AI assistance**.
-5. Prepare the platform for **higher volume and higher-value placements**.
-
-Phase 2 assumes Phase 1 is stable, live, and already used by real recruiters and companies.
+1. Increase network leverage without increasing chaos.
+2. Enable collaboration that respects sourcer economics.
+3. Surface trust and quality signals derived from real behavior.
+4. Expand placement logic to match real-world recruiting.
+5. Prepare the platform for automation and AI without removing human authority.
 
 ---
 
-## 2. Core Themes of Phase 2
+## 2. Recruiter Collaboration (Aligned)
 
-Phase 2 work aligns around five themes:
+### 2.1 Multi-Recruiter Placements
 
-- Recruiter collaboration & shared upside
-- Reputation, trust, and performance signals
-- Deeper placement & split mechanics
-- Outreach and sourcing leverage
-- Operational maturity (analytics, controls, scale)
-
-Each theme below maps to concrete features.
+- Allow multiple active recruiters per placement.
+- Explicit split percentages.
+- Original sourcer attribution preserved.
+- Splits locked at hire.
 
 ---
 
-## 3. Recruiter Collaboration & Shared Placements
+### 2.2 Recruiter Referrals
 
-### 3.1 Multi-Recruiter Split Placements
-
-**Problem**
-Many placements are collaborative:
-- One recruiter sources.
-- Another closes.
-- Sometimes referrals or handoffs occur.
-
-**Phase 2 Solution**
-Support **multi-recruiter placements** with configurable splits.
-
-**Requirements**
-- Allow multiple recruiters to be attached to a single placement.
-- Define split percentages per recruiter (e.g., 60 / 40).
-- Validate total split = 100%.
-- Display breakdown clearly to:
-  - Platform admins.
-  - Recruiters involved.
-- Lock splits once placement is finalized.
+- Referral defines receiving recruiter and split.
+- Attached to CandidateRoleAssignment.
+- Referral payout derived from recruiter share.
 
 ---
 
-### 3.2 Recruiter-to-Recruiter Referrals
+## 3. Reputation & Trust
 
-**Problem**
-Recruiters often know “the right person” but don’t want to fully own the role.
+### Recruiter Reputation
 
-**Phase 2 Solution**
-Enable recruiter referrals with predefined referral splits.
+- Outcome-based metrics.
+- Influences priority, not authority.
 
-**Requirements**
-- Recruiter can refer a role or candidate to another recruiter.
-- Referral defines receiving recruiter and referral split percentage.
-- Referral becomes part of placement record if hired.
-- Track referral performance separately.
+### Company Quality Signals
 
----
-
-## 4. Reputation & Trust System
-
-### 4.1 Recruiter Reputation Score
-
-**Signals**
-- Submissions → interview ratio.
-- Interviews → hire ratio.
-- Placement success rate.
-- Responsiveness.
-- Company feedback.
-
-**Requirements**
-- Automatic weighted score calculation.
-- Visible internally to admins.
-- Simplified visibility to recruiters and companies.
-- Used to prioritize role access.
-
----
-
-### 4.2 Company Reputation & Role Quality Signals
-
-**Signals**
 - Time-to-feedback.
 - Time-to-hire.
 - Offer acceptance rate.
 
-**Requirements**
-- Aggregate metrics per company and role.
-- Simple quality indicators for recruiters.
-- Admin-only raw metrics.
+---
+
+## 4. Placement & Fee Logic
+
+### Variable Fees
+
+- Flat, tiered, or fixed fee models.
+- Fee snapshot locked at hire.
+
+### Lifecycle & Guarantees
+
+- Active, completed, failed states.
+- Replacement linkage supported.
 
 ---
 
-## 5. Advanced Placement & Fee Logic
+## 5. Outreach & Sourcing
 
-### 5.1 Variable Fee Structures
-
-Supported models:
-- Flat percentage.
-- Tiered percentage.
-- Flat dollar fee.
-- Recruiter-specific overrides.
-
-Requirements:
-- Fee model defined at role creation.
-- Fee calculation shown before hire.
-- Placement snapshot locks fee logic at hire.
+- Outreach assigns deterministic sourcer ownership.
+- Sent via Resend.
+- Protection windows enforced.
 
 ---
 
-### 5.2 Placement Lifecycle & Guarantees
+## 6. Analytics
 
-Lifecycle states:
-- Hired
-- Active (guarantee window)
-- Completed
-- Failed
-
-Requirements:
-- Configurable guarantee window.
-- Track lifecycle transitions.
-- Link replacement hires if needed.
-
----
-
-## 6. Outreach & Sourcing Tools
-
-### 6.1 Recruiter Outreach Campaigns
-
-- Contact upload/import.
-- Simple email sequences.
-- Send via Resend.
-- Track sent/opened/replied.
-
-Constraints:
-- Low volume.
-- Mandatory unsubscribe handling.
-
----
-
-### 6.2 Candidate Reuse Signals
-
-- Suggest candidates that fit multiple roles.
-- Fast re-submission flow.
-
----
-
-## 7. Analytics & Intelligence
-
-### Recruiter Dashboards
-- Funnel metrics.
-- Earnings trends.
-- Role performance.
-
-### Admin Analytics
+- Recruiter funnels and earnings.
 - Network health metrics.
-- Revenue by tier.
-- Time-to-hire.
 
 ---
 
-## 8. Admin Controls
+## 7. Admin Controls
 
 - Recruiter caps.
-- Priority access.
 - Manual overrides with audit logs.
-- Internal notes and dispute markers.
+- Internal notes.
 
 ---
 
-## 9. Notifications & Automation
+## 8. Notifications & Events
 
-- Stalled candidate reminders.
-- Inactivity nudges.
+- Stalled candidate nudges.
 - Expanded domain events.
 
 ---
 
-## 10. Phase 2 Non-Goals
+## 9. Non-Goals
 
 - Automated payouts.
 - Public job boards.
-- Heavy AI automation.
-- Full CRM replacement.
+- Autonomous AI assignment.
 
 ---
 
-## 11. Success Metrics
+## 10. Success Metrics
 
 - Increased placements per recruiter.
-- Reduced recruiter churn.
-- Faster company feedback cycles.
-- More collaborative placements.
+- Reduced churn.
+- Faster time-to-hire.
 
 ---
 
-## 12. Phase 3 Enablement
+## 11. Phase 3 Enablement
 
-Phase 2 enables:
-- AI copilots.
-- Predictive matching.
-- Automated negotiations.
-- Marketplace optimization.
+Phase 2 prepares:
+- Reputation datasets.
+- Clean ownership timelines.
+- Event-driven automation.
 
 ---
 
-## 13. Summary
+## 12. Summary
 
-Phase 2 compounds the network:
-- Collaboration.
-- Reputation.
-- Leverage.
-- Intelligence.
-
-Phase 1 proved the loop.
-Phase 2 multiplies it.
+Phase 2 compounds leverage without breaking trust.
