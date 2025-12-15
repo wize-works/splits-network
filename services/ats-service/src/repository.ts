@@ -5,6 +5,9 @@ import {
     Candidate,
     Application,
     Placement,
+    CandidateSourcer,
+    CandidateOutreach,
+    PlacementCollaborator,
 } from '@splits-network/shared-types';
 
 export class AtsRepository {
@@ -417,6 +420,140 @@ export class AtsRepository {
         if (error) throw error;
         return data;
     }
-}
 
+    async updatePlacement(id: string, updates: Partial<Placement>): Promise<Placement> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('placements')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    // ========================================================================
+    // Phase 2: Candidate Sourcing & Ownership
+    // ========================================================================
+
+    async findCandidateSourcer(candidateId: string): Promise<any | null> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('candidate_sourcers')
+            .select('*')
+            .eq('candidate_id', candidateId)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data;
+    }
+
+    async createCandidateSourcer(sourcer: any): Promise<any> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('candidate_sourcers')
+            .insert(sourcer)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async findCandidateOutreach(filters: { 
+        candidate_id?: string; 
+        recruiter_user_id?: string;
+        job_id?: string;
+    }): Promise<any[]> {
+        let query = this.supabase
+            .schema('ats')
+            .from('candidate_outreach')
+            .select('*');
+
+        if (filters.candidate_id) {
+            query = query.eq('candidate_id', filters.candidate_id);
+        }
+        if (filters.recruiter_user_id) {
+            query = query.eq('recruiter_user_id', filters.recruiter_user_id);
+        }
+        if (filters.job_id) {
+            query = query.eq('job_id', filters.job_id);
+        }
+
+        query = query.order('sent_at', { ascending: false });
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    }
+
+    async createCandidateOutreach(outreach: any): Promise<any> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('candidate_outreach')
+            .insert(outreach)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async updateCandidateOutreach(id: string, updates: any): Promise<any> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('candidate_outreach')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    // ========================================================================
+    // Phase 2: Placement Collaborators
+    // ========================================================================
+
+    async findPlacementCollaborators(placementId: string): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('placement_collaborators')
+            .select('*')
+            .eq('placement_id', placementId);
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async createPlacementCollaborator(collaborator: any): Promise<any> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('placement_collaborators')
+            .insert(collaborator)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async findCollaborationsByRecruiter(recruiterUserId: string): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('placement_collaborators')
+            .select('*')
+            .eq('recruiter_user_id', recruiterUserId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    }
+}
 

@@ -1,150 +1,166 @@
 
-# Splits Network – Phase 2 Product Requirements Document (Refactored & Aligned)
+# Splits Network – Phase 2 PRD (Marketplace Expansion & Economic Depth)
 
-This Phase 2 PRD refactors and extends the original Phase 2 plan to explicitly align with the TSN MASTER PRD.
+Phase 2 is not an iteration on Phase 1 UX.
+Phase 2 is the transition from a working split-first ATS into a durable recruiting marketplace with enforceable economics.
 
-Phase 1 proved the core execution loop:
-- Roles enter the system
-- Recruiters submit candidates
-- Companies hire
-- Placements and splits are tracked
+Phase 1 proved that:
+- Recruiters will use the system
+- Companies will hire through it
+- Fees, splits, and pipelines can be tracked accurately
 
-Phase 2 compounds this system into a true recruiting marketplace, while strictly preserving the economic, ownership, and control models defined in the MASTER PRD.
-
-Nothing in Phase 2 replaces or weakens the MASTER PRD.
-All Phase 2 features consume, extend, or surface those mechanics.
-
----
-
-## 0. Phase 2 Alignment Assumptions
-
-Phase 2 explicitly assumes the following as immutable truths:
-
-- Candidate ownership, sourcer attribution, protection windows, and payout eligibility are governed by the MASTER PRD.
-- TSN may act as a first-class sourcer.
-- Recruiter tiers, load limits, and RM authority remain primary control mechanisms.
-- CandidateRoleAssignment is a state machine, not an ad-hoc workflow.
-- All placement math is authoritative and locked at hire.
-
-Phase 2 features must not introduce parallel ownership models or bypass paths.
+Phase 2 ensures:
+- Ownership is unambiguous
+- Collaboration is profitable
+- Quality compounds naturally
+- Scale does not break trust
 
 ---
 
-## 1. Phase 2 Objectives
+## 0. Phase 2 Implementation Checklist
 
-Primary goals:
+### Infrastructure & Platform
+- [ ] Extend database schemas for ownership and sourcing
+- [ ] Add new marketplace domain events
+- [ ] Extend RabbitMQ exchanges
+- [ ] Add Redis-backed counters for reputation signals
+- [ ] Update shared-types with Phase 2 models
+- [ ] Update shared-clients for new APIs
 
-1. Increase network leverage without increasing chaos.
-2. Enable collaboration that respects sourcer economics.
-3. Surface trust and quality signals derived from real behavior.
-4. Expand placement logic to match real-world recruiting.
-5. Prepare the platform for automation and AI without removing human authority.
+### Core Domain
+- [ ] Candidate ownership model
+- [ ] Sourcer attribution with protection windows
+- [ ] CandidateRoleAssignment state machine
+- [ ] Placement lifecycle and guarantees
+- [ ] Multi-recruiter split math
+- [ ] Reputation signal aggregation
 
----
+### Services
+- [ ] ATS service extensions
+- [ ] Network service collaboration logic
+- [ ] Notification extensions (ownership, guarantees)
+- [ ] Billing extensions (tracking only)
 
-## 2. Recruiter Collaboration (Aligned)
+### Frontend
+- [ ] Recruiter collaboration UI
+- [ ] Placement breakdown UI
+- [ ] Ownership indicators
+- [ ] Reputation badges
+- [ ] Admin audit views
 
-### 2.1 Multi-Recruiter Placements
-
-- Allow multiple active recruiters per placement.
-- Explicit split percentages.
-- Original sourcer attribution preserved.
-- Splits locked at hire.
-
----
-
-### 2.2 Recruiter Referrals
-
-- Referral defines receiving recruiter and split.
-- Attached to CandidateRoleAssignment.
-- Referral payout derived from recruiter share.
-
----
-
-## 3. Reputation & Trust
-
-### Recruiter Reputation
-
-- Outcome-based metrics.
-- Influences priority, not authority.
-
-### Company Quality Signals
-
-- Time-to-feedback.
-- Time-to-hire.
-- Offer acceptance rate.
+### Testing
+- [ ] Ownership claim flows
+- [ ] Multi-recruiter placement flows
+- [ ] Failure and replacement flows
 
 ---
 
-## 4. Placement & Fee Logic
+## 1. Phase 2 Goals
 
-### Variable Fees
-
-- Flat, tiered, or fixed fee models.
-- Fee snapshot locked at hire.
-
-### Lifecycle & Guarantees
-
-- Active, completed, failed states.
-- Replacement linkage supported.
+1. Enforce ownership and credit
+2. Enable safe collaboration
+3. Reward high-quality behavior
+4. Reduce wasted recruiter effort
+5. Prepare for AI assistance without automation risk
 
 ---
 
-## 5. Outreach & Sourcing
+## 2. Candidate Ownership & Sourcing
 
-- Outreach assigns deterministic sourcer ownership.
-- Sent via Resend.
-- Protection windows enforced.
+Candidate ownership is a time-bound economic right, not UI metadata.
 
----
-
-## 6. Analytics
-
-- Recruiter funnels and earnings.
-- Network health metrics.
+- First valid sourcer establishes ownership
+- Ownership applies across roles
+- Protection windows determine payout eligibility
+- TSN may act as a first-class sourcer
 
 ---
 
-## 7. Admin Controls
+## 3. CandidateRoleAssignment State Machine
 
-- Recruiter caps.
-- Manual overrides with audit logs.
-- Internal notes.
+Explicit states:
+- Proposed
+- Accepted
+- Declined
+- TimedOut
+- Submitted
+- Closed
+
+Timeouts and declines affect reputation.
 
 ---
 
-## 8. Notifications & Events
+## 4. Recruiter Collaboration
 
-- Stalled candidate nudges.
-- Expanded domain events.
+- Multiple active recruiters per placement
+- Explicit split percentages
+- Sourcer share calculated first
+- Math locked at hire
+
+Referrals are economic edges, not ownership.
+
+---
+
+## 5. Placement Lifecycle & Guarantees
+
+States:
+- Hired
+- Active
+- Completed
+- Failed
+
+Failed placements within guarantee windows enable replacements.
+
+---
+
+## 6. Reputation System
+
+Derived from outcomes:
+- Submission quality
+- Hire rate
+- Completion rate
+- Responsiveness
+
+Reputation influences access, not authority.
+
+---
+
+## 7. Outreach & Sourcing Tools
+
+- Outreach via Resend
+- Outreach establishes ownership
+- Unsubscribe and rate limits enforced
+
+---
+
+## 8. Analytics
+
+- Recruiter funnels
+- Collaboration vs solo placements
+- Network health metrics
 
 ---
 
 ## 9. Non-Goals
 
-- Automated payouts.
-- Public job boards.
-- Autonomous AI assignment.
+- Automated payouts
+- Public job boards
+- Autonomous AI decisions
 
 ---
 
 ## 10. Success Metrics
 
-- Increased placements per recruiter.
-- Reduced churn.
-- Faster time-to-hire.
+- Reduced disputes
+- Increased collaboration
+- Faster hires
+- Lower recruiter churn
 
 ---
 
-## 11. Phase 3 Enablement
+## 11. Summary
 
-Phase 2 prepares:
-- Reputation datasets.
-- Clean ownership timelines.
-- Event-driven automation.
-
----
-
-## 12. Summary
-
-Phase 2 compounds leverage without breaking trust.
+Phase 2 makes Splits Network durable:
+- Ownership is enforceable
+- Collaboration is safe
+- Quality compounds

@@ -7,6 +7,8 @@ import { AtsRepository } from './repository';
 import { AtsService } from './service';
 import { EventPublisher } from './events';
 import { registerRoutes } from './routes';
+import { CandidateOwnershipService, PlacementCollaborationService } from './ownership';
+import { PlacementLifecycleService } from './placement-lifecycle';
 
 async function main() {
     const baseConfig = loadBaseConfig('ats-service');
@@ -71,8 +73,13 @@ async function main() {
         dbConfig.supabaseServiceRoleKey || dbConfig.supabaseAnonKey
     );
     const service = new AtsService(repository, eventPublisher);
+    
+    // Phase 2 services
+    const ownershipService = new CandidateOwnershipService(repository, eventPublisher);
+    const collaborationService = new PlacementCollaborationService(repository, eventPublisher);
+    const lifecycleService = new PlacementLifecycleService(repository, eventPublisher);
 
-    // Register routes
+    // Register routes (pass Phase 2 services in future route updates)
     registerRoutes(app, service);
 
     // Health check endpoint
