@@ -1,4 +1,8 @@
-import { auth } from '@clerk/nextjs/server';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { useViewMode } from '@/hooks/useViewMode';
 
 // Mock placements data
 const mockPlacements = [
@@ -28,8 +32,10 @@ const mockPlacements = [
     },
 ];
 
-export default async function PlacementsPage() {
-    const { userId } = await auth();
+export default function PlacementsPage() {
+    const { userId } = useAuth();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [viewMode, setViewMode] = useViewMode('placementsViewMode');
 
     const totalEarnings = mockPlacements.reduce((sum, p) => sum + p.recruiter_share, 0);
     const thisYearEarnings = totalEarnings; // For now, assume all are this year
@@ -39,6 +45,13 @@ export default async function PlacementsPage() {
             return daysAgo <= 30;
         })
         .reduce((sum, p) => sum + p.recruiter_share, 0);
+
+    const filteredPlacements = mockPlacements.filter(placement =>
+        searchQuery === '' ||
+        placement.candidate_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        placement.job_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        placement.company_name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className="space-y-6">
@@ -83,12 +96,100 @@ export default async function PlacementsPage() {
                 </div>
             </div>
 
-            {/* Placements List */}
+            {/* Filters and View Toggle */}
             <div className="card bg-base-100 shadow-sm">
                 <div className="card-body">
-                    <h2 className="card-title">Placement History</h2>
+                    <div className="flex flex-wrap gap-4 items-end">
+                        <div className="fieldset flex-1">
+                            <label className="label">Search</label>
+                            <input
+                                type="text"
+                                placeholder="Search by candidate, role, or company..."
+                                className="input w-full"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <div className="join">
+                            <button 
+                                className={`btn join-item ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
+                                onClick={() => setViewMode('grid')}
+                                title="Grid View"
+                            >
+                                <i className="fa-solid fa-grip"></i>
+                            </button>
+                            <button 
+                                className={`btn join-item ${viewMode === 'table' ? 'btn-primary' : 'btn-ghost'}`}
+                                onClick={() => setViewMode('table')}
+                                title="Table View"
+                            >
+                                <i className="fa-solid fa-table"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    <div className="overflow-x-auto mt-4">
+            {/* Placements List - Grid View */}
+            {viewMode === 'grid' && filteredPlacements.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {filteredPlacements.map((placement) => (
+                        <div key={placement.id} className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="card-body">
+                                <div className="flex items-start gap-3">
+                                    <div className="avatar avatar-placeholder">
+                                        <div className="bg-success/10 text-success rounded-full w-12">
+                                            <span className="text-lg">
+                                                {placement.candidate_name.split(' ').map(n => n[0]).join('')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="card-title text-xl">{placement.candidate_name}</h3>
+                                        <div className="text-sm text-base-content/70 mt-1">
+                                            {placement.job_title}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 space-y-2">
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <i className="fa-solid fa-building text-base-content/60"></i>
+                                        <span>{placement.company_name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <i className="fa-solid fa-calendar text-base-content/60"></i>
+                                        <span>Hired {new Date(placement.hired_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm font-mono">
+                                        <i className="fa-solid fa-dollar-sign text-base-content/60"></i>
+                                        <span>${placement.salary.toLocaleString()} salary</span>
+                                    </div>
+                                </div>
+
+                                <div className="divider my-3"></div>
+
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="text-xs text-base-content/60">Your Earnings</div>
+                                        <div className="text-2xl font-bold text-success">
+                                            ${(placement.recruiter_share / 1000).toFixed(1)}k
+                                        </div>
+                                    </div>
+                                    <div className="badge badge-ghost">
+                                        {placement.fee_percentage}% fee
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Placements List - Table View */}
+            {viewMode === 'table' && filteredPlacements.length > 0 && (
+                <div className="card bg-base-100 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
                         <table className="table">
                             <thead>
                                 <tr>
@@ -98,28 +199,30 @@ export default async function PlacementsPage() {
                                     <th>Hired Date</th>
                                     <th>Salary</th>
                                     <th>Fee</th>
-                                    <th>Your Share</th>
+                                    <th className="text-right">Your Share</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {mockPlacements.map((placement) => (
+                                {filteredPlacements.map((placement) => (
                                     <tr key={placement.id} className="hover">
                                         <td>
                                             <div className="flex items-center gap-3">
                                                 <div className="avatar avatar-placeholder">
-                                                    <div className="bg-neutral text-neutral-content rounded-full w-10">
+                                                    <div className="bg-success/10 text-success rounded-full w-10">
                                                         <span className="text-xs">
                                                             {placement.candidate_name.split(' ').map(n => n[0]).join('')}
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <div className="font-medium">{placement.candidate_name}</div>
+                                                <div className="font-semibold">{placement.candidate_name}</div>
                                             </div>
                                         </td>
                                         <td>{placement.job_title}</td>
                                         <td>{placement.company_name}</td>
-                                        <td>{new Date(placement.hired_at).toLocaleDateString()}</td>
-                                        <td className="font-mono">
+                                        <td className="text-sm">
+                                            {new Date(placement.hired_at).toLocaleDateString()}
+                                        </td>
+                                        <td className="font-mono text-sm">
                                             ${placement.salary.toLocaleString()}
                                         </td>
                                         <td>
@@ -127,7 +230,7 @@ export default async function PlacementsPage() {
                                                 {placement.fee_percentage}%
                                             </div>
                                         </td>
-                                        <td className="font-semibold text-success">
+                                        <td className="text-right font-semibold text-success">
                                             ${placement.recruiter_share.toLocaleString()}
                                         </td>
                                     </tr>
@@ -135,18 +238,21 @@ export default async function PlacementsPage() {
                             </tbody>
                         </table>
                     </div>
-
-                    {mockPlacements.length === 0 && (
-                        <div className="text-center py-12">
-                            <i className="fa-solid fa-trophy text-6xl text-base-content/20"></i>
-                            <h3 className="text-xl font-semibold mt-4">No Placements Yet</h3>
-                            <p className="text-base-content/70 mt-2">
-                                Your successful placements will appear here
-                            </p>
-                        </div>
-                    )}
                 </div>
-            </div>
+            )}
+
+            {/* Empty State */}
+            {filteredPlacements.length === 0 && (
+                <div className="card bg-base-100 shadow-sm">
+                    <div className="card-body text-center py-12">
+                        <i className="fa-solid fa-trophy text-6xl text-base-content/20"></i>
+                        <h3 className="text-xl font-semibold mt-4">No Placements Found</h3>
+                        <p className="text-base-content/70 mt-2">
+                            {searchQuery ? 'Try adjusting your search' : 'Your successful placements will appear here'}
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
