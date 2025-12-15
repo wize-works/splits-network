@@ -42,7 +42,7 @@ export function Header() {
         pathname?.startsWith('/admin') || pathname?.startsWith('/settings') || pathname?.startsWith('/billing');
 
     return (
-        <header className="navbar bg-base-100 shadow-lg sticky top-0 z-50 mx-4">
+        <header className="navbar bg-base-100 shadow-lg sticky top-0 z-50 px-4">
             {/* Start: Brand + Mobile menu */}
             <div className="navbar-start">
                 {!isSignedIn && !isAuthenticatedPage && (
