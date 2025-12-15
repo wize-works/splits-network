@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@clerk/nextjs';
+import { createAuthenticatedClient } from '@/lib/api-client';
 
 interface CandidateDetailClientProps {
     candidateId: string;
 }
 
 export default function CandidateDetailClient({ candidateId }: CandidateDetailClientProps) {
+    const { getToken } = useAuth();
     const [candidate, setCandidate] = useState<any>(null);
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -20,19 +22,27 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                 setLoading(true);
                 setError(null);
 
+                const token = await getToken();
+                if (!token) {
+                    setError('Not authenticated');
+                    return;
+                }
+                
+                const client = createAuthenticatedClient(token);
+
                 // Fetch candidate details
-                const candidateResponse = await apiClient.get(`/candidates/${candidateId}`);
+                const candidateResponse = await client.get(`/candidates/${candidateId}`);
                 setCandidate(candidateResponse.data);
 
                 // Fetch applications
-                const applicationsResponse = await apiClient.get(`/candidates/${candidateId}/applications`);
+                const applicationsResponse = await client.get(`/candidates/${candidateId}/applications`);
                 const apps = applicationsResponse.data || [];
 
                 // Fetch job details for each application
                 const applicationsWithJobs = await Promise.all(
                     apps.map(async (app: any) => {
                         try {
-                            const jobResponse = await apiClient.get(`/jobs/${app.job_id}`);
+                            const jobResponse = await client.get(`/jobs/${app.job_id}`);
                             return { ...app, job: jobResponse.data };
                         } catch {
                             return { ...app, job: null };
@@ -50,7 +60,7 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
         }
 
         loadData();
-    }, [candidateId]);
+    }, [candidateId, getToken]);
 
     const getStageColor = (stage: string) => {
         switch (stage) {
@@ -128,7 +138,7 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                 <div className="card-body">
                     <div className="flex items-start justify-between">
                         <div className="flex items-start gap-4">
-                            <div className="avatar placeholder">
+                            <div className="avatar avatar-placeholder">
                                 <div className="bg-primary text-primary-content rounded-full w-20">
                                     <span className="text-2xl">{candidate.full_name[0]}</span>
                                 </div>

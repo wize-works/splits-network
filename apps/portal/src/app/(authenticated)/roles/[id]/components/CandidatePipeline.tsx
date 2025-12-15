@@ -158,7 +158,7 @@ export default function CandidatePipeline({ roleId }: CandidatePipelineProps) {
                                                             >
                                                                 <i className={`fa-solid fa-chevron-${isExpanded ? 'down' : 'right'}`}></i>
                                                             </button>
-                                                            <div className="avatar placeholder">
+                                                            <div className="avatar avatar-placeholder">
                                                                 <div className="bg-neutral text-neutral-content rounded-full w-10">
                                                                     <span className="text-xs">
                                                                         {application.candidate_id.substring(0, 2).toUpperCase()}

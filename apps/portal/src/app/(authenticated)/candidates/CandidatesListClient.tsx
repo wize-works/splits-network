@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@clerk/nextjs';
+import { createAuthenticatedClient } from '@/lib/api-client';
 
 export default function CandidatesListClient() {
+    const { getToken } = useAuth();
     const [candidates, setCandidates] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -14,7 +16,15 @@ export default function CandidatesListClient() {
             try {
                 setLoading(true);
                 setError(null);
-                const response = await apiClient.get('/candidates');
+                
+                const token = await getToken();
+                if (!token) {
+                    setError('Not authenticated');
+                    return;
+                }
+                
+                const client = createAuthenticatedClient(token);
+                const response = await client.get('/candidates');
                 setCandidates(response.data || []);
             } catch (err: any) {
                 console.error('Failed to load candidates:', err);
@@ -25,7 +35,7 @@ export default function CandidatesListClient() {
         }
 
         loadCandidates();
-    }, []);
+    }, [getToken]);
 
     const formatDate = (date: string) => {
         return new Date(date).toLocaleDateString('en-US', {
@@ -95,7 +105,7 @@ export default function CandidatesListClient() {
                                         <tr key={candidate.id} className="hover">
                                             <td>
                                                 <div className="flex items-center gap-3">
-                                                    <div className="avatar placeholder">
+                                                    <div className="avatar avatar-placeholder">
                                                         <div className="bg-primary/10 text-primary rounded-full w-10">
                                                             <span className="text-sm">{candidate.full_name[0]}</span>
                                                         </div>

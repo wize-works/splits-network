@@ -220,7 +220,7 @@ export default function AboutPage() {
                     <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                         <div className="card bg-base-100 text-base-content shadow-xl">
                             <div className="card-body text-center">
-                                <div className="avatar placeholder mx-auto mb-4">
+                                <div className="avatar avatar-placeholder mx-auto mb-4">
                                     <div className="bg-primary text-primary-content rounded-full w-24">
                                         <span className="text-3xl">FN</span>
                                     </div>
@@ -234,7 +234,7 @@ export default function AboutPage() {
                         </div>
                         <div className="card bg-base-100 text-base-content shadow-xl">
                             <div className="card-body text-center">
-                                <div className="avatar placeholder mx-auto mb-4">
+                                <div className="avatar avatar-placeholder mx-auto mb-4">
                                     <div className="bg-secondary text-secondary-content rounded-full w-24">
                                         <span className="text-3xl">TN</span>
                                     </div>
@@ -248,7 +248,7 @@ export default function AboutPage() {
                         </div>
                         <div className="card bg-base-100 text-base-content shadow-xl">
                             <div className="card-body text-center">
-                                <div className="avatar placeholder mx-auto mb-4">
+                                <div className="avatar avatar-placeholder mx-auto mb-4">
                                     <div className="bg-accent text-accent-content rounded-full w-24">
                                         <span className="text-3xl">ON</span>
                                     </div>

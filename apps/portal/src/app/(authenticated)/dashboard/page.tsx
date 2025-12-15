@@ -115,7 +115,7 @@ export default async function DashboardPage() {
                     <div className="space-y-3 mt-4">
                         {recentActivity.map((activity) => (
                             <div key={activity.id} className="flex items-start gap-4 p-3 rounded-lg hover:bg-base-200 transition-colors">
-                                <div className="avatar placeholder">
+                                <div className="avatar avatar-placeholder">
                                     <div className="bg-primary text-primary-content rounded-full w-10">
                                         <i className={`fa-solid ${
                                             activity.type === 'application' ? 'fa-user-plus' :

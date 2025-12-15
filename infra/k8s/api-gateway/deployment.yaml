@@ -70,6 +70,8 @@ spec:
               value: "http://billing-service:3004"
             - name: NOTIFICATION_SERVICE_URL
               value: "http://notification-service:3005"
+            - name: DOCUMENT_SERVICE_URL
+              value: "http://document-service:3006"
           resources:
             requests:
               cpu: 200m

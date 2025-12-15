@@ -106,7 +106,7 @@ export default async function PlacementsPage() {
                                     <tr key={placement.id} className="hover">
                                         <td>
                                             <div className="flex items-center gap-3">
-                                                <div className="avatar placeholder">
+                                                <div className="avatar avatar-placeholder">
                                                     <div className="bg-neutral text-neutral-content rounded-full w-10">
                                                         <span className="text-xs">
                                                             {placement.candidate_name.split(' ').map(n => n[0]).join('')}

@@ -46,6 +46,14 @@ spec:
                 secretKeyRef:
                   name: resend-secrets
                   key: resend-api-key
+            - name: RESEND_FROM_EMAIL
+              value: "noreply@splits.network"
+            - name: IDENTITY_SERVICE_URL
+              value: "http://identity-service:3001"
+            - name: ATS_SERVICE_URL
+              value: "http://ats-service:3002"
+            - name: NETWORK_SERVICE_URL
+              value: "http://network-service:3003"
           resources:
             requests:
               cpu: 100m
