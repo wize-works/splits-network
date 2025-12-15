@@ -42,9 +42,9 @@ export function Header() {
         pathname?.startsWith('/admin') || pathname?.startsWith('/settings') || pathname?.startsWith('/billing');
 
     return (
-        <header className="navbar bg-base-100 shadow-lg sticky top-0 z-50 px-4">
+        <header className="navbar bg-base-100 shadow-lg sticky top-0 z-50">
             {/* Start: Brand + Mobile menu */}
-            <div className="navbar-start">
+            <div className="navbar-start ps-4">
                 {!isSignedIn && !isAuthenticatedPage && (
                     <div className="dropdown lg:hidden">
                         <label tabIndex={0} className="btn btn-ghost">
@@ -74,7 +74,7 @@ export function Header() {
             </div>
 
             {/* End: Actions + Theme toggle */}
-            <div className="navbar-end gap-2 items-center">
+            <div className="navbar-end gap-2 items-center pe-4">
                 <label className="swap swap-rotate cursor-pointer">
                     <input
                         type="checkbox"
