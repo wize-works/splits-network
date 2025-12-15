@@ -28,13 +28,13 @@ spec:
             - name: SUPABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: supabase-secret
-                  key: url
+                  name: supabase-secrets
+                  key: supabase-url
             - name: SUPABASE_SERVICE_ROLE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: supabase-secret
-                  key: service-role-key
+                  name: supabase-secrets
+                  key: supabase-service-role-key
             - name: MAX_FILE_SIZE_MB
               value: "10"
             - name: ALLOWED_MIME_TYPES
