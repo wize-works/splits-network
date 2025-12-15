@@ -6,8 +6,10 @@ metadata:
   labels:
     app: ats-sync-worker
     component: worker
+  annotations:
+    description: "ATS sync worker for periodic integration syncing. Requires ats-service image to be rebuilt with sync-worker.ts included."
 spec:
-  replicas: 1  # Single worker for now to avoid race conditions
+  replicas: 0  # Set to 0 until ats-service image is rebuilt with sync-worker.js
   selector:
     matchLabels:
       app: ats-sync-worker
@@ -19,7 +21,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: splits-network/ats-service:latest
+          image: ${ACR_SERVER}/ats-service:${IMAGE_TAG}
           command: ["node", "dist/sync-worker.js"]
           env:
             - name: NODE_ENV
@@ -29,13 +31,13 @@ spec:
             - name: SUPABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: supabase-credentials
-                  key: url
+                  name: supabase-secrets
+                  key: supabase-url
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: supabase-credentials
-                  key: service-key
+                  name: supabase-secrets
+                  key: supabase-service-role-key
             - name: ENCRYPTION_SECRET
               valueFrom:
                 secretKeyRef:
