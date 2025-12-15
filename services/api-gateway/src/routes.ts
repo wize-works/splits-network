@@ -11,19 +11,19 @@ function getCorrelationId(request: FastifyRequest): string | undefined {
 // Helper to resolve internal user ID and memberships from Clerk ID
 async function resolveUserContext(services: ServiceRegistry, auth: AuthContext, correlationId?: string): Promise<void> {
     const identityService = services.get('identity');
-    
+
     // Sync the Clerk user (idempotent - creates if missing, updates if changed)
     const syncResponse: any = await identityService.post('/sync-clerk-user', {
         clerk_user_id: auth.clerkUserId,
         email: auth.email,
         name: auth.name,
     }, correlationId);
-    
+
     const userId = syncResponse.data.id;
-    
+
     // Get full user profile with memberships
     const profileResponse: any = await identityService.get(`/users/${userId}`, undefined, correlationId);
-    
+
     // Update auth context with user ID and memberships
     auth.userId = userId;
     auth.memberships = profileResponse.data.memberships || [];
@@ -46,7 +46,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const req = request as AuthenticatedRequest;
         const identityService = services.get('identity');
         const correlationId = getCorrelationId(request);
-        
+
         // User context already resolved by middleware
         const profile = await identityService.get(`/users/${req.auth.userId}`, undefined, correlationId);
         return reply.send(profile);
@@ -76,17 +76,17 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
                     undefined,
                     correlationId
                 );
-                
+
                 if (recruiterResponse.data) {
                     const recruiterId = recruiterResponse.data.id;
-                    
+
                     // Get job IDs assigned to this recruiter
                     const assignmentsResponse: any = await networkService.get(
                         `/recruiters/${recruiterId}/jobs`,
                         undefined,
                         correlationId
                     );
-                    
+
                     jobIds = assignmentsResponse.data || [];
                 }
             } catch (error) {
@@ -104,7 +104,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const queryString = new URLSearchParams(queryParams).toString();
         const path = queryString ? `/jobs?${queryString}` : '/jobs';
         const jobsResponse: any = await atsService.get(path, undefined, correlationId);
-        
+
         let jobs = jobsResponse.data || [];
 
         // Filter by assigned jobs if recruiter
@@ -177,6 +177,17 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const queryString = new URLSearchParams(request.query as any).toString();
         const path = queryString ? `/candidates?${queryString}` : '/candidates';
         const data = await atsService.get(path);
+        return reply.send(data);
+    });
+
+    app.get('/api/candidates/sourcers', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const queryString = new URLSearchParams(request.query as any).toString();
+        const path = queryString ? `/candidates/sourcers?${queryString}` : '/candidates/sourcers';
+        const data = await atsService.get(path, undefined, correlationId);
         return reply.send(data);
     });
 
@@ -253,7 +264,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     // ==========================================
     // Phase 2 Routes - Candidate Ownership
     // ==========================================
-    
+
     // Recruiters can source candidates
     app.post('/api/candidates/:id/source', {
         preHandler: requireRoles(['recruiter']),
@@ -263,21 +274,21 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const atsService = services.get('ats');
         const networkService = services.get('network');
         const correlationId = getCorrelationId(request);
-        
+
         // Get recruiter ID for this user
         const recruiterResponse: any = await networkService.get(
             `/recruiters/by-user/${req.auth.userId}`,
             undefined,
             correlationId
         );
-        
+
         const data = await atsService.post(`/candidates/${id}/source`, {
             ...(request.body as any),
             recruiter_id: recruiterResponse.data.id,
         }, correlationId);
         return reply.send(data);
     });
-    
+
     // Anyone can view candidate sourcer info
     app.get('/api/candidates/:id/sourcer', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
@@ -286,7 +297,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.get(`/candidates/${id}/sourcer`, undefined, correlationId);
         return reply.send(data);
     });
-    
+
     // Recruiters can record outreach
     app.post('/api/candidates/:id/outreach', {
         preHandler: requireRoles(['recruiter']),
@@ -296,21 +307,21 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const atsService = services.get('ats');
         const networkService = services.get('network');
         const correlationId = getCorrelationId(request);
-        
+
         // Get recruiter ID for this user
         const recruiterResponse: any = await networkService.get(
             `/recruiters/by-user/${req.auth.userId}`,
             undefined,
             correlationId
         );
-        
+
         const data = await atsService.post(`/candidates/${id}/outreach`, {
             ...(request.body as any),
             recruiter_id: recruiterResponse.data.id,
         }, correlationId);
         return reply.send(data);
     });
-    
+
     // Check candidate protection status
     app.get('/api/candidates/:id/protection-status', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
@@ -323,7 +334,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     // ==========================================
     // Phase 2 Routes - Placement Lifecycle
     // ==========================================
-    
+
     // Company admins can activate placements
     app.post('/api/placements/:id/activate', {
         preHandler: requireRoles(['company_admin', 'platform_admin']),
@@ -334,7 +345,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.post(`/placements/${id}/activate`, request.body, correlationId);
         return reply.send(data);
     });
-    
+
     // Company admins can complete placements
     app.post('/api/placements/:id/complete', {
         preHandler: requireRoles(['company_admin', 'platform_admin']),
@@ -345,7 +356,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.post(`/placements/${id}/complete`, request.body, correlationId);
         return reply.send(data);
     });
-    
+
     // Company admins can mark placements as failed
     app.post('/api/placements/:id/fail', {
         preHandler: requireRoles(['company_admin', 'platform_admin']),
@@ -356,7 +367,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.post(`/placements/${id}/fail`, request.body, correlationId);
         return reply.send(data);
     });
-    
+
     // Company admins can request replacements
     app.post('/api/placements/:id/request-replacement', {
         preHandler: requireRoles(['company_admin', 'platform_admin']),
@@ -367,7 +378,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.post(`/placements/${id}/request-replacement`, request.body, correlationId);
         return reply.send(data);
     });
-    
+
     // Company admins can link replacement placements
     app.post('/api/placements/:id/link-replacement', {
         preHandler: requireRoles(['company_admin', 'platform_admin']),
@@ -378,7 +389,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.post(`/placements/${id}/link-replacement`, request.body, correlationId);
         return reply.send(data);
     });
-    
+
     // View placement state history
     app.get('/api/placements/:id/state-history', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
@@ -387,7 +398,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.get(`/placements/${id}/state-history`, undefined, correlationId);
         return reply.send(data);
     });
-    
+
     // View guarantee details
     app.get('/api/placements/:id/guarantee', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
@@ -396,7 +407,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.get(`/placements/:id/guarantee`, undefined, correlationId);
         return reply.send(data);
     });
-    
+
     // Extend guarantee period
     app.post('/api/placements/:id/guarantee/extend', {
         preHandler: requireRoles(['company_admin', 'platform_admin']),
@@ -411,7 +422,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     // ==========================================
     // Phase 2 Routes - Placement Collaboration
     // ==========================================
-    
+
     // Recruiters can add collaborators
     app.post('/api/placements/:id/collaborators', {
         preHandler: requireRoles(['recruiter', 'company_admin', 'platform_admin']),
@@ -422,7 +433,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.post(`/placements/${id}/collaborators`, request.body, correlationId);
         return reply.send(data);
     });
-    
+
     // View placement collaborators
     app.get('/api/placements/:id/collaborators', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
@@ -431,7 +442,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.get(`/placements/${id}/collaborators`, undefined, correlationId);
         return reply.send(data);
     });
-    
+
     // Update collaborator split
     app.patch('/api/placements/:id/collaborators/:recruiter_id', {
         preHandler: requireRoles(['recruiter', 'company_admin', 'platform_admin']),
@@ -442,7 +453,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await atsService.patch(`/placements/${id}/collaborators/${recruiter_id}`, request.body, correlationId);
         return reply.send(data);
     });
-    
+
     // Calculate placement splits preview
     app.post('/api/placements/calculate-splits', async (request: FastifyRequest, reply: FastifyReply) => {
         const atsService = services.get('ats');
@@ -454,7 +465,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     // ==========================================
     // Phase 2 Routes - Proposals
     // ==========================================
-    
+
     // Recruiters can create proposals
     app.post('/api/proposals', {
         preHandler: requireRoles(['recruiter']),
@@ -462,21 +473,21 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const req = request as AuthenticatedRequest;
         const networkService = services.get('network');
         const correlationId = getCorrelationId(request);
-        
+
         // Get recruiter ID for this user
         const recruiterResponse: any = await networkService.get(
             `/recruiters/by-user/${req.auth.userId}`,
             undefined,
             correlationId
         );
-        
+
         const data = await networkService.post('/proposals', {
             ...(request.body as any),
             recruiter_id: recruiterResponse.data.id,
         }, correlationId);
         return reply.send(data);
     });
-    
+
     // Get my proposals (for the current recruiter or all proposals for company admins)
     app.get('/api/proposals/my-proposals', {
         preHandler: requireRoles(['recruiter', 'company_admin', 'hiring_manager']),
@@ -484,10 +495,10 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const req = request as AuthenticatedRequest;
         const networkService = services.get('network');
         const correlationId = getCorrelationId(request);
-        
+
         // Get user roles from memberships
         const userRoles = req.auth.memberships.map(m => m.role);
-        
+
         // If user is a recruiter, get their proposals
         if (userRoles.includes('recruiter')) {
             // Get recruiter ID for this user
@@ -496,7 +507,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
                 undefined,
                 correlationId
             );
-            
+
             // Fetch proposals for this recruiter
             const data = await networkService.get(
                 `/recruiters/${recruiterResponse.data.id}/proposals`,
@@ -510,7 +521,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
             return reply.send({ data: [] });
         }
     });
-    
+
     // View proposal details
     app.get('/api/proposals/:id', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
@@ -519,7 +530,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await networkService.get(`/proposals/${id}`, undefined, correlationId);
         return reply.send(data);
     });
-    
+
     // Company admins can accept proposals
     app.post('/api/proposals/:id/accept', {
         preHandler: requireRoles(['company_admin', 'hiring_manager', 'platform_admin']),
@@ -530,7 +541,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await networkService.post(`/proposals/${id}/accept`, request.body, correlationId);
         return reply.send(data);
     });
-    
+
     // Company admins can decline proposals
     app.post('/api/proposals/:id/decline', {
         preHandler: requireRoles(['company_admin', 'hiring_manager', 'platform_admin']),
@@ -541,7 +552,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await networkService.post(`/proposals/${id}/decline`, request.body, correlationId);
         return reply.send(data);
     });
-    
+
     // Get proposals for a recruiter
     app.get('/api/recruiters/:id/proposals', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
@@ -552,7 +563,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await networkService.get(path, undefined, correlationId);
         return reply.send(data);
     });
-    
+
     // Get proposals for a job
     app.get('/api/jobs/:id/proposals', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
@@ -563,7 +574,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await networkService.get(path, undefined, correlationId);
         return reply.send(data);
     });
-    
+
     // Process proposal timeouts (admin only)
     app.post('/api/proposals/process-timeouts', {
         preHandler: requireRoles(['platform_admin']),
@@ -577,7 +588,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     // ==========================================
     // Phase 2 Routes - Reputation
     // ==========================================
-    
+
     // Get recruiter reputation
     app.get('/api/recruiters/:id/reputation', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
@@ -586,7 +597,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await networkService.get(`/recruiters/${id}/reputation`, undefined, correlationId);
         return reply.send(data);
     });
-    
+
     // Recalculate recruiter reputation (admin only)
     app.post('/api/recruiters/:id/reputation/recalculate', {
         preHandler: requireRoles(['platform_admin']),
@@ -597,7 +608,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await networkService.post(`/recruiters/${id}/reputation/recalculate`, {}, correlationId);
         return reply.send(data);
     });
-    
+
     // Get reputation leaderboard
     app.get('/api/reputation/leaderboard', async (request: FastifyRequest, reply: FastifyReply) => {
         const networkService = services.get('network');
@@ -607,7 +618,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await networkService.get(path, undefined, correlationId);
         return reply.send(data);
     });
-    
+
     // Get reputation history
     app.get('/api/recruiters/:id/reputation/history', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
@@ -705,7 +716,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const req = request as AuthenticatedRequest;
         const { recruiterId } = request.params as { recruiterId: string };
         const billingService = services.get('billing');
-        
+
         // TODO: Add check to ensure user can only view their own subscription unless admin
         const data = await billingService.get(`/subscriptions/recruiter/${recruiterId}`);
         return reply.send(data);
@@ -791,13 +802,13 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     });
 
     // Billing service routes
-    
+
     // Stripe webhook (NO AUTH - verified by Stripe signature)
     // This route needs special handling to preserve raw body for signature verification
     app.post('/api/billing/webhooks/stripe', async (request: FastifyRequest, reply: FastifyReply) => {
         const billingService = services.get('billing');
         const correlationId = getCorrelationId(request);
-        
+
         // Forward the webhook with body and stripe-signature header
         const data = await billingService.post(
             '/webhooks/stripe',
@@ -864,6 +875,34 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const correlationId = getCorrelationId(request);
         const data = await billingService.post(`/subscriptions/${recruiterId}/cancel`, undefined, correlationId);
         return reply.send(data);
+    });
+
+    // Admin stats endpoint (aggregates stats from multiple services)
+    app.get('/api/admin/stats', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const networkService = services.get('network');
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+
+        // Fetch stats from each service in parallel
+        const [recruiterStats, atsStats] = await Promise.all([
+            networkService.get('/stats', undefined, correlationId),
+            atsService.get('/stats', undefined, correlationId),
+        ]);
+
+        // Combine stats from all services
+        const stats = {
+            totalRecruiters: (recruiterStats as any).data?.totalRecruiters || 0,
+            activeRecruiters: (recruiterStats as any).data?.activeRecruiters || 0,
+            pendingRecruiters: (recruiterStats as any).data?.pendingRecruiters || 0,
+            totalJobs: (atsStats as any).data?.totalJobs || 0,
+            activeJobs: (atsStats as any).data?.activeJobs || 0,
+            totalApplications: (atsStats as any).data?.totalApplications || 0,
+            totalPlacements: (atsStats as any).data?.totalPlacements || 0,
+        };
+
+        return reply.send({ data: stats });
     });
 }
 

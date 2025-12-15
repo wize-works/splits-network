@@ -25,7 +25,7 @@ export class AtsRepository {
             .from('jobs')
             .select('id')
             .limit(1);
-        
+
         if (error) {
             throw new Error(`Database health check failed: ${error.message}`);
         }
@@ -233,10 +233,10 @@ export class AtsRepository {
     }
 
     // Application methods
-    async findApplications(filters?: { 
-        recruiter_id?: string; 
-        job_id?: string; 
-        stage?: string 
+    async findApplications(filters?: {
+        recruiter_id?: string;
+        job_id?: string;
+        stage?: string
     }): Promise<Application[]> {
         let query = this.supabase
             .schema('ats')
@@ -465,8 +465,19 @@ export class AtsRepository {
         return data;
     }
 
-    async findCandidateOutreach(filters: { 
-        candidate_id?: string; 
+    async findAllCandidateSourcers(): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('candidate_sourcers')
+            .select('*')
+            .order('sourced_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async findCandidateOutreach(filters: {
+        candidate_id?: string;
         recruiter_user_id?: string;
         job_id?: string;
     }): Promise<any[]> {
@@ -554,6 +565,37 @@ export class AtsRepository {
 
         if (error) throw error;
         return data || [];
+    }
+
+    // Stats methods
+    async getAtsStats(): Promise<{
+        totalJobs: number;
+        activeJobs: number;
+        totalApplications: number;
+        totalPlacements: number
+    }> {
+        // Use Promise.all to fetch all counts in parallel
+        const [jobsData, applicationsData, placementsData] = await Promise.all([
+            this.supabase.schema('ats').from('jobs').select('status'),
+            this.supabase.schema('ats').from('applications').select('id', { count: 'exact', head: true }),
+            this.supabase.schema('ats').from('placements').select('id', { count: 'exact', head: true }),
+        ]);
+
+        if (jobsData.error) throw jobsData.error;
+        if (applicationsData.error) throw applicationsData.error;
+        if (placementsData.error) throw placementsData.error;
+
+        const totalJobs = jobsData.data?.length || 0;
+        const activeJobs = jobsData.data?.filter(j => j.status === 'active').length || 0;
+        const totalApplications = applicationsData.count || 0;
+        const totalPlacements = placementsData.count || 0;
+
+        return {
+            totalJobs,
+            activeJobs,
+            totalApplications,
+            totalPlacements,
+        };
     }
 }
 

@@ -14,8 +14,8 @@ export function registerRoutes(app: FastifyInstance, service: AtsService) {
         '/jobs',
         async (request: FastifyRequest<{ Querystring: { status?: string; search?: string; limit?: string; offset?: string } }>, reply: FastifyReply) => {
             const { status, search, limit, offset } = request.query;
-            const jobs = await service.getJobs({ 
-                status, 
+            const jobs = await service.getJobs({
+                status,
                 search,
                 limit: limit ? parseInt(limit) : undefined,
                 offset: offset ? parseInt(offset) : undefined,
@@ -182,13 +182,13 @@ export function registerRoutes(app: FastifyInstance, service: AtsService) {
     // Placement routes
     app.get(
         '/placements',
-        async (request: FastifyRequest<{ 
-            Querystring: { 
-                recruiter_id?: string; 
-                company_id?: string; 
-                date_from?: string; 
+        async (request: FastifyRequest<{
+            Querystring: {
+                recruiter_id?: string;
+                company_id?: string;
+                date_from?: string;
                 date_to?: string;
-            } 
+            }
         }>, reply: FastifyReply) => {
             const { recruiter_id, company_id, date_from, date_to } = request.query;
             const placements = await service.getPlacements({
@@ -253,9 +253,9 @@ export function registerRoutes(app: FastifyInstance, service: AtsService) {
 
     app.patch(
         '/companies/:id',
-        async (request: FastifyRequest<{ 
-            Params: { id: string }; 
-            Body: { name?: string; identity_organization_id?: string } 
+        async (request: FastifyRequest<{
+            Params: { id: string };
+            Body: { name?: string; identity_organization_id?: string }
         }>, reply: FastifyReply) => {
             const { name, identity_organization_id } = request.body;
 
@@ -267,4 +267,10 @@ export function registerRoutes(app: FastifyInstance, service: AtsService) {
             return reply.send({ data: company });
         }
     );
+
+    // Stats endpoint for admin dashboard
+    app.get('/stats', async (request: FastifyRequest, reply: FastifyReply) => {
+        const stats = await service.getStats();
+        return reply.send({ data: stats });
+    });
 }

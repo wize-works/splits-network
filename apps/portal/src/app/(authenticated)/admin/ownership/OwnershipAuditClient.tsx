@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { createApiClient } from '@/lib/api-client';
+import { createAuthenticatedClient } from '@/lib/api-client';
 
 interface CandidateSourcer {
     id: string;
@@ -47,7 +47,11 @@ export default function OwnershipAuditClient() {
             setError(null);
 
             const token = await getToken();
-            const client = createApiClient(token);
+            if (!token) {
+                setError('Authentication required');
+                return;
+            }
+            const client = createAuthenticatedClient(token);
 
             // Fetch all candidate sourcers
             const response = await client.get('/candidates/sourcers');

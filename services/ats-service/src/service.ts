@@ -40,7 +40,7 @@ export class AtsService {
     // Job methods
     async getJobs(filters?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<Job[]> {
         const jobs = await this.repository.findJobs(filters);
-        
+
         // Enrich with company data
         const enrichedJobs = await Promise.all(
             jobs.map(async (job) => {
@@ -48,7 +48,7 @@ export class AtsService {
                 return { ...job, company: company ?? undefined };
             })
         );
-        
+
         return enrichedJobs;
     }
 
@@ -57,7 +57,7 @@ export class AtsService {
         if (!job) {
             throw new Error(`Job ${id} not found`);
         }
-        
+
         // Enrich with company data
         const company = await this.repository.findCompanyById(job.company_id);
         return { ...job, company: company ?? undefined };
@@ -131,10 +131,10 @@ export class AtsService {
     }
 
     // Application methods
-    async getApplications(filters?: { 
-        recruiter_id?: string; 
-        job_id?: string; 
-        stage?: string 
+    async getApplications(filters?: {
+        recruiter_id?: string;
+        job_id?: string;
+        stage?: string
     }): Promise<Application[]> {
         return await this.repository.findApplications(filters);
     }
@@ -310,5 +310,15 @@ export class AtsService {
         );
 
         return placement;
+    }
+
+    // Stats methods
+    async getStats(): Promise<{
+        totalJobs: number;
+        activeJobs: number;
+        totalApplications: number;
+        totalPlacements: number
+    }> {
+        return await this.repository.getAtsStats();
     }
 }

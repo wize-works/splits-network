@@ -166,4 +166,10 @@ export function registerRoutes(app: FastifyInstance, service: NetworkService) {
             return reply.send({ data: { has_access: hasAccess } });
         }
     );
+
+    // Stats endpoint for admin dashboard
+    app.get('/stats', async (request: FastifyRequest, reply: FastifyReply) => {
+        const stats = await service.getStats();
+        return reply.send({ data: stats });
+    });
 }

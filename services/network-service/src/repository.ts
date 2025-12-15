@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { 
-    Recruiter, 
+import {
+    Recruiter,
     RoleAssignment,
     CandidateRoleAssignment,
     CandidateRoleAssignmentState,
@@ -12,7 +12,7 @@ export class NetworkRepository {
 
     constructor(supabaseUrl: string, supabaseKey: string) {
         this.supabase = createClient(supabaseUrl, supabaseKey, {
-            
+
         });
     }
 
@@ -24,7 +24,7 @@ export class NetworkRepository {
             .from('recruiters')
             .select('id')
             .limit(1);
-        
+
         if (error) {
             throw new Error(`Database health check failed: ${error.message}`);
         }
@@ -326,7 +326,24 @@ export class NetworkRepository {
         if (error) throw error;
         return data || [];
     }
+
+    // Stats methods
+    async getRecruiterStats(): Promise<{ totalRecruiters: number; activeRecruiters: number; pendingRecruiters: number }> {
+        const { data, error } = await this.supabase
+            .schema('network')
+            .from('recruiters')
+            .select('status');
+
+        if (error) throw error;
+
+        const total = data?.length || 0;
+        const active = data?.filter(r => r.status === 'active').length || 0;
+        const pending = data?.filter(r => r.status === 'pending').length || 0;
+
+        return {
+            totalRecruiters: total,
+            activeRecruiters: active,
+            pendingRecruiters: pending,
+        };
+    }
 }
-
-
-

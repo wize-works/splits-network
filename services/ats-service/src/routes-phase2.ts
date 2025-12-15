@@ -19,6 +19,30 @@ export function registerPhase2Routes(
     // Candidate Ownership & Sourcing Routes
     // ========================================================================
 
+    // List all candidate sourcers (admin)
+    app.get(
+        '/candidates/sourcers',
+        {
+            schema: {
+                tags: ['phase2-ownership'],
+                summary: 'Get all candidate sourcing records (admin)',
+                querystring: {
+                    type: 'object',
+                    properties: {
+                        status: { type: 'string', enum: ['active', 'expired', 'all'], default: 'all' }
+                    }
+                }
+            }
+        },
+        async (
+            request: FastifyRequest<{ Querystring: { status?: string } }>,
+            reply: FastifyReply
+        ) => {
+            const sourcers = await ownershipService.getAllSourcers(request.query.status);
+            return reply.send({ data: sourcers });
+        }
+    );
+
     // Establish sourcing for a candidate
     app.post(
         '/candidates/:candidateId/source',

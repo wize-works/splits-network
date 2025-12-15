@@ -171,6 +171,26 @@ export class CandidateOwnershipService {
     async getRecruiterOutreach(recruiterUserId: string): Promise<CandidateOutreach[]> {
         return await this.repository.findCandidateOutreach({ recruiter_user_id: recruiterUserId });
     }
+
+    /**
+     * Get all candidate sourcers (admin function)
+     */
+    async getAllSourcers(status?: string): Promise<CandidateSourcer[]> {
+        const allSourcers = await this.repository.findAllCandidateSourcers();
+        
+        if (!status || status === 'all') {
+            return allSourcers;
+        }
+
+        const now = new Date();
+        if (status === 'active') {
+            return allSourcers.filter(s => s.protection_expires_at > now);
+        } else if (status === 'expired') {
+            return allSourcers.filter(s => s.protection_expires_at <= now);
+        }
+
+        return allSourcers;
+    }
 }
 
 /**

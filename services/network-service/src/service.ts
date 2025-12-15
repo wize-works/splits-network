@@ -121,4 +121,9 @@ export class NetworkService {
 
         return await this.isRecruiterAssignedToJob(jobId, recruiter.id);
     }
+
+    // Stats methods
+    async getStats(): Promise<{ totalRecruiters: number; activeRecruiters: number; pendingRecruiters: number }> {
+        return await this.repository.getRecruiterStats();
+    }
 }

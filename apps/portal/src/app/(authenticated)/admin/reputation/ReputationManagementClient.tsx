@@ -2,28 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { createApiClient } from '@/lib/api-client';
+import { createAuthenticatedClient } from '@/lib/api-client';
 import RecruiterReputationBadge from '@/components/RecruiterReputationBadge';
 
 interface RecruiterReputation {
-    recruiter_id: string;
+    recruiter_user_id: string;
     total_submissions: number;
     total_hires: number;
-    hire_rate?: number;
-    total_placements: number;
-    completed_placements: number;
-    failed_placements: number;
-    completion_rate?: number;
-    total_collaborations: number;
-    collaboration_rate?: number;
+    total_completions: number;
+    total_failures: number;
+    hire_rate: number;
+    completion_rate: number;
+    avg_time_to_hire_days?: number;
     avg_response_time_hours?: number;
-    proposals_accepted: number;
-    proposals_declined: number;
-    proposals_timed_out: number;
-    reputation_score: number;
+    quality_score?: number;
+    // Additional fields from database
+    recruiter_id?: string;
+    total_placements?: number;
+    completed_placements?: number;
+    failed_placements?: number;
+    total_collaborations?: number;
+    collaboration_rate?: number;
+    proposals_accepted?: number;
+    proposals_declined?: number;
+    proposals_timed_out?: number;
+    reputation_score?: number;
     last_calculated_at?: string;
-    created_at: string;
-    updated_at: string;
+    created_at?: string;
+    updated_at?: string;
 }
 
 interface Recruiter {
@@ -58,7 +64,11 @@ export default function ReputationManagementClient() {
             setError(null);
 
             const token = await getToken();
-            const client = createApiClient(token);
+            if (!token) {
+                setError('Authentication required');
+                return;
+            }
+            const client = createAuthenticatedClient(token);
 
             // Fetch all recruiters
             const recruitersResponse = await client.get('/recruiters');
@@ -111,7 +121,8 @@ export default function ReputationManagementClient() {
     async function refreshReputation(recruiterId: string) {
         try {
             const token = await getToken();
-            const client = createApiClient(token);
+            if (!token) return;
+            const client = createAuthenticatedClient(token);
 
             await client.post(`/recruiters/${recruiterId}/reputation/refresh`, {});
 
@@ -218,8 +229,7 @@ export default function ReputationManagementClient() {
                                             </td>
                                             <td>
                                                 <RecruiterReputationBadge
-                                                    score={item.reputation.reputation_score}
-                                                    size="lg"
+                                                    reputation={item.reputation}
                                                 />
                                             </td>
                                             <td>
@@ -297,7 +307,7 @@ export default function ReputationManagementClient() {
                     <div className="stat-value text-success">
                         {recruiters.length > 0
                             ? (
-                                  recruiters.reduce((sum, r) => sum + r.reputation.reputation_score, 0) /
+                                  recruiters.reduce((sum, r) => sum + (r.reputation.reputation_score ?? 0), 0) /
                                   recruiters.length
                               ).toFixed(1)
                             : '-'}
@@ -318,7 +328,7 @@ export default function ReputationManagementClient() {
                 <div className="stat bg-base-100 shadow rounded-lg">
                     <div className="stat-title">Collaborations</div>
                     <div className="stat-value">
-                        {recruiters.reduce((sum, r) => sum + r.reputation.total_collaborations, 0)}
+                        {recruiters.reduce((sum, r) => sum + (r.reputation.total_collaborations ?? 0), 0)}
                     </div>
                 </div>
             </div>
