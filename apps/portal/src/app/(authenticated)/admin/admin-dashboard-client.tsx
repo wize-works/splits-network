@@ -244,6 +244,114 @@ export default function AdminDashboardClient() {
                     </Link>
                 </div>
             </div>
+
+            {/* Phase 3 Management */}
+            <div>
+                <h2 className="text-2xl font-bold mb-4">Phase 3: Automation & Intelligence</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Payout Management */}
+                    <Link href="/admin/payouts" className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="card-body">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-success/10 rounded-lg">
+                                    <i className="fa-solid fa-money-bill-transfer text-2xl text-success"></i>
+                                </div>
+                                <div>
+                                    <h3 className="card-title text-lg">Payout Management</h3>
+                                    <p className="text-sm text-base-content/70">
+                                        Process and reconcile recruiter payouts
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    {/* Automation Controls */}
+                    <Link href="/admin/automation" className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="card-body">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-info/10 rounded-lg">
+                                    <i className="fa-solid fa-robot text-2xl text-info"></i>
+                                </div>
+                                <div>
+                                    <h3 className="card-title text-lg">Automation Controls</h3>
+                                    <p className="text-sm text-base-content/70">
+                                        Manage automation rules and executions
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    {/* Fraud Management */}
+                    <Link href="/admin/fraud" className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="card-body">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-error/10 rounded-lg">
+                                    <i className="fa-solid fa-shield-halved text-2xl text-error"></i>
+                                </div>
+                                <div>
+                                    <h3 className="card-title text-lg">Fraud Detection</h3>
+                                    <p className="text-sm text-base-content/70">
+                                        Review and resolve fraud signals
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    {/* Marketplace Metrics */}
+                    <Link href="/admin/metrics" className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="card-body">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-primary/10 rounded-lg">
+                                    <i className="fa-solid fa-chart-line text-2xl text-primary"></i>
+                                </div>
+                                <div>
+                                    <h3 className="card-title text-lg">Marketplace Health</h3>
+                                    <p className="text-sm text-base-content/70">
+                                        Platform metrics and health indicators
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    {/* AI Matches */}
+                    <Link href="/admin/ai-matches" className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="card-body">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-secondary/10 rounded-lg">
+                                    <i className="fa-solid fa-wand-magic-sparkles text-2xl text-secondary"></i>
+                                </div>
+                                <div>
+                                    <h3 className="card-title text-lg">AI Match Suggestions</h3>
+                                    <p className="text-sm text-base-content/70">
+                                        Review candidate-role match suggestions
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    {/* Decision Audit Log */}
+                    <Link href="/admin/decision-log" className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="card-body">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-accent/10 rounded-lg">
+                                    <i className="fa-solid fa-clipboard-list text-2xl text-accent"></i>
+                                </div>
+                                <div>
+                                    <h3 className="card-title text-lg">Decision Audit Log</h3>
+                                    <p className="text-sm text-base-content/70">
+                                        AI and human decision tracking
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+            </div>
         </div>
     );
 }

@@ -904,5 +904,269 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
 
         return reply.send({ data: stats });
     });
+
+    // ========================================================================
+    // Dashboard Routes - Persona-Specific Insights
+    // ========================================================================
+
+    // Recruiter Dashboard
+    app.get('/api/recruiter/dashboard/stats', {
+        preHandler: requireRoles(['recruiter']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const networkService = services.get('network');
+        const atsService = services.get('ats');
+        const billingService = services.get('billing');
+        const correlationId = getCorrelationId(request);
+
+        try {
+            // Get recruiter profile
+            const recruiterResponse: any = await networkService.get(
+                `/recruiters/by-user/${req.auth.userId}`,
+                undefined,
+                correlationId
+            );
+            const recruiterId = recruiterResponse.data?.id;
+
+            if (!recruiterId) {
+                return reply.send({
+                    data: {
+                        active_roles: 0,
+                        candidates_in_process: 0,
+                        offers_pending: 0,
+                        placements_this_month: 0,
+                        placements_this_year: 0,
+                        total_earnings_ytd: 0,
+                        pending_payouts: 0,
+                    }
+                });
+            }
+
+            // Get assigned job IDs
+            const jobsResponse: any = await networkService.get(
+                `/recruiters/${recruiterId}/jobs`,
+                undefined,
+                correlationId
+            );
+            const jobIds = jobsResponse.data || [];
+
+            // Get stats from ATS for recruiter's jobs
+            // TODO: Add recruiter-specific stats endpoint in ATS service
+            const stats = {
+                active_roles: jobIds.length,
+                candidates_in_process: 0, // TODO: Count from applications
+                offers_pending: 0, // TODO: Count offers
+                placements_this_month: 0, // TODO: Count from placements
+                placements_this_year: 0, // TODO: Count from placements
+                total_earnings_ytd: 0, // TODO: Sum from payouts
+                pending_payouts: 0, // TODO: Sum from billing service
+            };
+
+            return reply.send({ data: stats });
+        } catch (error) {
+            console.error('Error fetching recruiter dashboard stats:', error);
+            return reply.status(500).send({ error: 'Failed to load dashboard stats' });
+        }
+    });
+
+    app.get('/api/recruiter/dashboard/activity', {
+        preHandler: requireRoles(['recruiter']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement activity feed for recruiter
+        // Query recent events from ATS for recruiter's candidates
+        return reply.send({ data: [] });
+    });
+
+    // Company Dashboard
+    app.get('/api/company/dashboard/stats', {
+        preHandler: requireRoles(['company_admin', 'company_member']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+
+        try {
+            // Get company ID from user memberships
+            const companyMembership = req.auth.memberships?.find(
+                m => m.type === 'organization' && (m.role === 'admin' || m.role === 'member')
+            );
+
+            if (!companyMembership) {
+                return reply.status(403).send({ error: 'No company association found' });
+            }
+
+            // TODO: Add company-specific stats endpoint in ATS service
+            const stats = {
+                active_roles: 0,
+                total_applications: 0,
+                interviews_scheduled: 0,
+                offers_extended: 0,
+                placements_this_month: 0,
+                placements_this_year: 0,
+                avg_time_to_hire_days: 0,
+                active_recruiters: 0,
+            };
+
+            return reply.send({ data: stats });
+        } catch (error) {
+            console.error('Error fetching company dashboard stats:', error);
+            return reply.status(500).send({ error: 'Failed to load dashboard stats' });
+        }
+    });
+
+    app.get('/api/company/dashboard/roles', {
+        preHandler: requireRoles(['company_admin', 'company_member']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement role breakdown with pipeline stats
+        return reply.send({ data: [] });
+    });
+
+    app.get('/api/company/dashboard/activity', {
+        preHandler: requireRoles(['company_admin', 'company_member']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement activity feed for company roles
+        return reply.send({ data: [] });
+    });
+
+    // Admin Dashboard
+    app.get('/api/admin/dashboard/stats', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const atsService = services.get('ats');
+        const networkService = services.get('network');
+        const billingService = services.get('billing');
+        const correlationId = getCorrelationId(request);
+
+        try {
+            // TODO: Aggregate platform-wide stats from all services
+            const stats = {
+                total_active_roles: 0,
+                total_applications: 0,
+                total_active_recruiters: 0,
+                total_companies: 0,
+                placements_this_month: 0,
+                placements_this_year: 0,
+                total_platform_revenue_ytd: 0,
+                pending_payouts: 0,
+                pending_approvals: 0,
+                fraud_alerts: 0,
+            };
+
+            return reply.send({ data: stats });
+        } catch (error) {
+            console.error('Error fetching admin dashboard stats:', error);
+            return reply.status(500).send({ error: 'Failed to load dashboard stats' });
+        }
+    });
+
+    app.get('/api/admin/dashboard/health', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Calculate marketplace health metrics
+        const health = {
+            recruiter_satisfaction: 0,
+            company_satisfaction: 0,
+            avg_time_to_first_candidate_days: 0,
+            avg_time_to_placement_days: 0,
+            fill_rate_percentage: 0,
+        };
+
+        return reply.send({ data: health });
+    });
+
+    app.get('/api/admin/dashboard/activity', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement platform-wide activity feed
+        return reply.send({ data: [] });
+    });
+
+    app.get('/api/admin/dashboard/alerts', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Aggregate alerts from all services
+        // - Pending payout approvals
+        // - Fraud signals
+        // - Automation approvals
+        // - System alerts
+        return reply.send({ data: [] });
+    });
+
+    // ========================================================================
+    // Phase 3 Admin Routes - Automation, Intelligence & Scale
+    // ========================================================================
+
+    // Automation Rules Management
+    app.get('/api/admin/automation/rules', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement when automation-service is built
+        // For now, return empty array
+        return reply.send({ data: [] });
+    });
+
+    app.patch('/api/admin/automation/rules/:ruleId', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement when automation-service is built
+        return reply.status(501).send({ error: 'Not implemented yet' });
+    });
+
+    // Automation Executions (Pending Approvals)
+    app.get('/api/admin/automation/executions', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement when automation-service is built
+        return reply.send({ data: [] });
+    });
+
+    app.post('/api/admin/automation/executions/:executionId/approve', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement when automation-service is built
+        return reply.status(501).send({ error: 'Not implemented yet' });
+    });
+
+    app.post('/api/admin/automation/executions/:executionId/reject', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement when automation-service is built
+        return reply.status(501).send({ error: 'Not implemented yet' });
+    });
+
+    // Decision Audit Log
+    app.get('/api/admin/decision-log', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement when automation-service is built
+        // Query from platform.decision_audit_log table
+        return reply.send({ data: [], total: 0 });
+    });
+
+    // Marketplace Metrics
+    app.get('/api/admin/metrics', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement metrics aggregation
+        // Query from platform.marketplace_metrics_daily table
+        const { days } = request.query as { days?: string };
+        return reply.send({ data: [] });
+    });
+
+    // Fraud Signals - already exist in fraud page, keeping for reference
+    app.get('/api/automation/fraud/signals', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement when automation-service is built
+        return reply.send({ data: [] });
+    });
+
+    app.post('/api/automation/fraud/signals/:signalId/resolve', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        // TODO: Implement when automation-service is built
+        return reply.status(501).send({ error: 'Not implemented yet' });
+    });
 }
+
 
