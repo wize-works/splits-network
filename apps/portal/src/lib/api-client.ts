@@ -1,11 +1,16 @@
 // API client for communicating with the backend gateway
 // Use internal Docker URL for server-side calls, public URL for client-side
 const getApiBaseUrl = () => {
-    // Server-side (inside Docker container)
+    // Server-side (inside Docker container or during build)
     if (typeof window === 'undefined') {
-        return process.env.NEXT_PUBLIC_API_GATEWAY_URL 
-            ? `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api`
-            : 'http://api-gateway:3000/api';
+        // If NEXT_PUBLIC_API_GATEWAY_URL is set, use it (for server-side rendering)
+        if (process.env.NEXT_PUBLIC_API_GATEWAY_URL) {
+            return `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api`;
+        }
+        
+        // Default to Docker service name for server-side calls
+        // This works both in development (docker-compose) and production (k8s)
+        return 'http://api-gateway:3000/api';
     }
     
     // Client-side (browser)

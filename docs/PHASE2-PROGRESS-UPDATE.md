@@ -1,46 +1,44 @@
 # Phase 2 Implementation Progress Update
 
 **Last Updated:** December 14, 2025  
-**Session:** Notification Service Extensions Complete
+**Session:** API Gateway Integration Complete
 
 ---
 
-## 🎉 Major Milestone: Backend Core Complete!
+## 🎉 Major Milestone: Backend Infrastructure Complete!
 
-We've just completed the notification service extensions, marking a major milestone in Phase 2 implementation. The backend core is now **~90% complete**.
+The API Gateway has been successfully integrated with all Phase 2 routes. The backend infrastructure is now **~95% complete** and ready for frontend development!
 
 ### ✅ Just Completed
 
-#### Notification Service Phase 2 Extensions
+#### API Gateway Phase 2 Integration
 **Files:** 
-- `services/notification-service/src/consumer.ts`
-- `services/notification-service/src/email.ts`
+- `services/api-gateway/src/routes.ts`
+- `services/api-gateway/src/index.ts`
+- `docs/PHASE2-API-REFERENCE.md`
 
 **Changes:**
-1. **Event Bindings (14 new):**
-   - Ownership: `candidate_sourced`, `candidate_outreach_recorded`, `ownership_conflict_detected`
-   - Proposals: `proposal_created`, `proposal_accepted`, `proposal_declined`, `proposal_timeout`
-   - Placements: `placement_activated`, `placement_completed`, `placement_failed`, `replacement_requested`, `guarantee_expiring`
-   - Collaboration: `collaborator_added`, `reputation_updated`
+1. **Added 27 Phase 2 Route Proxies:**
+   - Candidate Ownership (4 routes)
+   - Placement Lifecycle (8 routes)
+   - Placement Collaboration (4 routes)
+   - Proposals (7 routes)
+   - Reputation (4 routes)
 
-2. **Event Handlers (11 new):**
-   - `handleCandidateSourced()` - Sourcing confirmation
-   - `handleOwnershipConflict()` - Alert original sourcer & notify attempting recruiter
-   - `handleProposalCreated()` - Notify hiring manager (placeholder)
-   - `handleProposalAccepted()` - Notify recruiter of acceptance
-   - `handleProposalDeclined()` - Notify recruiter of rejection
-   - `handleProposalTimeout()` - Notify recruiter of expiration
-   - `handlePlacementActivated()` - Notify all collaborators of start
-   - `handlePlacementCompleted()` - Notify all collaborators of completion
-   - `handlePlacementFailed()` - Notify all collaborators of failure
-   - `handleGuaranteeExpiring()` - Alert collaborators of upcoming expiry
-   - `handleCollaboratorAdded()` - Welcome new collaborator
+2. **RBAC Integration:**
+   - Sourcing: Recruiter role required
+   - Placement management: Company admin or platform admin
+   - Proposals: Recruiter to create, company admin to accept/decline
+   - Reputation: Public read, admin-only recalculation
 
-3. **Email Templates (11 new):**
-   - All templates follow Resend best practices
-   - Clean HTML formatting with key details
-   - User-friendly subject lines
-   - Contextual CTAs ("Log in to view...")
+3. **Automatic Recruiter Resolution:**
+   - Gateway automatically resolves user ID to recruiter ID
+   - Injects recruiter_id into requests where needed
+   - Handles authorization checks before proxying
+
+4. **Swagger Documentation:**
+   - Added 5 new OpenAPI tags for Phase 2 features
+   - Complete API reference documentation created
 
 **Build Status:** ✅ All services compile successfully
 
@@ -48,9 +46,9 @@ We've just completed the notification service extensions, marking a major milest
 
 ## 📊 Overall Progress
 
-### Completion: 16 of 23 tasks (70%)
+### Completion: 17 of 23 tasks (74%)
 
-### Backend: ~90% Complete ✅
+### Backend: ~95% Complete ✅
 
 **Fully Complete:**
 - ✅ Database schemas (8 new tables)
@@ -58,8 +56,9 @@ We've just completed the notification service extensions, marking a major milest
 - ✅ Domain events (14 new events)
 - ✅ ATS service implementations (3 new services)
 - ✅ Network service implementations (2 new services)
-- ✅ API routes (27 new endpoints)
+- ✅ API routes (27 new endpoints in services)
 - ✅ Notification service extensions (11 event handlers, 11 email templates)
+- ✅ API Gateway integration (27 proxied routes with RBAC)
 
 **Partial / Pending:**
 - ⏸ RabbitMQ exchange configuration (event bindings added, exchange TBD)

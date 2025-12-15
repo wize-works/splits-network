@@ -12,7 +12,8 @@ export class ServiceClient {
         path: string,
         data?: any,
         params?: Record<string, any>,
-        correlationId?: string
+        correlationId?: string,
+        customHeaders?: Record<string, string>
     ): Promise<T> {
         const url = new URL(path, this.baseUrl);
         
@@ -29,6 +30,7 @@ export class ServiceClient {
 
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
+            ...customHeaders,
         };
 
         // Propagate correlation ID to downstream services
@@ -42,7 +44,8 @@ export class ServiceClient {
         };
 
         if (data) {
-            options.body = JSON.stringify(data);
+            // If data is a Buffer (raw body), don't stringify
+            options.body = Buffer.isBuffer(data) ? data : JSON.stringify(data);
         }
 
         try {
@@ -85,8 +88,8 @@ export class ServiceClient {
         return this.request<T>('GET', path, undefined, params, correlationId);
     }
 
-    async post<T>(path: string, data?: any, correlationId?: string): Promise<T> {
-        return this.request<T>('POST', path, data, undefined, correlationId);
+    async post<T>(path: string, data?: any, correlationId?: string, customHeaders?: Record<string, string>): Promise<T> {
+        return this.request<T>('POST', path, data, undefined, correlationId, customHeaders);
     }
 
     async patch<T>(path: string, data?: any, correlationId?: string): Promise<T> {

@@ -85,6 +85,11 @@ async function main() {
                 { name: 'network', description: 'Recruiter profiles and role assignments' },
                 { name: 'billing', description: 'Subscription plans and billing' },
                 { name: 'documents', description: 'Document storage and retrieval' },
+                { name: 'phase2-ownership', description: 'Phase 2: Candidate sourcing and ownership protection' },
+                { name: 'phase2-placements', description: 'Phase 2: Placement lifecycle and guarantees' },
+                { name: 'phase2-collaboration', description: 'Phase 2: Multi-recruiter collaboration and splits' },
+                { name: 'phase2-proposals', description: 'Phase 2: Candidate proposals and workflows' },
+                { name: 'phase2-reputation', description: 'Phase 2: Recruiter reputation and scoring' },
             ],
         },
     });
@@ -147,8 +152,13 @@ async function main() {
     // Initialize auth middleware
     const authMiddleware = new AuthMiddleware(clerkConfig.secretKey);
 
-    // Register auth hook for all /api routes
+    // Register auth hook for all /api routes (except webhooks)
     app.addHook('onRequest', async (request, reply) => {
+        // Skip auth for webhook endpoints (verified by signature)
+        if (request.url.includes('/webhooks/')) {
+            return;
+        }
+        
         if (request.url.startsWith('/api/')) {
             await authMiddleware.createMiddleware()(request, reply);
         }
