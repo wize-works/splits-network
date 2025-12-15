@@ -711,45 +711,6 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         return reply.send(data);
     });
 
-    // Roles - Aggregated view of jobs with recruiter assignments
-    // Recruiters see only jobs assigned to them, admins see all jobs
-    app.get('/api/roles', async (request: FastifyRequest, reply: FastifyReply) => {
-        const req = request as AuthenticatedRequest;
-        const atsService = services.get('ats');
-        const networkService = services.get('network');
-
-        // Get query parameters for filtering
-        const queryString = new URLSearchParams(request.query as any).toString();
-        const path = queryString ? `/jobs?${queryString}` : '/jobs';
-
-        // Get all jobs
-        const jobsResponse: any = await atsService.get(path);
-        const jobs = jobsResponse.data || [];
-
-        // If user is a recruiter (not an admin), filter to only assigned jobs
-        if (isRecruiter(req.auth) && !isAdmin(req.auth)) {
-            // Get recruiter profile for this user
-            const recruiterResponse: any = await networkService.get(`/recruiters/by-user/${req.auth.userId}`);
-            const recruiter = recruiterResponse.data;
-
-            if (recruiter) {
-                // Get jobs assigned to this recruiter
-                const assignedJobsResponse: any = await networkService.get(`/recruiters/${recruiter.id}/jobs`);
-                const assignedJobIds = assignedJobsResponse.data || [];
-
-                // Filter jobs to only those assigned to this recruiter
-                const filteredJobs = jobs.filter((job: any) => assignedJobIds.includes(job.id));
-                return reply.send({ data: filteredJobs });
-            } else {
-                // Recruiter profile not found, return empty list
-                return reply.send({ data: [] });
-            }
-        }
-
-        // Admins and company users see all jobs
-        return reply.send({ data: jobs });
-    });
-
     // Document service routes
     // Upload document (authenticated users)
     app.post('/api/documents/upload', async (request: FastifyRequest, reply: FastifyReply) => {
