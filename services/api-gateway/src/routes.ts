@@ -831,5 +831,179 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         const data = await billingService.post(`/subscriptions/${recruiterId}/cancel`, undefined, correlationId);
         return reply.send(data);
     });
+
+    // ========================================================================
+    // PHASE 2 ROUTES - Ownership, Collaboration, Proposals, Reputation
+    // ========================================================================
+
+    // Candidate Ownership Routes
+    app.post('/api/candidates/:candidateId/source', {
+        preHandler: requireRoles(['recruiter', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { candidateId } = request.params as { candidateId: string };
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.post(`/candidates/${candidateId}/source`, request.body, correlationId);
+        return reply.status(201).send(data);
+    });
+
+    app.get('/api/candidates/:candidateId/sourcer', async (request: FastifyRequest, reply: FastifyReply) => {
+        const { candidateId } = request.params as { candidateId: string };
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.get(`/candidates/${candidateId}/sourcer`, undefined, correlationId);
+        return reply.send(data);
+    });
+
+    app.get('/api/candidates/:candidateId/can-work/:userId', {
+        preHandler: requireRoles(['recruiter', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { candidateId, userId } = request.params as { candidateId: string; userId: string };
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.get(`/candidates/${candidateId}/can-work/${userId}`, undefined, correlationId);
+        return reply.send(data);
+    });
+
+    // Placement Collaboration Routes
+    app.get('/api/placements/:placementId/collaborators', async (request: FastifyRequest, reply: FastifyReply) => {
+        const { placementId } = request.params as { placementId: string };
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.get(`/placements/${placementId}/collaborators`, undefined, correlationId);
+        return reply.send(data);
+    });
+
+    app.post('/api/placements/:placementId/collaborators', {
+        preHandler: requireRoles(['recruiter', 'company_admin', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { placementId } = request.params as { placementId: string };
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.post(`/placements/${placementId}/collaborators`, request.body, correlationId);
+        return reply.status(201).send(data);
+    });
+
+    // Placement Lifecycle Routes
+    app.get('/api/placements/:placementId/lifecycle', async (request: FastifyRequest, reply: FastifyReply) => {
+        const { placementId } = request.params as { placementId: string };
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.get(`/placements/${placementId}/lifecycle`, undefined, correlationId);
+        return reply.send(data);
+    });
+
+    app.post('/api/placements/:placementId/start', {
+        preHandler: requireRoles(['company_admin', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { placementId } = request.params as { placementId: string };
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.post(`/placements/${placementId}/start`, request.body, correlationId);
+        return reply.send(data);
+    });
+
+    app.post('/api/placements/:placementId/complete', {
+        preHandler: requireRoles(['company_admin', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { placementId } = request.params as { placementId: string };
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.post(`/placements/${placementId}/complete`, request.body, correlationId);
+        return reply.send(data);
+    });
+
+    app.post('/api/placements/:placementId/fail', {
+        preHandler: requireRoles(['company_admin', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { placementId } = request.params as { placementId: string };
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.post(`/placements/${placementId}/fail`, request.body, correlationId);
+        return reply.send(data);
+    });
+
+    // Candidate-Role Assignment Proposal Routes
+    app.post('/api/proposals', {
+        preHandler: requireRoles(['company_admin', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const networkService = services.get('network');
+        const correlationId = getCorrelationId(request);
+        const data = await networkService.post('/proposals', request.body, correlationId);
+        return reply.status(201).send(data);
+    });
+
+    app.get('/api/proposals/my-proposals', {
+        preHandler: requireRoles(['recruiter', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const networkService = services.get('network');
+        const correlationId = getCorrelationId(request);
+        
+        // Get recruiter profile for this user
+        try {
+            const recruiterResponse: any = await networkService.get(
+                `/recruiters/by-user/${req.auth.userId}`,
+                undefined,
+                correlationId
+            );
+            
+            if (!recruiterResponse.data) {
+                return reply.send({ data: [] });
+            }
+
+            const recruiterId = recruiterResponse.data.id;
+            const data = await networkService.get(`/proposals/recruiter/${recruiterId}`, undefined, correlationId);
+            return reply.send(data);
+        } catch (error) {
+            return reply.send({ data: [] });
+        }
+    });
+
+    app.get('/api/proposals/:assignmentId', async (request: FastifyRequest, reply: FastifyReply) => {
+        const { assignmentId } = request.params as { assignmentId: string };
+        const networkService = services.get('network');
+        const correlationId = getCorrelationId(request);
+        const data = await networkService.get(`/proposals/${assignmentId}`, undefined, correlationId);
+        return reply.send(data);
+    });
+
+    app.post('/api/proposals/:assignmentId/accept', {
+        preHandler: requireRoles(['recruiter', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { assignmentId } = request.params as { assignmentId: string };
+        const networkService = services.get('network');
+        const correlationId = getCorrelationId(request);
+        const data = await networkService.post(`/proposals/${assignmentId}/accept`, request.body, correlationId);
+        return reply.send(data);
+    });
+
+    app.post('/api/proposals/:assignmentId/decline', {
+        preHandler: requireRoles(['recruiter', 'platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { assignmentId } = request.params as { assignmentId: string };
+        const networkService = services.get('network');
+        const correlationId = getCorrelationId(request);
+        const data = await networkService.post(`/proposals/${assignmentId}/decline`, request.body, correlationId);
+        return reply.send(data);
+    });
+
+    // Recruiter Reputation Routes
+    app.get('/api/reputation/:recruiterId', async (request: FastifyRequest, reply: FastifyReply) => {
+        const { recruiterId } = request.params as { recruiterId: string };
+        const networkService = services.get('network');
+        const correlationId = getCorrelationId(request);
+        const data = await networkService.get(`/reputation/${recruiterId}`, undefined, correlationId);
+        return reply.send(data);
+    });
+
+    app.get('/api/reputation/leaderboard', async (request: FastifyRequest, reply: FastifyReply) => {
+        const networkService = services.get('network');
+        const correlationId = getCorrelationId(request);
+        const queryString = new URLSearchParams(request.query as any).toString();
+        const path = queryString ? `/reputation/leaderboard?${queryString}` : '/reputation/leaderboard';
+        const data = await networkService.get(path, undefined, correlationId);
+        return reply.send(data);
+    });
 }
 

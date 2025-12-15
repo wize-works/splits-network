@@ -10,6 +10,7 @@ const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: 'fa-house' },
     { href: '/roles', label: 'Roles', icon: 'fa-briefcase' },
     { href: '/candidates', label: 'Candidates', icon: 'fa-users' },
+    { href: '/proposals', label: 'Proposals', icon: 'fa-handshake', badge: true },
     { href: '/placements', label: 'Placements', icon: 'fa-trophy' },
     { href: '/admin', label: 'Admin', icon: 'fa-gear', adminOnly: true },
 ];

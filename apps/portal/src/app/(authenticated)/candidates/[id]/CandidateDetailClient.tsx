@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
 import { createAuthenticatedClient } from '@/lib/api-client';
+import OwnershipBadge from '@/components/OwnershipBadge';
 
 interface CandidateDetailClientProps {
     candidateId: string;
@@ -13,6 +14,7 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
     const { getToken } = useAuth();
     const [candidate, setCandidate] = useState<any>(null);
     const [applications, setApplications] = useState<any[]>([]);
+    const [ownership, setOwnership] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +35,16 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                 // Fetch candidate details
                 const candidateResponse = await client.get(`/candidates/${candidateId}`);
                 setCandidate(candidateResponse.data);
+
+                // Fetch ownership/sourcer information
+                try {
+                    const ownershipResponse = await client.get(`/candidates/${candidateId}/sourcer`);
+                    setOwnership(ownershipResponse.data);
+                } catch (err) {
+                    // Ownership is optional - candidate may not have a sourcer yet
+                    console.log('No ownership info:', err);
+                    setOwnership(null);
+                }
 
                 // Fetch applications
                 const applicationsResponse = await client.get(`/candidates/${candidateId}/applications`);
@@ -143,7 +155,7 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                                     <span className="text-2xl">{candidate.full_name[0]}</span>
                                 </div>
                             </div>
-                            <div>
+                            <div className="flex-1">
                                 <h1 className="text-3xl font-bold">{candidate.full_name}</h1>
                                 <div className="flex items-center gap-4 mt-2 text-base-content/70">
                                     <div className="flex items-center gap-2">
@@ -174,6 +186,11 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                     </div>
                 </div>
             </div>
+
+            {/* Ownership Information */}
+            {ownership && (
+                <OwnershipBadge sourcer={ownership} />
+            )}
 
             {/* Applications */}
             <div>
