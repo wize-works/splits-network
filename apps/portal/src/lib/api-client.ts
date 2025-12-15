@@ -35,7 +35,7 @@ export class ApiClient {
         this.token = token;
     }
 
-    private async request<T>(
+    async request<T>(
         endpoint: string,
         options: RequestInit = {}
     ): Promise<T> {

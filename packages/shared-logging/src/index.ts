@@ -9,8 +9,12 @@ export interface LoggerOptions {
 /**
  * Create a logger instance for a service
  */
-export function createLogger(options: LoggerOptions): Logger {
-    const { serviceName, level = 'info', prettyPrint = false } = options;
+export function createLogger(options: LoggerOptions | string): Logger {
+    // Support both string and object parameter for backward compatibility
+    const config = typeof options === 'string' 
+        ? { serviceName: options } 
+        : options;
+    const { serviceName, level = 'info', prettyPrint = false } = config;
 
     const pinoOptions: pino.LoggerOptions = {
         name: serviceName,

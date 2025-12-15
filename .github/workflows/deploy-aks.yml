@@ -25,6 +25,8 @@ jobs:
                       path: services/billing-service
                     - name: notification-service
                       path: services/notification-service
+                    - name: automation-service
+                      path: services/automation-service
                     - name: document-service
                       path: services/document-service
                     - name: portal
@@ -156,6 +158,7 @@ jobs:
                   kubectl apply -f infra/k8s/network-service/ --namespace=splits-network
                   kubectl apply -f infra/k8s/billing-service/ --namespace=splits-network
                   kubectl apply -f infra/k8s/notification-service/ --namespace=splits-network
+                  kubectl apply -f infra/k8s/automation-service/ --namespace=splits-network
                   kubectl apply -f infra/k8s/document-service/ --namespace=splits-network
 
             - name: Wait for services to be ready
@@ -165,6 +168,7 @@ jobs:
                   kubectl rollout status deployment/network-service --timeout=180s --namespace=splits-network
                   kubectl rollout status deployment/billing-service --timeout=180s --namespace=splits-network
                   kubectl rollout status deployment/notification-service --timeout=180s --namespace=splits-network
+                  kubectl rollout status deployment/automation-service --timeout=180s --namespace=splits-network
                   kubectl rollout status deployment/document-service --timeout=180s --namespace=splits-network
 
             - name: Deploy API Gateway

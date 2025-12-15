@@ -161,6 +161,31 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  automation-service:
+    build:
+      context: .
+      dockerfile: services/automation-service/Dockerfile
+      target: development
+    container_name: splits-automation-service
+    ports:
+      - "3007:3007"
+    environment:
+      NODE_ENV: development
+      PORT: 3007
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      RABBITMQ_URL: amqp://splits:splits_local_dev@rabbitmq:5672
+    volumes:
+      - ./services/automation-service/src:/app/services/automation-service/src
+      - ./packages:/app/packages
+      - /app/node_modules
+    networks:
+      - splits-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
   document-service:
     build:
       context: .
@@ -204,6 +229,7 @@ services:
       ATS_SERVICE_URL: http://ats-service:3002
       NETWORK_SERVICE_URL: http://network-service:3003
       BILLING_SERVICE_URL: http://billing-service:3004
+      AUTOMATION_SERVICE_URL: http://automation-service:3007
       DOCUMENT_SERVICE_URL: http://document-service:3006
       CORS_ORIGIN: http://localhost:3100
       CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
@@ -252,6 +278,7 @@ services:
       NETWORK_SERVICE_URL: http://network-service:3003
       BILLING_SERVICE_URL: http://billing-service:3004
       NOTIFICATION_SERVICE_URL: http://notification-service:3005
+      AUTOMATION_SERVICE_URL: http://automation-service:3007
       DOCUMENT_SERVICE_URL: http://document-service:3006
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}

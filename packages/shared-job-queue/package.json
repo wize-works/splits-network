@@ -1,0 +1,20 @@
+{
+  "name": "@splits-network/shared-job-queue",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.5",
+    "@splits-network/shared-logging": "workspace:*",
+    "@splits-network/shared-config": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.5",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

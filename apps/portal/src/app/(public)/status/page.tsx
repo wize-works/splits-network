@@ -18,6 +18,7 @@ const services: Omit<ServiceHealth, 'status' | 'timestamp' | 'error' | 'response
     { name: 'Network Service', url: '/api-health/network' },
     { name: 'Billing Service', url: '/api-health/billing' },
     { name: 'Notification Service', url: '/api-health/notification' },
+    { name: 'Automation Service', url: '/api-health/automation' },
     { name: 'Document Service', url: '/api-health/document' },
 ];
 

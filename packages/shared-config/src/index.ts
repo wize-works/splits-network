@@ -189,3 +189,11 @@ export async function loadResendConfigFromVault(): Promise<ResendConfig> {
         fromEmail: getEnvOrDefault('RESEND_FROM_EMAIL', 'notifications@splits.network'),
     };
 }
+
+/**
+ * Generic config loader for simple service configuration
+ * Returns a Record<string, string | undefined> of all environment variables
+ */
+export function loadConfig(): Record<string, string | undefined> {
+    return process.env as Record<string, string | undefined>;
+}
