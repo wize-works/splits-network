@@ -52,12 +52,12 @@ export default async function DashboardPage() {
     // Determine user role/persona
     const memberships = profile.data?.memberships || [];
     const isAdmin = memberships.some((m: any) => m.role === 'platform_admin');
-    const isCompanyUser = memberships.some((m: any) => ['company_admin', 'company_member'].includes(m.role));
+    const isCompanyUser = memberships.some((m: any) => ['company_admin', 'hiring_manager'].includes(m.role));
     const isRecruiter = memberships.some((m: any) => m.role === 'recruiter');
 
     // Route to appropriate dashboard
     if (isAdmin) {
-        return <AdminDashboard token={token} />;
+        return <AdminDashboard token={token} profile={profile.data} />;
     } else if (isCompanyUser) {
         return <CompanyDashboard token={token} profile={profile.data} />;
     } else if (isRecruiter) {

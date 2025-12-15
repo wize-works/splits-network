@@ -979,7 +979,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
 
     // Company Dashboard
     app.get('/api/company/dashboard/stats', {
-        preHandler: requireRoles(['company_admin', 'company_member']),
+        preHandler: requireRoles(['company_admin', 'hiring_manager']),
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const req = request as AuthenticatedRequest;
         const atsService = services.get('ats');
@@ -988,7 +988,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
         try {
             // Get company ID from user memberships
             const companyMembership = req.auth.memberships?.find(
-                m => m.type === 'organization' && (m.role === 'admin' || m.role === 'member')
+                m => m.role === 'company_admin' || m.role === 'hiring_manager'
             );
 
             if (!companyMembership) {
@@ -1015,14 +1015,14 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     });
 
     app.get('/api/company/dashboard/roles', {
-        preHandler: requireRoles(['company_admin', 'company_member']),
+        preHandler: requireRoles(['company_admin', 'hiring_manager']),
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         // TODO: Implement role breakdown with pipeline stats
         return reply.send({ data: [] });
     });
 
     app.get('/api/company/dashboard/activity', {
-        preHandler: requireRoles(['company_admin', 'company_member']),
+        preHandler: requireRoles(['company_admin', 'hiring_manager']),
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         // TODO: Implement activity feed for company roles
         return reply.send({ data: [] });
