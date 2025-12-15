@@ -9,6 +9,11 @@ import { randomUUID } from 'crypto';
 import { AuthMiddleware } from './auth';
 import { ServiceRegistry } from './clients';
 import { registerRoutes } from './routes';
+import { OAuthTokenManager } from './oauth';
+import { registerOAuthRoutes } from './oauth-routes';
+import { registerVersionInfo } from './versioning';
+import { registerWebhookRoutes } from './webhook-routes';
+import { WebhookDeliveryService } from './webhooks';
 
 async function main() {
     const baseConfig = loadBaseConfig('api-gateway');
@@ -74,9 +79,24 @@ async function main() {
                         bearerFormat: 'JWT',
                         description: 'Clerk JWT token from authentication',
                     },
+                    oauthToken: {
+                        type: 'http',
+                        scheme: 'bearer',
+                        bearerFormat: 'JWT',
+                        description: 'OAuth 2.0 access token',
+                    },
+                    apiKey: {
+                        type: 'http',
+                        scheme: 'bearer',
+                        bearerFormat: 'API Key',
+                        description: 'API key for server-to-server authentication (format: sk_...)',
+                    },
                 },
             },
             tags: [
+                { name: 'oauth', description: 'OAuth 2.0 token management' },
+                { name: 'webhooks', description: 'Webhook subscription management' },
+                { name: 'meta', description: 'API metadata and versioning' },
                 { name: 'identity', description: 'User and organization management' },
                 { name: 'ats', description: 'Jobs, candidates, applications, and placements' },
                 { name: 'network', description: 'Recruiter profiles and role assignments' },
@@ -149,10 +169,22 @@ async function main() {
     // Initialize auth middleware
     const authMiddleware = new AuthMiddleware(clerkConfig.secretKey);
 
-    // Register auth hook for all /api routes (except webhooks)
+    // Initialize OAuth token manager
+    const jwtSecret = process.env.JWT_SECRET || process.env.CLERK_SECRET_KEY;
+    if (!jwtSecret) {
+        throw new Error('JWT_SECRET or CLERK_SECRET_KEY must be set for OAuth');
+    }
+    const oauthTokenManager = new OAuthTokenManager(jwtSecret);
+
+    // Register auth hook for all /api routes (except webhooks and OAuth endpoints)
     app.addHook('onRequest', async (request, reply) => {
         // Skip auth for webhook endpoints (verified by signature)
         if (request.url.includes('/webhooks/')) {
+            return;
+        }
+        
+        // Skip auth for OAuth endpoints (they handle their own auth)
+        if (request.url.startsWith('/oauth/') || request.url.includes('/.well-known/')) {
             return;
         }
         
@@ -170,6 +202,15 @@ async function main() {
     services.register('network', process.env.NETWORK_SERVICE_URL || 'http://localhost:3003');
     services.register('billing', process.env.BILLING_SERVICE_URL || 'http://localhost:3004');
     services.register('document', process.env.DOCUMENT_SERVICE_URL || 'http://localhost:3006');
+
+    // Register OAuth routes
+    registerOAuthRoutes(app, oauthTokenManager, logger);
+
+    // Register webhook management routes
+    registerWebhookRoutes(app, logger);
+
+    // Register API version info endpoint
+    registerVersionInfo(app);
 
     // Register routes
     registerRoutes(app, services);

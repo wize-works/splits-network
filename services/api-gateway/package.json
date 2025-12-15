@@ -12,6 +12,7 @@
     "dependencies": {
         "@clerk/backend": "^1.18.4",
         "@fastify/http-proxy": "^11.4.1",
+        "@fastify/oauth2": "^8.1.0",
         "@fastify/rate-limit": "^10.1.1",
         "@fastify/swagger": "^9.5.0",
         "@fastify/swagger-ui": "^5.2.3",
@@ -20,9 +21,11 @@
         "@splits-network/shared-logging": "workspace:*",
         "@splits-network/shared-types": "workspace:*",
         "fastify": "^5.6.2",
-        "ioredis": "^5.8.2"
+        "ioredis": "^5.8.2",
+        "jsonwebtoken": "^9.0.2"
     },
     "devDependencies": {
+        "@types/jsonwebtoken": "^9.0.7",
         "@types/node": "^24.10.1",
         "tsx": "^4.19.2",
         "typescript": "^5.9.3"
