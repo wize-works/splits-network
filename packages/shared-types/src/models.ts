@@ -451,3 +451,41 @@ export interface AutomationRule {
     created_at: Date;
     updated_at: Date;
 }
+
+// Automation Executions
+export type AutomationExecutionStatus = 
+    | 'pending' 
+    | 'pending_approval' 
+    | 'approved' 
+    | 'executing' 
+    | 'completed' 
+    | 'failed' 
+    | 'rejected';
+
+export interface AutomationExecution {
+    id: string;
+    rule_id: string;
+    
+    // Trigger details
+    trigger_data: Record<string, any>;
+    triggered_by: string;
+    
+    // Execution status
+    status: AutomationExecutionStatus;
+    requires_human_approval: boolean;
+    
+    // Approval workflow
+    approved_by?: string;
+    approved_at?: Date;
+    rejected_by?: string;
+    rejected_at?: Date;
+    rejection_reason?: string;
+    
+    // Execution results
+    executed_at?: Date;
+    action_result?: Record<string, any>;
+    error_message?: string;
+    
+    created_at: Date;
+    updated_at: Date;
+}

@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
     AutomationRule,
+    AutomationExecution,
     DecisionAuditLog,
     CandidateRoleMatch,
     FraudSignal,
@@ -54,6 +55,110 @@ export class AutomationRepository {
 
         if (error) throw error;
         return data;
+    }
+
+    async findRuleById(id: string): Promise<AutomationRule | null> {
+        const { data, error } = await this.supabase
+            .schema('platform')
+            .from('automation_rules')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null; // Not found
+            throw error;
+        }
+        return data;
+    }
+
+    // Automation Executions
+    async createExecution(
+        execution: Omit<AutomationExecution, 'id' | 'created_at' | 'updated_at'>
+    ): Promise<AutomationExecution> {
+        const { data, error } = await this.supabase
+            .schema('platform')
+            .from('automation_executions')
+            .insert(execution)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async findExecutionById(id: string): Promise<AutomationExecution | null> {
+        const { data, error } = await this.supabase
+            .schema('platform')
+            .from('automation_executions')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null; // Not found
+            throw error;
+        }
+        return data;
+    }
+
+    async updateExecution(
+        id: string,
+        updates: Partial<AutomationExecution>
+    ): Promise<AutomationExecution> {
+        const { data, error } = await this.supabase
+            .schema('platform')
+            .from('automation_executions')
+            .update({ ...updates, updated_at: new Date() })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async findExecutions(filters: {
+        rule_id?: string;
+        status?: string;
+        limit?: number;
+    }): Promise<AutomationExecution[]> {
+        let query = this.supabase
+            .schema('platform')
+            .from('automation_executions')
+            .select('*');
+
+        if (filters.rule_id) {
+            query = query.eq('rule_id', filters.rule_id);
+        }
+        if (filters.status) {
+            query = query.eq('status', filters.status);
+        }
+
+        query = query.order('created_at', { ascending: false });
+
+        if (filters.limit) {
+            query = query.limit(filters.limit);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async countExecutionsInWindow(ruleId: string, windowSeconds: number): Promise<number> {
+        const windowStart = new Date(Date.now() - windowSeconds * 1000);
+
+        const { count, error } = await this.supabase
+            .schema('platform')
+            .from('automation_executions')
+            .select('*', { count: 'exact', head: true })
+            .eq('rule_id', ruleId)
+            .gte('created_at', windowStart.toISOString());
+
+        if (error) throw error;
+        return count || 0;
     }
 
     // Decision Audit
@@ -215,5 +320,62 @@ export class AutomationRepository {
 
         if (error) throw error;
         return data;
+    }
+
+    // Marketplace Metrics
+    async saveMetrics(metrics: any): Promise<any> {
+        const { data, error } = await this.supabase
+            .schema('platform')
+            .from('marketplace_metrics_daily')
+            .insert(metrics)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async getMetricsForDate(date: string): Promise<any | null> {
+        const { data, error } = await this.supabase
+            .schema('platform')
+            .from('marketplace_metrics_daily')
+            .select('*')
+            .eq('metric_date', date)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null; // Not found
+            throw error;
+        }
+        return data;
+    }
+
+    async getRecentMetrics(days: number): Promise<any[]> {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        const startDateStr = startDate.toISOString().split('T')[0];
+
+        const { data, error } = await this.supabase
+            .schema('platform')
+            .from('marketplace_metrics_daily')
+            .select('*')
+            .gte('metric_date', startDateStr)
+            .order('metric_date', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async getMetricsRange(startDate: string, endDate: string): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .schema('platform')
+            .from('marketplace_metrics_daily')
+            .select('*')
+            .gte('metric_date', startDate)
+            .lte('metric_date', endDate)
+            .order('metric_date', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
     }
 }

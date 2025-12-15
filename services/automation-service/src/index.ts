@@ -6,6 +6,8 @@ import swaggerUi from '@fastify/swagger-ui';
 import { AutomationRepository } from './repository';
 import { MatchingService } from './matching-service';
 import { FraudDetectionService } from './fraud-service';
+import { AutomationExecutor } from './automation-executor';
+import { MetricsAggregationService } from './metrics-service';
 import { registerRoutes } from './routes';
 
 async function main() {
@@ -61,9 +63,11 @@ async function main() {
 
     const matchingService = new MatchingService(repository, logger);
     const fraudService = new FraudDetectionService(repository, logger);
+    const automationExecutor = new AutomationExecutor(repository, logger);
+    const metricsService = new MetricsAggregationService(repository, logger);
 
     // Register routes
-    registerRoutes(app, matchingService, fraudService, repository, logger);
+    registerRoutes(app, matchingService, fraudService, automationExecutor, metricsService, repository, logger);
 
     // Start server
     const HOST = process.env.HOST || '0.0.0.0';

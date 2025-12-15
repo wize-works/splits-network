@@ -5,47 +5,72 @@ import { ApiClient } from '@/lib/api-client';
 
 export default function MarketplaceMetricsPage() {
     const [metrics, setMetrics] = useState<any>(null);
+    const [healthScore, setHealthScore] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState('7'); // days
 
     useEffect(() => {
         loadMetrics();
+        loadHealthScore();
     }, [dateRange]);
+
+    const loadHealthScore = async () => {
+        try {
+            const api = new ApiClient();
+            const response = await api.request<{ health_score: number; status: string }>('/automation/metrics/health');
+            setHealthScore(response);
+        } catch (error) {
+            console.error('Failed to load health score:', error);
+        }
+    };
 
     const loadMetrics = async () => {
         setLoading(true);
         try {
             const api = new ApiClient();
-            // TODO: Implement metrics aggregation endpoint
-            // For now, mock data
-            await new Promise(resolve => setTimeout(resolve, 500));
-            setMetrics({
+            const response = await api.request<{ data: any[] }>(`/automation/metrics/recent?days=${dateRange}`);
+            
+            // Calculate aggregate metrics from daily data
+            const dailyMetrics = response.data || [];
+            
+            if (dailyMetrics.length === 0) {
+                setMetrics(null);
+                return;
+            }
+
+            // Aggregate the metrics
+            const aggregated = {
                 activity: {
-                    active_recruiters: 42,
-                    active_companies: 18,
-                    active_jobs: 127,
+                    active_recruiters: Math.round(dailyMetrics.reduce((sum, d) => sum + (d.active_recruiters || 0), 0) / dailyMetrics.length),
+                    active_companies: Math.round(dailyMetrics.reduce((sum, d) => sum + (d.active_companies || 0), 0) / dailyMetrics.length),
+                    active_jobs: Math.round(dailyMetrics.reduce((sum, d) => sum + (d.active_jobs || 0), 0) / dailyMetrics.length),
+                    new_jobs_posted: dailyMetrics.reduce((sum, d) => sum + (d.new_jobs_posted || 0), 0),
                 },
                 performance: {
-                    total_applications: 284,
-                    total_placements: 23,
-                    avg_time_to_hire_days: 18.5,
+                    total_applications: dailyMetrics.reduce((sum, d) => sum + (d.total_applications || 0), 0),
+                    total_placements: dailyMetrics.reduce((sum, d) => sum + (d.placements_created || 0), 0),
+                    avg_time_to_hire_days: Math.round((dailyMetrics.reduce((sum, d) => sum + (d.avg_time_to_hire_days || 0), 0) / dailyMetrics.length) * 10) / 10,
                 },
                 quality: {
-                    hire_rate: 8.1,
-                    placement_completion_rate: 91.3,
-                    avg_recruiter_response_time_hours: 4.2,
+                    hire_rate: Math.round((dailyMetrics.reduce((sum, d) => sum + (d.hire_rate_percent || 0), 0) / dailyMetrics.length) * 10) / 10,
+                    placement_completion_rate: Math.round((dailyMetrics.reduce((sum, d) => sum + (d.completion_rate_percent || 0), 0) / dailyMetrics.length) * 10) / 10,
+                    avg_recruiter_response_time_hours: Math.round((dailyMetrics.reduce((sum, d) => sum + (d.avg_response_time_hours || 0), 0) / dailyMetrics.length) * 10) / 10,
                 },
                 financial: {
-                    total_fees_generated: 345600,
-                    total_payouts_processed: 242920,
+                    total_fees_generated: Math.round(dailyMetrics.reduce((sum, d) => sum + (d.total_fees_usd || 0), 0)),
+                    total_payouts_processed: Math.round(dailyMetrics.reduce((sum, d) => sum + (d.total_payouts_usd || 0), 0)),
                 },
                 health: {
-                    fraud_signals_raised: 7,
-                    disputes_opened: 2,
+                    fraud_signals_raised: dailyMetrics.reduce((sum, d) => sum + (d.fraud_signals_created || 0), 0),
+                    disputes_opened: dailyMetrics.reduce((sum, d) => sum + (d.disputes_opened || 0), 0),
                 },
-            });
+            };
+
+            setMetrics(aggregated);
         } catch (error) {
             console.error('Failed to load metrics:', error);
+            // Fallback to empty metrics on error
+            setMetrics(null);
         } finally {
             setLoading(false);
         }
@@ -84,6 +109,54 @@ export default function MarketplaceMetricsPage() {
                 </select>
             </div>
 
+            {/* Health Score Card */}
+            {healthScore && (
+                <div className="card bg-base-100 shadow-lg mb-6">
+                    <div className="card-body">
+                        <h2 className="card-title text-2xl mb-4">
+                            <i className="fa-solid fa-heartbeat text-error"></i>
+                            Overall Health Score
+                        </h2>
+                        <div className="flex items-center gap-6">
+                            <div 
+                                className={`radial-progress text-6xl ${
+                                    healthScore.status === 'excellent' ? 'text-success' :
+                                    healthScore.status === 'good' ? 'text-info' :
+                                    healthScore.status === 'fair' ? 'text-warning' :
+                                    'text-error'
+                                }`}
+                                style={{ '--value': healthScore.health_score } as any}
+                                role="progressbar"
+                            >
+                                {healthScore.health_score}
+                            </div>
+                            <div>
+                                <div className={`badge badge-lg ${
+                                    healthScore.status === 'excellent' ? 'badge-success' :
+                                    healthScore.status === 'good' ? 'badge-info' :
+                                    healthScore.status === 'fair' ? 'badge-warning' :
+                                    'badge-error'
+                                }`}>
+                                    {healthScore.status.toUpperCase()}
+                                </div>
+                                <p className="text-sm text-base-content/60 mt-2">
+                                    Based on fraud signals, hire rate, and dispute metrics
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {!metrics && (
+                <div className="alert alert-info">
+                    <i className="fa-solid fa-info-circle"></i>
+                    <span>No metrics data available for the selected date range. Run the daily metrics aggregation job to populate data.</span>
+                </div>
+            )}
+
+            {metrics && (
+                <>
             {/* Activity Metrics */}
             <div className="mb-6">
                 <h2 className="text-xl font-semibold mb-4">Activity</h2>
@@ -266,24 +339,8 @@ export default function MarketplaceMetricsPage() {
                     </div>
                 </div>
             </div>
-
-            {/* Health Score Card */}
-            <div className="card bg-gradient-to-r from-primary to-secondary text-primary-content shadow-lg">
-                <div className="card-body">
-                    <h2 className="card-title">Overall Marketplace Health</h2>
-                    <div className="flex items-center gap-4">
-                        <div className="radial-progress text-white" style={{ '--value': 87 } as any}>
-                            87%
-                        </div>
-                        <div>
-                            <p className="text-lg font-semibold">Healthy</p>
-                            <p className="opacity-80">
-                                Strong activity, good quality metrics, minimal fraud signals
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                </>
+            )}
         </div>
     );
 }
