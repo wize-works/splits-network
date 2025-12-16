@@ -391,7 +391,7 @@ export class ATSSyncWorker {
 async function main() {
   const config: WorkerConfig = {
     supabaseUrl: process.env.SUPABASE_URL!,
-    supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY!,
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
     encryptionSecret: process.env.ENCRYPTION_SECRET || 'default-encryption-secret-change-me',
     pollInterval: parseInt(process.env.SYNC_POLL_INTERVAL || '5000', 10), // 5 seconds
     batchSize: parseInt(process.env.SYNC_BATCH_SIZE || '10', 10),

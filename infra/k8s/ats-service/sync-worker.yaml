@@ -33,7 +33,7 @@ spec:
                 secretKeyRef:
                   name: supabase-secrets
                   key: supabase-url
-            - name: SUPABASE_SERVICE_KEY
+            - name: SUPABASE_SERVICE_ROLE_KEY
               valueFrom:
                 secretKeyRef:
                   name: supabase-secrets

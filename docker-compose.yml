@@ -94,7 +94,7 @@ services:
     environment:
       NODE_ENV: development
       SUPABASE_URL: ${SUPABASE_URL}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:-default-encryption-secret-change-me}
       SYNC_POLL_INTERVAL: "5000"
       SYNC_BATCH_SIZE: "10"
