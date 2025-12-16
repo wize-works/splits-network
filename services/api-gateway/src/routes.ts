@@ -122,13 +122,15 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
                 
                 // Filter to companies that belong to user's organizations
                 const orgIds = companyMemberships.map(m => m.organization_id);
-                companyIds = allCompanies
+                const userCompanyIds = allCompanies
                     .filter((c: any) => orgIds.includes(c.identity_organization_id))
                     .map((c: any) => c.id);
 
-                if (companyIds.length === 0) {
+                if (userCompanyIds.length === 0) {
                     return reply.send({ data: [] });
                 }
+
+                companyIds = userCompanyIds;
             } catch (error) {
                 request.log.error({ error, userId: req.auth.userId }, 'Failed to get company IDs for user');
                 return reply.send({ data: [] });
