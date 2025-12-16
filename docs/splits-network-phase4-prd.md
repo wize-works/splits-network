@@ -19,6 +19,7 @@ Phase 4 is about locking in network effects, expanding surfaces, and making Spli
 - [x] API versioning (v1) - **URL-based versioning, deprecation headers**
 - [x] External recruiter team support - **Teams database, 4 member roles, split configurations**
 - [x] Company ATS integrations - **Greenhouse integration, sync worker, encrypted credentials**
+- [ ] Platform admin organization-company management - **Link/unlink orgs to companies, auto-create on onboarding**
 - [ ] Identity federation for enterprise clients - **Planned: Okta, Azure AD**
 
 ### Network Effects
@@ -55,9 +56,11 @@ Phase 4 is about locking in network effects, expanding surfaces, and making Spli
 - None currently
 
 **📋 Next Up:**
-- Phase 4D: Browser Extension (recruiter tools)
-- Phase 4E: Candidate Portal (lightweight status tracking)
-- Phase 4F: Company Widgets (embeddable intake forms)
+- Phase 4D: Platform Admin Organization Management (link orgs to companies)
+- Phase 4E: Company Onboarding Automation (auto-create companies for company_admin)
+- Phase 4F: Browser Extension (recruiter tools)
+- Phase 4G: Candidate Portal (lightweight status tracking)
+- Phase 4H: Company Widgets (embeddable intake forms)
 
 ---
 
@@ -458,6 +461,251 @@ Phase 4 is about locking in network effects, expanding surfaces, and making Spli
 - Override standard 20% platform fee if contract exists
 - Track compliance with minimum placement commitments
 - Alert account manager if contract nearing expiration
+
+---
+
+## 4.4 Platform Admin: Organization-Company Management
+
+**Goal:** Enable platform admins to manage the relationship between identity organizations and ATS companies, and automate company creation during onboarding.
+
+**Background:**
+- Not all organizations need companies (e.g., recruiter agencies work on other companies' roles)
+- Hiring companies have organizations WITH linked companies (to manage job postings)
+- Currently 1:1 relationship (one organization can link to one company)
+- May evolve to 1:many in future phases
+
+### 4.4.1 Platform Admin Management UI
+
+**Organization-Company Linking Interface:**
+
+**Page:** `/admin/organizations`
+
+**Features:**
+- **Organization List View:**
+  - Display all organizations with columns: Name, Type, Linked Company, Created Date, Status
+  - Filter by: has company / no company, organization type
+  - Search by organization name or company name
+  - Bulk actions: Export to CSV
+
+- **Link/Unlink Actions:**
+  - "Link Company" button for organizations without companies
+  - Modal with dropdown to select existing company OR create new company
+  - "Unlink Company" button with confirmation dialog
+  - Display warning if unlinking will affect active roles or team members
+
+- **Audit Trail:**
+  - Log all linking/unlinking actions with timestamp, admin user, reason
+  - Display history in organization detail view
+  - Track changes to company assignments over time
+
+**Implementation:**
+
+**Database Schema:**
+
+No schema changes needed - use existing `ats.companies.identity_organization_id` field.
+
+**`identity.organization_change_log`** (new table for audit trail):
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid | PK |
+| `organization_id` | uuid | FK → `identity.organizations` |
+| `change_type` | enum | `company_linked`, `company_unlinked`, `company_changed` |
+| `old_company_id` | uuid | Nullable, FK → `ats.companies` |
+| `new_company_id` | uuid | Nullable, FK → `ats.companies` |
+| `changed_by_user_id` | uuid | FK → `identity.users` |
+| `reason` | text | Optional explanation |
+| `changed_at` | timestamptz | |
+
+**Backend Endpoints:**
+
+```typescript
+// In api-gateway/src/routes.ts (platform_admin only)
+GET    /api/admin/organizations                    // List all orgs with company links
+GET    /api/admin/organizations/:id                // Get org details with company
+POST   /api/admin/organizations/:id/link-company   // Link org to company
+DELETE /api/admin/organizations/:id/unlink-company // Unlink org from company
+GET    /api/admin/organizations/:id/change-log     // Get audit trail
+```
+
+**Service Implementation:**
+
+```typescript
+// In services/identity-service/src/organization-service.ts
+export class OrganizationService {
+  async linkOrganizationToCompany(
+    organizationId: string, 
+    companyId: string, 
+    adminUserId: string,
+    reason?: string
+  ): Promise<void> {
+    // Validate organization exists and has no company
+    // Validate company exists and has no organization
+    // Update ats.companies.identity_organization_id
+    // Log change in organization_change_log
+    // Emit event: organization.company_linked
+  }
+
+  async unlinkOrganizationFromCompany(
+    organizationId: string,
+    adminUserId: string,
+    reason?: string
+  ): Promise<void> {
+    // Validate organization has company
+    // Check for active dependencies (roles, team members)
+    // Update ats.companies.identity_organization_id to NULL
+    // Log change in organization_change_log
+    // Emit event: organization.company_unlinked
+  }
+
+  async getOrganizationWithCompany(organizationId: string) {
+    // Join identity.organizations with ats.companies
+    // Return combined data
+  }
+}
+```
+
+**Frontend Implementation:**
+
+**File:** `apps/portal/src/app/(authenticated)/admin/organizations/page.tsx`
+
+- DataTable with all organizations
+- "Link Company" button opens modal with company selector
+- "Unlink" button with confirmation dialog
+- Filter/search bar
+- Export functionality
+
+**File:** `apps/portal/src/app/(authenticated)/admin/organizations/[id]/page.tsx`
+
+- Organization details with linked company info
+- Change log timeline
+- Quick actions: Link/Unlink, Edit org details
+
+### 4.4.2 Company Onboarding Automation
+
+**Goal:** Automatically create companies when company_admin users complete onboarding.
+
+**Onboarding Flow:**
+
+1. **User Signs Up** → Clerk creates user account
+2. **User Invited as company_admin** → Organization membership created
+3. **Onboarding Wizard Triggered** → User sees company setup form
+4. **Company Created** → System creates company in `ats.companies` with `identity_organization_id`
+5. **Link Established** → Organization now has company
+
+**Implementation:**
+
+**Onboarding Wizard Page:**
+
+**File:** `apps/portal/src/app/(authenticated)/onboarding/company/page.tsx`
+
+Displayed when:
+- User has `company_admin` role
+- User's organization has no linked company
+- User has not completed onboarding
+
+**Form Fields:**
+- Company name (required)
+- Company website (optional)
+- Industry (dropdown: Technology, Finance, Healthcare, etc.)
+- Company size (dropdown: 1-10, 11-50, 51-200, 201-500, 501+)
+- Headquarters location (optional)
+- Description (optional)
+
+**Backend Logic:**
+
+```typescript
+// In services/ats-service/src/onboarding-service.ts
+export class OnboardingService {
+  async createCompanyForOrganization(
+    organizationId: string,
+    companyData: CreateCompanyDTO,
+    userId: string
+  ): Promise<Company> {
+    // Create company in ats.companies
+    // Set identity_organization_id = organizationId
+    // Mark user as onboarded
+    // Emit event: company.created_from_onboarding
+    // Send welcome email
+  }
+}
+```
+
+**Endpoints:**
+
+```typescript
+// In api-gateway/src/routes.ts
+POST /api/onboarding/company  // Create company during onboarding
+GET  /api/onboarding/status   // Check if user needs onboarding
+```
+
+**Navigation Guard:**
+
+```typescript
+// In apps/portal/src/middleware.ts or layout
+if (userRole === 'company_admin' && !hasLinkedCompany && !onboardingComplete) {
+  redirect('/onboarding/company');
+}
+```
+
+### 4.4.3 Validation & Business Rules
+
+**Linking Rules:**
+- Organization can only link to one company (1:1 enforcement)
+- Company can only link to one organization (1:1 enforcement)
+- Platform admins can override and unlink/relink
+- Unlinking requires confirmation if company has active roles
+
+**Onboarding Rules:**
+- Only company_admin role triggers onboarding wizard
+- Onboarding can be skipped (user can complete later)
+- Once company created, cannot be deleted via UI (only unlinked)
+- Company name must be unique within platform
+
+**Error Handling:**
+- If organization already has company → Show error
+- If company already linked to different org → Show error
+- If onboarding fails → Allow retry, save draft
+
+### 4.4.4 Migration & Data Cleanup
+
+**Existing Data:**
+- All current companies have `identity_organization_id = NULL`
+- Need to identify which companies should be linked
+- Manual linking by platform admin required
+
+**Migration Script:**
+
+```sql
+-- Find companies that match organization names
+SELECT 
+  c.id as company_id,
+  c.name as company_name,
+  o.id as organization_id,
+  o.name as org_name
+FROM ats.companies c
+LEFT JOIN identity.organizations o ON LOWER(c.name) = LOWER(o.name)
+WHERE c.identity_organization_id IS NULL
+ORDER BY c.name;
+
+-- Platform admin reviews and approves links
+-- Then executes updates via UI or API
+```
+
+**Backfill Process:**
+1. Generate report of unmapped companies
+2. Platform admin reviews and maps companies to organizations
+3. Use admin UI to link in batches
+4. Verify links don't break existing permissions
+5. Monitor for issues post-migration
+
+### 4.4.5 Future Enhancements (1:many)
+
+**If evolving to 1:many relationship:**
+- Organization can have multiple companies
+- Add `primary_company_id` to organizations
+- Update UI to show company list instead of single company
+- Add company switcher for multi-company organizations
+- Scope permissions by company within organization
 
 ---
 

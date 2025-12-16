@@ -16,12 +16,20 @@ export class AtsService {
     ) { }
 
     // Company methods
+    async getCompanies(): Promise<Company[]> {
+        return await this.repository.findAllCompanies();
+    }
+
     async getCompanyById(id: string): Promise<Company> {
         const company = await this.repository.findCompanyById(id);
         if (!company) {
             throw new Error(`Company ${id} not found`);
         }
         return company;
+    }
+
+    async getCompanyByOrgId(orgId: string): Promise<Company | null> {
+        return await this.repository.findCompanyByOrgId(orgId);
     }
 
     async createCompany(name: string, identityOrgId?: string): Promise<Company> {

@@ -32,12 +32,38 @@ export class AtsRepository {
     }
 
     // Company methods
+    async findAllCompanies(): Promise<Company[]> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('companies')
+            .select('*')
+            .order('name', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
+    }
+
     async findCompanyById(id: string): Promise<Company | null> {
         const { data, error } = await this.supabase
             .schema('ats')
             .from('companies')
             .select('*')
             .eq('id', id)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data;
+    }
+
+    async findCompanyByOrgId(orgId: string): Promise<Company | null> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('companies')
+            .select('*')
+            .eq('identity_organization_id', orgId)
             .single();
 
         if (error) {

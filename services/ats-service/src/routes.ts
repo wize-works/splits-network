@@ -230,6 +230,27 @@ export function registerRoutes(app: FastifyInstance, service: AtsService) {
 
     // Company routes
     app.get(
+        '/companies',
+        async (request: FastifyRequest, reply: FastifyReply) => {
+            const companies = await service.getCompanies();
+            return reply.send({ data: companies });
+        }
+    );
+
+    app.get(
+        '/companies/by-org/:orgId',
+        async (request: FastifyRequest<{ Params: { orgId: string } }>, reply: FastifyReply) => {
+            const company = await service.getCompanyByOrgId(request.params.orgId);
+            if (!company) {
+                return reply.status(404).send({ 
+                    error: { code: 'NOT_FOUND', message: 'Company not found for this organization' } 
+                });
+            }
+            return reply.send({ data: company });
+        }
+    );
+
+    app.get(
         '/companies/:id',
         async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
             const company = await service.getCompanyById(request.params.id);

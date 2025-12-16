@@ -732,6 +732,25 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     });
 
     // Companies - only company admins and platform admins can create companies
+    // Platform admins can list all companies
+    app.get('/api/companies', {
+        preHandler: requireRoles(['platform_admin']),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.get('/companies', undefined, correlationId);
+        return reply.send(data);
+    });
+
+    // Get company by organization ID (for company admins to find their company)
+    app.get('/api/companies/by-org/:orgId', async (request: FastifyRequest, reply: FastifyReply) => {
+        const { orgId } = request.params as { orgId: string };
+        const atsService = services.get('ats');
+        const correlationId = getCorrelationId(request);
+        const data = await atsService.get(`/companies/by-org/${orgId}`, undefined, correlationId);
+        return reply.send(data);
+    });
+
     app.get('/api/companies/:id', async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
         const atsService = services.get('ats');

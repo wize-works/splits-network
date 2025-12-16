@@ -73,6 +73,7 @@ services:
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       RABBITMQ_URL: amqp://splits:splits_local_dev@rabbitmq:5672
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:-default-encryption-secret-change-me}
     volumes:
       - ./services/ats-service/src:/app/services/ats-service/src
       - ./packages:/app/packages

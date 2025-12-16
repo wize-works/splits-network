@@ -8,9 +8,17 @@ const getApiBaseUrl = () => {
             return `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api`;
         }
         
-        // Default to Docker service name for server-side calls
-        // This works both in development (docker-compose) and production (k8s)
-        return 'http://api-gateway:3000/api';
+        // Check if we're inside a Docker container
+        // In Docker, the hostname won't be the local machine name
+        const isInDocker = process.env.RUNNING_IN_DOCKER === 'true';
+        
+        if (isInDocker) {
+            // Use Docker service name for server-side calls inside Docker
+            return 'http://api-gateway:3000/api';
+        } else {
+            // Running outside Docker (dev mode), use localhost
+            return 'http://localhost:3000/api';
+        }
     }
     
     // Client-side (browser)

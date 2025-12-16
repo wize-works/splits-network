@@ -32,6 +32,23 @@ Phase 4 introduces a comprehensive API platform for Splits Network, enabling par
 - RabbitMQ integration for webhook queue
 - Rate limiting by API key/user tier
 
+### 📋 Planned Features
+
+#### Admin Management UI
+- **Organization-Company Linking Tool** (Platform Admin)
+  - View all organizations and their linked companies
+  - Link/unlink organizations to companies
+  - Audit trail for linking changes
+  - Bulk operations for data cleanup
+  - Search and filter by organization type
+
+#### Onboarding Improvements
+- **Auto-create company during company_admin onboarding**
+  - When a new organization is created with company_admin role
+  - Automatically create linked company in ats.companies
+  - Pre-fill company details from organization metadata
+  - Link via identity_organization_id field
+
 ---
 
 ## Quick Start
