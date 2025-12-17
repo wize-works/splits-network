@@ -8,6 +8,7 @@ import { registerProposalRoutes } from './routes/proposals/routes';
 import { registerReputationRoutes } from './routes/reputation/routes';
 import { registerStatsRoutes } from './routes/stats/routes';
 import { registerTeamRoutes } from './routes/teams/routes';
+import { registerRecruiterCandidateRoutes } from './routes/recruiter-candidates/routes';
 
 /**
  * Main Route Registry
@@ -30,4 +31,7 @@ export function registerRoutes(
 
     // Register Phase 4B Team routes
     registerTeamRoutes(app);
+
+    // Register Recruiter-Candidate relationship routes
+    registerRecruiterCandidateRoutes(app, service);
 }

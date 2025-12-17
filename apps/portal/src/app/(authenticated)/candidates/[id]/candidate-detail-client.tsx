@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
 import { createAuthenticatedClient } from '@/lib/api-client';
-import OwnershipBadge from '@/components/ownership-badge';
+import DocumentList from '@/components/document-list';
 
 interface CandidateDetailClientProps {
     candidateId: string;
@@ -14,7 +14,8 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
     const { getToken } = useAuth();
     const [candidate, setCandidate] = useState<any>(null);
     const [applications, setApplications] = useState<any[]>([]);
-    const [ownership, setOwnership] = useState<any>(null);
+    const [relationship, setRelationship] = useState<any>(null);
+    const [canEdit, setCanEdit] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -36,14 +37,28 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                 const candidateResponse = await client.get(`/candidates/${candidateId}`);
                 setCandidate(candidateResponse.data);
 
-                // Fetch ownership/sourcer information
+                // Check if user can edit this candidate (recruiter with active relationship or admin)
+                // Try to fetch the candidate's recruiter relationship
                 try {
-                    const ownershipResponse = await client.get(`/candidates/${candidateId}/sourcer`);
-                    setOwnership(ownershipResponse.data);
+                    // If this succeeds, the user has an active relationship or is an admin
+                    const relationshipCheck = await client.get(`/candidates/${candidateId}`);
+                    setCanEdit(true);
+                    
+                    // Try to get detailed relationship info
+                    try {
+                        const relationshipResponse = await client.get(`/recruiter-candidates/candidate/${candidateId}`);
+                        if (relationshipResponse.data && relationshipResponse.data.length > 0) {
+                            // Get the most recent active relationship
+                            const activeRelationship = relationshipResponse.data.find((r: any) => r.status === 'active');
+                            setRelationship(activeRelationship || relationshipResponse.data[0]);
+                        }
+                    } catch (err) {
+                        // No relationship info available (might be admin or self-managed candidate)
+                        console.log('No relationship info:', err);
+                    }
                 } catch (err) {
-                    // Ownership is optional - candidate may not have a sourcer yet
-                    console.log('No ownership info:', err);
-                    setOwnership(null);
+                    // User cannot edit this candidate
+                    setCanEdit(false);
                 }
 
                 // Fetch applications
@@ -106,6 +121,26 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
         });
     };
 
+    const getRelationshipStatusBadge = (status: string) => {
+        switch (status) {
+            case 'active':
+                return 'badge-success';
+            case 'expired':
+                return 'badge-warning';
+            case 'terminated':
+                return 'badge-error';
+            default:
+                return 'badge-ghost';
+        }
+    };
+
+    const isRelationshipExpiringSoon = (endDate: string) => {
+        const end = new Date(endDate);
+        const now = new Date();
+        const daysUntilExpiration = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return daysUntilExpiration <= 30 && daysUntilExpiration > 0;
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -164,6 +199,12 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                                             {candidate.email}
                                         </a>
                                     </div>
+                                    {candidate.phone && (
+                                        <div className="flex items-center gap-2">
+                                            <i className="fa-solid fa-phone"></i>
+                                            <span>{candidate.phone}</span>
+                                        </div>
+                                    )}
                                     {candidate.linkedin_url && (
                                         <div className="flex items-center gap-2">
                                             <i className="fa-brands fa-linkedin"></i>
@@ -178,19 +219,99 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                                         </div>
                                     )}
                                 </div>
+                                {(candidate.current_title || candidate.current_company || candidate.location) && (
+                                    <div className="flex items-center gap-4 mt-2 text-sm text-base-content/70">
+                                        {candidate.current_title && (
+                                            <div className="flex items-center gap-1">
+                                                <i className="fa-solid fa-briefcase"></i>
+                                                <span>{candidate.current_title}</span>
+                                            </div>
+                                        )}
+                                        {candidate.current_company && (
+                                            <div className="flex items-center gap-1">
+                                                <i className="fa-solid fa-building"></i>
+                                                <span>{candidate.current_company}</span>
+                                            </div>
+                                        )}
+                                        {candidate.location && (
+                                            <div className="flex items-center gap-1">
+                                                <i className="fa-solid fa-location-dot"></i>
+                                                <span>{candidate.location}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 <div className="text-sm text-base-content/60 mt-1">
                                     Added {formatDate(candidate.created_at)}
                                 </div>
                             </div>
                         </div>
+                        {canEdit && (
+                            <Link href={`/candidates/${candidateId}/edit`} className="btn btn-primary gap-2">
+                                <i className="fa-solid fa-edit"></i>
+                                Edit
+                            </Link>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Ownership Information */}
-            {ownership && (
-                <OwnershipBadge sourcer={ownership} />
+            {/* Recruiter Relationship Information */}
+            {relationship && (
+                <div className="card bg-base-100 shadow-sm">
+                    <div className="card-body">
+                        <h2 className="card-title text-lg">Recruiter Relationship</h2>
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold">Status:</span>
+                                    <span className={`badge ${getRelationshipStatusBadge(relationship.status)}`}>
+                                        {relationship.status.charAt(0).toUpperCase() + relationship.status.slice(1)}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-base-content/70">
+                                    <div>
+                                        <i className="fa-solid fa-calendar-plus mr-1"></i>
+                                        Started: {formatDate(relationship.relationship_start_date)}
+                                    </div>
+                                    <div>
+                                        <i className="fa-solid fa-calendar-xmark mr-1"></i>
+                                        Expires: {formatDate(relationship.relationship_end_date)}
+                                    </div>
+                                </div>
+                                {relationship.status === 'active' && isRelationshipExpiringSoon(relationship.relationship_end_date) && (
+                                    <div className="alert alert-warning mt-2">
+                                        <i className="fa-solid fa-triangle-exclamation"></i>
+                                        <span>Relationship expires in less than 30 days. Consider renewing.</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
+
+            {candidate.user_id && (
+                <div className="alert alert-info">
+                    <i className="fa-solid fa-info-circle"></i>
+                    <span>This candidate is self-managed and has their own platform account.</span>
+                </div>
+            )}
+
+            {/* Documents */}
+            <div className="card bg-base-100 shadow-sm">
+                <div className="card-body">
+                    <h2 className="card-title text-lg mb-4">
+                        <i className="fa-solid fa-file-lines mr-2"></i>
+                        Documents
+                    </h2>
+                    <DocumentList
+                        entityType="candidate"
+                        entityId={candidateId}
+                        showUpload={canEdit}
+                    />
+                </div>
+            </div>
 
             {/* Applications */}
             <div>

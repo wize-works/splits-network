@@ -46,7 +46,9 @@ export default function CandidatesListClient() {
                     return;
                 }
                 
-                // Recruiters and admins can see all candidates
+                // Fetch candidates (API Gateway filters based on role automatically)
+                // - Recruiters see: Candidates they sourced OR have active relationships with
+                // - Admins see: All candidates
                 const response = await client.get('/candidates');
                 setCandidates(response.data || []);
             } catch (err: any) {
@@ -103,6 +105,10 @@ export default function CandidatesListClient() {
                         View and manage all your submitted candidates
                     </p>
                 </div>
+                <Link href="/candidates/new" className="btn btn-primary gap-2">
+                    <i className="fa-solid fa-plus"></i>
+                    New Candidate
+                </Link>
             </div>
 
             {/* Filters and View Toggle */}

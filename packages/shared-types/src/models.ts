@@ -96,6 +96,12 @@ export interface Candidate {
     email: string;
     full_name: string;
     linkedin_url?: string;
+    phone?: string;
+    location?: string;
+    current_title?: string;
+    current_company?: string;
+    user_id?: string; // If set, candidate is self-managed (has their own account); if null, recruiter-managed
+    recruiter_id?: string; // SOURCER: The recruiter who brought this candidate to the platform (permanent credit for visibility, NOT editing)
     created_at: Date;
     updated_at: Date;
 }
@@ -238,7 +244,19 @@ export interface CandidateSourcer {
     notes?: string;
     created_at: Date;
 }
+// Recruiter-Candidate Relationship (12-month renewable relationship)
+export type RecruiterCandidateStatus = 'active' | 'expired' | 'terminated';
 
+export interface RecruiterCandidate {
+    id: string;
+    recruiter_id: string;
+    candidate_id: string;
+    relationship_start_date: Date;
+    relationship_end_date: Date; // 12 months from start
+    status: RecruiterCandidateStatus;
+    created_at: Date;
+    updated_at: Date;
+}
 // Candidate-Role Assignment State Machine
 export type CandidateRoleAssignmentState = 
     | 'proposed'

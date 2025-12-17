@@ -26,7 +26,7 @@ export default function PricingPage() {
                             <div className="card-body">
                                 <div className="badge badge-primary mb-4">STARTER</div>
                                 <h3 className="card-title text-3xl mb-2">
-                                    $99<span className="text-lg font-normal text-base-content/60">/month</span>
+                                    Free
                                 </h3>
                                 <p className="text-base-content/70 mb-6">
                                     Perfect for recruiters getting started with split placements
@@ -77,7 +77,7 @@ export default function PricingPage() {
                             <div className="card-body">
                                 <div className="badge badge-secondary mb-4">MOST POPULAR</div>
                                 <h3 className="card-title text-3xl mb-2">
-                                    $249<span className="text-lg font-normal opacity-80">/month</span>
+                                    $149<span className="text-lg font-normal opacity-80">/month</span>
                                 </h3>
                                 <p className="opacity-90 mb-6">
                                     For established recruiters who want better payouts and priority access
@@ -128,7 +128,7 @@ export default function PricingPage() {
                             <div className="card-body">
                                 <div className="badge badge-accent mb-4">PARTNER</div>
                                 <h3 className="card-title text-3xl mb-2">
-                                    $499<span className="text-lg font-normal text-base-content/60">/month</span>
+                                    $249<span className="text-lg font-normal text-base-content/60">/month</span>
                                 </h3>
                                 <p className="text-base-content/70 mb-6">
                                     For recruiting firms and power users who need the best
@@ -274,9 +274,9 @@ export default function PricingPage() {
                             <tbody>
                                 <tr>
                                     <td>Recruiter Share</td>
-                                    <td className="text-center">65%</td>
-                                    <td className="text-center bg-primary/10 font-bold">75%</td>
-                                    <td className="text-center font-bold">85%</td>
+                                    <td className="text-center">30%</td>
+                                    <td className="text-center bg-primary/10 font-bold">40%</td>
+                                    <td className="text-center font-bold">50%</td>
                                 </tr>
                                 <tr>
                                     <td>Access to Roles</td>
@@ -286,12 +286,12 @@ export default function PricingPage() {
                                 </tr>
                                 <tr>
                                     <td>Priority Role Access</td>
-                                    <td className="text-center"><i className="fa-solid fa-x text-error text-sm"></i></td>
+                                    <td className="text-center"><i className="fa-solid fa-check text-success"></i></td>
                                     <td className="text-center bg-primary/10"><i className="fa-solid fa-check text-success"></i></td>
                                     <td className="text-center"><i className="fa-solid fa-check text-success"></i></td>
                                 </tr>
                                 <tr>
-                                    <td>Exclusive Early Access</td>
+                                    <td>Exclusive Early/Private Access</td>
                                     <td className="text-center"><i className="fa-solid fa-x text-error text-sm"></i></td>
                                     <td className="text-center bg-primary/10"><i className="fa-solid fa-x text-error text-sm"></i></td>
                                     <td className="text-center"><i className="fa-solid fa-check text-success"></i></td>

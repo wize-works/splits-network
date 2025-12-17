@@ -26,7 +26,7 @@ export default function SignInPage() {
                 identifier: email,
                 password,
             });
-
+            
             if (signInAttempt.status === 'complete') {
                 await setActive({ session: signInAttempt.createdSessionId });
                 router.push('/dashboard');

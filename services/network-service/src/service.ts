@@ -97,4 +97,25 @@ export class NetworkService {
     async getStats(): Promise<{ totalRecruiters: number; activeRecruiters: number; pendingRecruiters: number }> {
         return this.stats.getStats();
     }
+
+    // Recruiter-Candidate Relationship methods
+    async findRecruiterCandidateRelationship(recruiterId: string, candidateId: string) {
+        return this.repository.findRecruiterCandidateRelationship(recruiterId, candidateId);
+    }
+
+    async createRecruiterCandidateRelationship(recruiterId: string, candidateId: string) {
+        return this.repository.createRecruiterCandidateRelationship(recruiterId, candidateId);
+    }
+
+    async findCandidatesByRecruiterId(recruiterId: string) {
+        return this.repository.findCandidatesByRecruiterId(recruiterId);
+    }
+
+    async updateRecruiterCandidateRelationship(id: string, updates: any) {
+        return this.repository.updateRecruiterCandidateRelationship(id, updates);
+    }
+
+    async renewRecruiterCandidateRelationship(id: string) {
+        return this.repository.renewRecruiterCandidateRelationship(id);
+    }
 }

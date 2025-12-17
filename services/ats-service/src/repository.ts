@@ -262,11 +262,18 @@ export class AtsRepository {
     }
 
     // Candidate methods
-    async findAllCandidates(filters?: { search?: string; limit?: number; offset?: number }): Promise<Candidate[]> {
+    async findAllCandidates(filters?: { search?: string; limit?: number; offset?: number; recruiter_id?: string }): Promise<Candidate[]> {
         let query = this.supabase
             .schema('ats')
             .from('candidates')
             .select('*');
+
+        if (filters?.recruiter_id) {
+            // Filter to candidates SOURCED by this recruiter (permanent visibility only, NOT editing rights)
+            // Note: This shows candidates the recruiter brought to the platform
+            // Active relationships (in network.recruiter_candidates) are required for editing/representing
+            query = query.eq('recruiter_id', filters.recruiter_id);
+        }
 
         if (filters?.search) {
             query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
@@ -318,10 +325,31 @@ export class AtsRepository {
     }
 
     async createCandidate(candidate: Omit<Candidate, 'id' | 'created_at' | 'updated_at'>): Promise<Candidate> {
-        const { data, error } = await this.supabase
+        const { data, error} = await this.supabase
             .schema('ats')
             .from('candidates')
             .insert(candidate)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async updateCandidate(id: string, updates: { 
+        full_name?: string; 
+        email?: string; 
+        linkedin_url?: string;
+        phone?: string;
+        location?: string;
+        current_title?: string;
+        current_company?: string;
+    }): Promise<Candidate> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('candidates')
+            .update(updates)
+            .eq('id', id)
             .select()
             .single();
 

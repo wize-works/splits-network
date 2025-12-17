@@ -181,7 +181,7 @@ export default function RolesList() {
                             <div className="card-body min-h-40">
                                 {(userRole === 'recruiter' || userRole === 'platform_admin' || userRole === 'company_admin') && (
                                     <div className='badge badge-info rounded-lg text-nowrap'>
-                                        Max Fee: ${job.salary_max ? Math.round(job.fee_percentage * job.salary_max) : 'N/A'}
+                                        Max Fee: ${job.salary_max ? Math.round(job.fee_percentage * job.salary_max / 100) : 'N/A'}
                                         <span className='tooltip' data-tip='Calculated as Fee Percentage multiplied by Maximum Salary'>
                                             <i className='fa fa-info-circle'></i>
                                         </span>

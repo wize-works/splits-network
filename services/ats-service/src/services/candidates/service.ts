@@ -24,7 +24,7 @@ export class CandidateService {
         };
     }
 
-    async getCandidates(filters?: { search?: string; limit?: number; offset?: number }): Promise<Candidate[]> {
+    async getCandidates(filters?: { search?: string; limit?: number; offset?: number; recruiter_id?: string }): Promise<Candidate[]> {
         return await this.repository.findAllCandidates(filters);
     }
 
@@ -39,7 +39,8 @@ export class CandidateService {
     async findOrCreateCandidate(
         email: string,
         fullName: string,
-        linkedinUrl?: string
+        linkedinUrl?: string,
+        recruiterId?: string
     ): Promise<Candidate> {
         let candidate = await this.repository.findCandidateByEmail(email);
         if (!candidate) {
@@ -47,9 +48,35 @@ export class CandidateService {
                 email,
                 full_name: fullName,
                 linkedin_url: linkedinUrl,
+                recruiter_id: recruiterId, // SOURCER: Permanent credit for bringing candidate to platform
             });
         }
         return candidate;
+    }
+
+    async updateCandidate(
+        id: string,
+        updates: { 
+            full_name?: string; 
+            email?: string; 
+            linkedin_url?: string;
+            phone?: string;
+            location?: string;
+            current_title?: string;
+            current_company?: string;
+        }
+    ): Promise<Candidate> {
+        const candidate = await this.repository.findCandidateById(id);
+        if (!candidate) {
+            throw new Error(`Candidate ${id} not found`);
+        }
+
+        // Only allow updates if candidate is not self-managed
+        if (candidate.user_id) {
+            throw new Error('Cannot update self-managed candidate profile');
+        }
+
+        return await this.repository.updateCandidate(id, updates);
     }
 
     /**

@@ -5,6 +5,7 @@ import {
     CandidateRoleAssignment,
     CandidateRoleAssignmentState,
     RecruiterReputation,
+    RecruiterCandidate,
 } from '@splits-network/shared-types';
 
 export class NetworkRepository {
@@ -345,5 +346,88 @@ export class NetworkRepository {
             activeRecruiters: active,
             pendingRecruiters: pending,
         };
+    }
+
+    // Recruiter-Candidate Relationship methods
+    async findRecruiterCandidateRelationship(
+        recruiterId: string,
+        candidateId: string
+    ): Promise<RecruiterCandidate | null> {
+        const { data, error } = await this.supabase
+            .schema('network')
+            .from('recruiter_candidates')
+            .select('*')
+            .eq('recruiter_id', recruiterId)
+            .eq('candidate_id', candidateId)
+            .eq('status', 'active')
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data;
+    }
+
+    async createRecruiterCandidateRelationship(
+        recruiterId: string,
+        candidateId: string
+    ): Promise<RecruiterCandidate> {
+        const relationshipEndDate = new Date();
+        relationshipEndDate.setMonth(relationshipEndDate.getMonth() + 12);
+
+        const { data, error } = await this.supabase
+            .schema('network')
+            .from('recruiter_candidates')
+            .insert({
+                recruiter_id: recruiterId,
+                candidate_id: candidateId,
+                relationship_start_date: new Date(),
+                relationship_end_date: relationshipEndDate,
+                status: 'active',
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async findCandidatesByRecruiterId(recruiterId: string): Promise<RecruiterCandidate[]> {
+        const { data, error } = await this.supabase
+            .schema('network')
+            .from('recruiter_candidates')
+            .select('*')
+            .eq('recruiter_id', recruiterId)
+            .eq('status', 'active');
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async updateRecruiterCandidateRelationship(
+        id: string,
+        updates: Partial<RecruiterCandidate>
+    ): Promise<RecruiterCandidate> {
+        const { data, error } = await this.supabase
+            .schema('network')
+            .from('recruiter_candidates')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async renewRecruiterCandidateRelationship(id: string): Promise<RecruiterCandidate> {
+        const newEndDate = new Date();
+        newEndDate.setMonth(newEndDate.getMonth() + 12);
+
+        return this.updateRecruiterCandidateRelationship(id, {
+            relationship_end_date: newEndDate,
+            status: 'active',
+        });
     }
 }
