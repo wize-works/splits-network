@@ -11,6 +11,8 @@ interface Job {
     title: string;
     company_id: string;
     location?: string;
+    salary_min?: number;
+    salary_max?: number;
     fee_percentage: number;
     status: string;
     created_at: string;
@@ -33,6 +35,16 @@ function getStatusBadge(status: string) {
         closed: 'badge-neutral',
     };
     return styles[status as keyof typeof styles] || 'badge-neutral';
+}
+
+function getCardBorder(status: string) {
+    const styles = {
+        active: 'border-green-500',
+        paused: 'border-yellow-500',
+        filled: 'border-blue-500',
+        closed: 'border-gray-500',
+    };
+    return styles[status as keyof typeof styles] || 'border-gray-300';
 }
 
 export default function RolesList() {
@@ -160,14 +172,29 @@ export default function RolesList() {
             {viewMode === 'grid' && filteredJobs.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {filteredJobs.map((job) => (
-                        <div key={job.id} className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="card-body">
-                                <div className="flex justify-between items-start">
+                        <div key={job.id} className={`card card-lg bg-base-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative border-2 ${getCardBorder(job.status)}`}>
+                            <div className="flex flex-col items-end gap-2 absolute -top-1 -right-1">
+                                <div className={`badge ${getStatusBadge(job.status)}`}>
+                                    {job.status}
+                                </div>
+                            </div>
+                            <div className="card-body min-h-40">
+                                {(userRole === 'recruiter' || userRole === 'platform_admin' || userRole === 'company_admin') && (
+                                    <div className='badge badge-info rounded-lg text-nowrap'>
+                                        Max Fee: ${job.salary_max ? Math.round(job.fee_percentage * job.salary_max) : 'N/A'}
+                                        <span className='tooltip' data-tip='Calculated as Fee Percentage multiplied by Maximum Salary'>
+                                            <i className='fa fa-info-circle'></i>
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-start mb-auto min-h-40">
                                     <div className="flex-1">
-                                        <Link href={`/roles/${job.id}`} className="hover:text-primary transition-colors">
-                                            <h3 className="card-title text-xl">{job.title}</h3>
-                                        </Link>
-                                        <div className="flex items-center gap-4 mt-2 text-sm text-base-content/70">
+                                        <div className='flex justify-between items-start'>
+                                            <Link href={`/roles/${job.id}`} className="hover:text-primary transition-colors">
+                                                <h2 className="card-title text-3xl">{job.title}</h2>
+                                            </Link>
+                                        </div>
+                                        <div className="flex justify-between items-center gap-4 mt-2 text-sm text-base-content/70">
                                             <span className="flex items-center gap-1">
                                                 <i className="fa-solid fa-building"></i>
                                                 Company {job.company_id.substring(0, 8)}
@@ -184,13 +211,8 @@ export default function RolesList() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-end gap-2">
-                                        <div className={`badge ${getStatusBadge(job.status)}`}>
-                                            {job.status}
-                                        </div>
-                                    </div>
                                 </div>
-                                <div className="card-actions justify-between items-center mt-4">
+                                <div className="card-actions justify-between items-center">
                                     <span className="text-sm text-base-content/60">
                                         Posted {new Date(job.created_at).toLocaleDateString()}
                                     </span>
