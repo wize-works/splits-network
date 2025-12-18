@@ -157,7 +157,7 @@ export class CandidatesEmailService {
         }
     ): Promise<void> {
         const subject = `${data.recruiter_name} wants to represent you`;
-        const candidateWebsiteUrl = process.env.CANDIDATE_WEBSITE_URL || 'https://candidate.splits.network';
+        const candidateWebsiteUrl = process.env.CANDIDATE_WEBSITE_URL || 'https://applicant.network';
         const invitationUrl = `${candidateWebsiteUrl}/invitation/${data.invitation_token}`;
         
         const expiryDate = new Date(data.invitation_expires_at).toLocaleDateString('en-US', {

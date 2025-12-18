@@ -753,8 +753,8 @@ ORDER BY c.name;
 - Provide interview availability
 
 **URL Structure:**
-- `candidate.splits.network/{token}` or
-- `portal.splits.network/candidate/{token}`
+- `applicant.network/{token}` or
+- `splits.network/candidate/{token}`
 
 **Database:**
 
