@@ -70,14 +70,14 @@ export class CandidatesEventConsumer {
             // Notify original sourcer
             await this.emailService.sendOwnershipConflict(originalUser.email, {
                 candidateName: candidate.full_name,
-                attemptingRecruiterName: `${attemptingUser.first_name} ${attemptingUser.last_name}`,
+                attemptingRecruiterName: attemptingUser.name,
                 userId: originalRecruiter.user_id,
             });
             
             // Notify attempting recruiter
             await this.emailService.sendOwnershipConflictRejection(attemptingUser.email, {
                 candidateName: candidate.full_name,
-                originalSourcerName: `${originalUser.first_name} ${originalUser.last_name}`,
+                originalSourcerName: originalUser.name,
                 userId: attemptingRecruiter.user_id,
             });
             
@@ -110,7 +110,7 @@ export class CandidatesEventConsumer {
             await this.emailService.sendCandidateInvitation(candidate.email, {
                 candidate_name: candidate.full_name,
                 candidate_email: candidate.email,
-                recruiter_name: `${recruiterUser.first_name} ${recruiterUser.last_name}`,
+                recruiter_name: recruiterUser.name,
                 recruiter_email: recruiterUser.email,
                 recruiter_bio: recruiter.bio || 'A professional recruiter',
                 invitation_token: invitation_token,
@@ -149,7 +149,7 @@ export class CandidatesEventConsumer {
 
             // Send acceptance notification to recruiter
             await this.emailService.sendConsentGivenToRecruiter(recruiterUser.email, {
-                recruiter_name: `${recruiterUser.first_name} ${recruiterUser.last_name}`,
+                recruiter_name: recruiterUser.name,
                 candidate_name: candidate.full_name,
                 candidate_email: candidate.email,
                 consent_given_at: consent_given_at,
@@ -187,7 +187,7 @@ export class CandidatesEventConsumer {
 
             // Send declined notification to recruiter
             await this.emailService.sendConsentDeclinedToRecruiter(recruiterUser.email, {
-                recruiter_name: `${recruiterUser.first_name} ${recruiterUser.last_name}`,
+                recruiter_name: recruiterUser.name,
                 candidate_name: candidate.full_name,
                 candidate_email: candidate.email,
                 declined_at: declined_at,
