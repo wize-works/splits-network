@@ -9,7 +9,7 @@ import { requireRoles, AuthenticatedRequest, isAdmin, isCompanyUser, isRecruiter
  * RBAC Data Scoping Rules:
  * - Platform admins: see all jobs
  * - Company users: see only their company's jobs
- * - Recruiters: see only assigned jobs
+ * - Recruiters: see all active jobs (marketplace model - they need to discover opportunities)
  */
 export function registerRolesRoutes(app: FastifyInstance, services: ServiceRegistry) {
     /**
@@ -68,8 +68,10 @@ export function registerRolesRoutes(app: FastifyInstance, services: ServiceRegis
                 return reply.send({ data: [] });
             }
         }
-        // Recruiters see only jobs assigned to them
+        // Recruiters see all active jobs (marketplace model)
+        // They need to discover opportunities to submit candidates
         else if (isUserRecruiter) {
+            // Verify the user is an active recruiter
             try {
                 const recruiterResponse: any = await networkService.get(
                     `/recruiters/by-user/${req.auth.userId}`,
@@ -77,22 +79,16 @@ export function registerRolesRoutes(app: FastifyInstance, services: ServiceRegis
                     correlationId
                 );
 
-                if (recruiterResponse.data) {
-                    const recruiterId = recruiterResponse.data.id;
-                    const assignmentsResponse: any = await networkService.get(
-                        `/recruiters/${recruiterId}/jobs`,
-                        undefined,
-                        correlationId
-                    );
-                    jobIds = assignmentsResponse.data || [];
+                // If recruiter doesn't exist or is not active, deny access
+                if (!recruiterResponse.data || recruiterResponse.data.status !== 'active') {
+                    return reply.status(403).send({ error: 'Active recruiter status required to view roles' });
                 }
             } catch (error) {
-                return reply.send({ data: [] });
+                request.log.error({ error, userId: req.auth.userId }, 'Failed to verify recruiter status');
+                return reply.status(403).send({ error: 'Failed to verify recruiter status' });
             }
 
-            if (!jobIds || jobIds.length === 0) {
-                return reply.send({ data: [] });
-            }
+            // No filtering by jobIds - recruiters see all jobs (will be filtered by status in query)
         }
         else {
             return reply.status(403).send({ error: 'Insufficient permissions to view roles' });
