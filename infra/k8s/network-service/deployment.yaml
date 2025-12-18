@@ -39,6 +39,8 @@ spec:
                 secretKeyRef:
                   name: supabase-secrets
                   key: supabase-service-role-key
+            - name: RABBITMQ_URL
+              value: "amqp://splits:splits_production@rabbitmq:5672"
           resources:
             requests:
               cpu: 100m

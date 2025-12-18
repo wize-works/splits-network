@@ -28,7 +28,11 @@ export class EventPublisher {
 
     async publish(eventType: string, payload: Record<string, any>, sourceService: string): Promise<void> {
         if (!this.channel) {
-            throw new Error('RabbitMQ channel not initialized');
+            this.logger.warn(
+                { event_type: eventType },
+                'Skipping event publish - RabbitMQ channel not initialized'
+            );
+            return;
         }
 
         const event: DomainEvent = {
