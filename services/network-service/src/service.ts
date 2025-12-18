@@ -182,7 +182,7 @@ export class NetworkService {
         // Update with consent
         const updatedRelationship = await this.repository.updateRecruiterCandidateRelationship(relationship.id, {
             consent_given: true,
-            consent_given_at: new Date().toISOString(),
+            consent_given_at: new Date(),
             consent_ip_address: metadata.ip_address,
             consent_user_agent: metadata.user_agent,
         });
@@ -223,8 +223,8 @@ export class NetworkService {
         // Update with decline
         const updatedRelationship = await this.repository.updateRecruiterCandidateRelationship(relationship.id, {
             consent_given: false,
-            declined_at: new Date().toISOString(),
-            declined_reason: metadata.reason || null,
+            declined_at: new Date(),
+            declined_reason: metadata.reason,
             consent_ip_address: metadata.ip_address,
             consent_user_agent: metadata.user_agent,
         });
