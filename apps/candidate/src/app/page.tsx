@@ -22,14 +22,10 @@ export default function CandidateHomePage() {
                 {/* Content */}
                 <div className="hero-content text-center max-w-6xl relative z-10 py-20">
                     <div className="space-y-8">
-                        <div className="badge badge-primary badge-lg">
-                            <i className="fa-solid fa-sparkles mr-2"></i>
-                            Your Career Journey Starts Here
-                        </div>
                         <h1 className="text-5xl md:text-7xl font-bold leading-tight">
                             Find Your Dream Job,
                             <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+                            <span className="text-secondary">
                                 Powered by Expert Recruiters
                             </span>
                         </h1>
@@ -332,13 +328,7 @@ export default function CandidateHomePage() {
             </section>
 
             {/* CTA Section */}
-            <section className="py-20 bg-gradient-to-r from-primary to-secondary text-white relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10">
-                    <div className="absolute inset-0" style={{
-                        backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
-                        backgroundSize: '50px 50px'
-                    }}></div>
-                </div>
+            <section className="py-20 bg-primary text-white relative overflow-hidden">
                 <div className="container mx-auto px-4 text-center relative z-10">
                     <div className="max-w-4xl mx-auto space-y-8">
                         <h2 className="text-4xl md:text-6xl font-bold leading-tight">
