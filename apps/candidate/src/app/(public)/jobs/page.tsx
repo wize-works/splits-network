@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { formatSalary, formatDate } from '@/lib/utils';
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 
 // Mock data - will be replaced with API calls
 const mockJobs = [
@@ -74,7 +74,7 @@ const mockJobs = [
   },
 ];
 
-export default function JobsPage() {
+function JobsContent() {
   const searchParams = useSearchParams();
   
   // Get initial values from URL params
@@ -434,5 +434,19 @@ export default function JobsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function JobsPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-96">
+          <span className="loading loading-spinner loading-lg"></span>
+        </div>
+      </div>
+    }>
+      <JobsContent />
+    </Suspense>
   );
 }
