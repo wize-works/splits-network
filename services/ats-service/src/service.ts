@@ -42,7 +42,8 @@ export class AtsService {
     // Jobs
     async getJobs(filters?: { 
         status?: string; 
-        search?: string; 
+        search?: string;
+        location?: string;
         employment_type?: string;
         open_to_relocation?: boolean;
         salary_min?: number;

@@ -85,8 +85,8 @@ export default function Header() {
             <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-64">
               <li className="menu-title">Jobs</li>
               <li><Link href="/jobs">All Jobs</Link></li>
-              <li><Link href="/jobs?remote=true">Remote Jobs</Link></li>
-              <li><Link href="/jobs?recent=true">Recent Postings</Link></li>
+              <li><Link href="/jobs?q=remote">Remote Jobs</Link></li>
+              <li><Link href="/jobs?q=director">Director Roles</Link></li>
               <li className="menu-title mt-2">Resources</li>
               <li><Link href="/resources/career-guides">Career Guides</Link></li>
               <li><Link href="/resources/salary-insights">Salary Insights</Link></li>
@@ -130,7 +130,7 @@ export default function Header() {
                         {jobCategories.map((cat) => (
                           <li key={cat.name}>
                             <Link 
-                              href={`/jobs?category=${cat.name.toLowerCase()}`}
+                              href={`/jobs?q=${encodeURIComponent(cat.name.toLowerCase())}`}
                               className="flex items-center justify-between p-2 hover:bg-base-200 rounded-lg transition-colors group"
                               onClick={closeAllDropdowns}
                             >
@@ -148,25 +148,25 @@ export default function Header() {
                       <h3 className="font-bold text-sm mb-3 text-base-content/60">POPULAR SEARCHES</h3>
                       <ul className="space-y-2">
                         <li>
-                          <Link href="/jobs?remote=true" className="flex items-center gap-2 p-2 hover:bg-base-200 rounded-lg" onClick={closeAllDropdowns}>
+                          <Link href="/jobs?q=remote" className="flex items-center gap-2 p-2 hover:bg-base-200 rounded-lg" onClick={closeAllDropdowns}>
                             <i className="fa-solid fa-house-laptop text-secondary"></i>
                             Remote Jobs
                           </Link>
                         </li>
                         <li>
-                          <Link href="/jobs?recent=true" className="flex items-center gap-2 p-2 hover:bg-base-200 rounded-lg" onClick={closeAllDropdowns}>
-                            <i className="fa-solid fa-clock text-accent"></i>
-                            Recent Postings
+                          <Link href="/jobs?q=director" className="flex items-center gap-2 p-2 hover:bg-base-200 rounded-lg" onClick={closeAllDropdowns}>
+                            <i className="fa-solid fa-user-tie text-accent"></i>
+                            Director Roles
                           </Link>
                         </li>
                         <li>
-                          <Link href="/jobs?salary=100k+" className="flex items-center gap-2 p-2 hover:bg-base-200 rounded-lg" onClick={closeAllDropdowns}>
+                          <Link href="/jobs?q=100000" className="flex items-center gap-2 p-2 hover:bg-base-200 rounded-lg" onClick={closeAllDropdowns}>
                             <i className="fa-solid fa-dollar-sign text-success"></i>
                             $100K+ Salary
                           </Link>
                         </li>
                         <li>
-                          <Link href="/jobs?type=full-time" className="flex items-center gap-2 p-2 hover:bg-base-200 rounded-lg" onClick={closeAllDropdowns}>
+                          <Link href="/jobs?employment_type=full_time" className="flex items-center gap-2 p-2 hover:bg-base-200 rounded-lg" onClick={closeAllDropdowns}>
                             <i className="fa-solid fa-briefcase text-info"></i>
                             Full-Time Positions
                           </Link>

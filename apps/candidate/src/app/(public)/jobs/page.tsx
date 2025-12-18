@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { formatSalary, formatDate } from '@/lib/utils';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { apiClient } from '@/lib/api-client';
 
@@ -31,16 +31,47 @@ const JOBS_PER_PAGE = 20;
 
 function JobsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   
   // Get initial values from URL params
-  const [searchQuery, setSearchQuery] = useState('');
-  const [locationQuery, setLocationQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
+  const [locationQuery, setLocationQuery] = useState(() => searchParams.get('location') || '');
+  const [typeFilter, setTypeFilter] = useState(() => searchParams.get('employment_type') || '');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [total, setTotal] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const page = searchParams.get('page');
+    return page ? parseInt(page, 10) : 1;
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync state when URL changes from external navigation (e.g., clicking links)
+  useEffect(() => {
+    const urlQuery = searchParams.get('q') || '';
+    const urlLocation = searchParams.get('location') || '';
+    const urlType = searchParams.get('employment_type') || '';
+    const urlPage = searchParams.get('page');
+    const urlPageNum = urlPage ? parseInt(urlPage, 10) : 1;
+
+    // Only update if different to avoid infinite loops
+    if (urlQuery !== searchQuery) setSearchQuery(urlQuery);
+    if (urlLocation !== locationQuery) setLocationQuery(urlLocation);
+    if (urlType !== typeFilter) setTypeFilter(urlType);
+    if (urlPageNum !== currentPage) setCurrentPage(urlPageNum);
+  }, [searchParams]);
+
+  // Sync URL with current state changes (from user input)
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (locationQuery) params.set('location', locationQuery);
+    if (typeFilter) params.set('employment_type', typeFilter);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    
+    const newUrl = params.toString() ? `/jobs?${params.toString()}` : '/jobs';
+    router.replace(newUrl, { scroll: false });
+  }, [searchQuery, locationQuery, typeFilter, currentPage, router]);
 
   // Fetch jobs from API with server-side filtering
   useEffect(() => {
@@ -73,18 +104,6 @@ function JobsContent() {
 
     fetchJobs();
   }, [searchQuery, locationQuery, typeFilter, currentPage]);
-
-  useEffect(() => {
-    // Initialize filters from URL params
-    const q = searchParams.get('q') || '';
-    const location = searchParams.get('location') || '';
-    const type = searchParams.get('type') || '';
-
-    setSearchQuery(q);
-    setLocationQuery(location);
-    setTypeFilter(type);
-    setCurrentPage(1); // Reset to first page when filters change from URL
-  }, [searchParams]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

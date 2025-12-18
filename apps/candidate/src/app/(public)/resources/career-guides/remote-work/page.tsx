@@ -241,7 +241,7 @@ export default function RemoteWorkGuidePage() {
                         <div className="card-body">
                             <h3 className="card-title text-xl mb-4">Explore More</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <Link href="/jobs?remote=true" className="btn btn-primary">
+                                <Link href="/jobs?q=remote" className="btn btn-primary">
                                     <i className="fa-solid fa-house-laptop"></i>
                                     Remote Jobs
                                 </Link>
