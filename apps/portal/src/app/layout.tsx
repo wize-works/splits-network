@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import CookieConsent from '@/components/cookie-consent';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default async function RootLayout({
                         {children}
                     </main>
                     <Footer />
+                    <CookieConsent />
                 </body>
             </html>
         </ClerkProvider>

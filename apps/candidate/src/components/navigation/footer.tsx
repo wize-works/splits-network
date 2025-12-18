@@ -14,16 +14,17 @@ export default function Footer() {
           </p>
         </nav>
         <nav>
-          <h6 className="footer-title">Company</h6>
-          <Link href="/about" className="link link-hover">About Us</Link>
-          <Link href="/careers" className="link link-hover">Careers</Link>
-          <Link href="/contact" className="link link-hover">Contact</Link>
+          <h6 className="footer-title">Platform</h6>
+          <Link href="/jobs" className="link link-hover">Browse Jobs</Link>
+          <Link href="/how-it-works" className="link link-hover">How It Works</Link>
+          <Link href="/for-recruiters" className="link link-hover">For Recruiters</Link>
+          <Link href="/help" className="link link-hover">Help Center</Link>
         </nav>
         <nav>
-          <h6 className="footer-title">Resources</h6>
-          <Link href="/jobs" className="link link-hover">Browse Jobs</Link>
-          <Link href="/help" className="link link-hover">Help Center</Link>
-          <Link href="/blog" className="link link-hover">Blog</Link>
+          <h6 className="footer-title">Company</h6>
+          <Link href="/about" className="link link-hover">About Us</Link>
+          <Link href="/contact" className="link link-hover">Contact</Link>
+          <a href="https://splits.network" className="link link-hover" target="_blank" rel="noopener noreferrer">Splits Network</a>
         </nav>
         <nav>
           <h6 className="footer-title">Legal</h6>

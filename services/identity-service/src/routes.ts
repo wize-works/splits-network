@@ -9,6 +9,7 @@ import { registerUsersRoutes } from './routes/users/routes';
 import { registerOrganizationsRoutes } from './routes/organizations/routes';
 import { registerMembershipsRoutes } from './routes/memberships/routes';
 import { registerWebhooksRoutes } from './routes/webhooks/routes';
+import { registerConsentRoutes } from './routes/consent/routes';
 
 export function registerRoutes(app: FastifyInstance, service: IdentityService) {
     // Register domain routes
@@ -16,4 +17,5 @@ export function registerRoutes(app: FastifyInstance, service: IdentityService) {
     registerOrganizationsRoutes(app, service.organizations);
     registerMembershipsRoutes(app, service.memberships);
     registerWebhooksRoutes(app, service.webhooks);
+    registerConsentRoutes(app, service.consent);
 }

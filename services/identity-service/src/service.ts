@@ -8,6 +8,7 @@ import { UsersService } from './services/users/service';
 import { OrganizationsService } from './services/organizations/service';
 import { MembershipsService } from './services/memberships/service';
 import { WebhooksService } from './services/webhooks/service';
+import { ConsentService } from './services/consent/service';
 import { User, Organization, Membership } from '@splits-network/shared-types';
 import { UserProfileDTO } from '@splits-network/shared-types';
 
@@ -16,12 +17,14 @@ export class IdentityService {
     public readonly organizations: OrganizationsService;
     public readonly memberships: MembershipsService;
     public readonly webhooks: WebhooksService;
+    public readonly consent: ConsentService;
 
     constructor(private repository: IdentityRepository) {
         this.users = new UsersService(repository);
         this.organizations = new OrganizationsService(repository);
         this.memberships = new MembershipsService(repository);
         this.webhooks = new WebhooksService(repository);
+        this.consent = new ConsentService(repository);
     }
 
     // Convenience delegation methods for backward compatibility

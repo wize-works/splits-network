@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import Header from "@/components/navigation/header";
 import Footer from "@/components/navigation/footer";
+import CookieConsent from "@/components/cookie-consent";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" data-theme="applicant-light">
         <head>
           <link
             rel="stylesheet"
@@ -32,6 +33,7 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
+          <CookieConsent />
         </body>
       </html>
     </ClerkProvider>

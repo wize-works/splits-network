@@ -146,6 +146,44 @@ export class IdentityRepository {
 
         if (error) throw error;
     }
+
+    // Consent methods
+    async findConsentByUserId(userId: string): Promise<any | null> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('user_consent')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null; // Not found
+            throw error;
+        }
+        return data;
+    }
+
+    async upsertConsent(consent: any): Promise<any> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('user_consent')
+            .upsert(consent, {
+                onConflict: 'user_id',
+                ignoreDuplicates: false,
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async deleteConsent(userId: string): Promise<void> {
+        const { error } = await this.supabase
+            .schema('identity').from('user_consent')
+            .delete()
+            .eq('user_id', userId);
+
+        if (error) throw error;
+    }
 }
 
 
