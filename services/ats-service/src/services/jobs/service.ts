@@ -4,18 +4,22 @@ import { Job } from '@splits-network/shared-types';
 export class JobService {
     constructor(private repository: AtsRepository) {}
 
-    async getJobs(filters?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<Job[]> {
-        const jobs = await this.repository.findJobs(filters);
+    async getJobs(filters?: { 
+        status?: string; 
+        search?: string; 
+        location?: string;
+        employment_type?: string;
+        limit?: number; 
+        offset?: number;
+    }): Promise<{ jobs: Job[], total: number }> {
+        // Use database functions for efficient search and count
+        const [jobs, total] = await Promise.all([
+            this.repository.findJobs(filters),
+            this.repository.countJobs(filters)
+        ]);
 
-        // Enrich with company data
-        const enrichedJobs = await Promise.all(
-            jobs.map(async (job) => {
-                const company = await this.repository.findCompanyById(job.company_id);
-                return { ...job, company: company ?? undefined };
-            })
-        );
-
-        return enrichedJobs;
+        // Jobs already include company data from the database function
+        return { jobs, total };
     }
 
     async getJobById(id: string): Promise<Job> {

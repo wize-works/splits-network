@@ -40,7 +40,15 @@ export class AtsService {
     async updateCompany(id: string, updates: { name?: string; identity_organization_id?: string }) { return this.companies.updateCompany(id, updates); }
 
     // Jobs
-    async getJobs(filters?: { status?: string; search?: string; limit?: number; offset?: number }) { return this.jobs.getJobs(filters); }
+    async getJobs(filters?: { 
+        status?: string; 
+        search?: string; 
+        employment_type?: string;
+        open_to_relocation?: boolean;
+        salary_min?: number;
+        limit?: number; 
+        offset?: number;
+    }) { return this.jobs.getJobs(filters); }
     async getJobById(id: string) { return this.jobs.getJobById(id); }
     async getJobsByCompanyId(companyId: string) { return this.jobs.getJobsByCompanyId(companyId); }
     async getJobsByIds(ids: string[]) { return this.jobs.getJobsByIds(ids); }

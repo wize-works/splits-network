@@ -7,15 +7,31 @@ export function registerJobRoutes(app: FastifyInstance, service: AtsService) {
     // Get all jobs with optional filters
     app.get(
         '/jobs',
-        async (request: FastifyRequest<{ Querystring: { status?: string; search?: string; limit?: string; offset?: string } }>, reply: FastifyReply) => {
-            const { status, search, limit, offset } = request.query;
-            const jobs = await service.getJobs({
+        async (request: FastifyRequest<{ 
+            Querystring: { 
+                status?: string; 
+                search?: string; 
+                location?: string;
+                employment_type?: string;
+                limit?: string; 
+                offset?: string;
+            } 
+        }>, reply: FastifyReply) => {
+            const { status, search, location, employment_type, limit, offset } = request.query;
+            const result = await service.getJobs({
                 status,
                 search,
+                location,
+                employment_type,
                 limit: limit ? parseInt(limit) : undefined,
                 offset: offset ? parseInt(offset) : undefined,
             });
-            return reply.send({ data: jobs });
+            return reply.send({ 
+                data: result.jobs,
+                total: result.total,
+                limit: limit ? parseInt(limit) : undefined,
+                offset: offset ? parseInt(offset) : 0,
+            });
         }
     );
 

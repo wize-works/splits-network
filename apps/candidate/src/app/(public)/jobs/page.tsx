@@ -20,6 +20,15 @@ interface Job {
   description?: string;
 }
 
+interface JobsResponse {
+  data: Job[];
+  total: number;
+  limit?: number;
+  offset: number;
+}
+
+const JOBS_PER_PAGE = 20;
+
 function JobsContent() {
   const searchParams = useSearchParams();
   
@@ -27,21 +36,32 @@ function JobsContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [remoteFilter, setRemoteFilter] = useState(false);
-  const [salaryFilter, setSalaryFilter] = useState('');
-  const [recentFilter, setRecentFilter] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch jobs from API
+  // Fetch jobs from API with server-side filtering
   useEffect(() => {
     async function fetchJobs() {
       try {
         setLoading(true);
-        const response = await apiClient.get<{ data: Job[] }>('/api/public/jobs');
+        
+        // Build query params for server-side filtering
+        const params = new URLSearchParams();
+        if (searchQuery) params.set('search', searchQuery);
+        if (locationQuery) params.set('location', locationQuery);
+        if (typeFilter) params.set('employment_type', typeFilter);
+        
+        // Pagination
+        const offset = (currentPage - 1) * JOBS_PER_PAGE;
+        params.set('limit', JOBS_PER_PAGE.toString());
+        params.set('offset', offset.toString());
+        
+        const response = await apiClient.get<JobsResponse>(`/api/public/jobs?${params.toString()}`);
         setJobs(response.data || []);
+        setTotal(response.total || 0);
         setError(null);
       } catch (err) {
         console.error('Failed to fetch jobs:', err);
@@ -52,96 +72,34 @@ function JobsContent() {
     }
 
     fetchJobs();
-  }, []);
+  }, [searchQuery, locationQuery, typeFilter, currentPage]);
 
   useEffect(() => {
     // Initialize filters from URL params
     const q = searchParams.get('q') || '';
-    const category = searchParams.get('category') || '';
+    const location = searchParams.get('location') || '';
     const type = searchParams.get('type') || '';
-    const remote = searchParams.get('remote') === 'true';
-    const salary = searchParams.get('salary') || '';
-    const recent = searchParams.get('recent') === 'true';
 
     setSearchQuery(q);
-    setCategoryFilter(category);
+    setLocationQuery(location);
     setTypeFilter(type);
-    setRemoteFilter(remote);
-    setSalaryFilter(salary);
-    setRecentFilter(recent);
+    setCurrentPage(1); // Reset to first page when filters change from URL
   }, [searchParams]);
-
-  // Filter jobs based on current filters
-  const filteredJobs = jobs.filter((job) => {
-    // Search query filter (title or company)
-    if (searchQuery && !job.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
-        !job.company?.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-
-    // Category filter
-    if (categoryFilter && job.category !== categoryFilter.toLowerCase()) {
-      return false;
-    }
-
-    // Type filter
-    if (typeFilter && job.employment_type !== typeFilter.toLowerCase().replace('-', '_')) {
-      return false;
-    }
-
-    // Remote filter
-    if (remoteFilter && !job.open_to_relocation) {
-      return false;
-    }
-
-    // Salary filter (e.g., "100k+")
-    if (salaryFilter && job.salary_min) {
-      const minSalary = parseInt(salaryFilter.replace(/[^0-9]/g, '')) * 1000;
-      if (job.salary_min < minSalary) {
-        return false;
-      }
-    }
-
-    // Recent filter (posted within last 3 days)
-    if (recentFilter && job.posted_at) {
-      const jobDate = new Date(job.posted_at);
-      const threeDaysAgo = new Date();
-      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-      if (jobDate < threeDaysAgo) {
-        return false;
-      }
-    }
-
-    return true;
-  });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Update URL with current filters
-    const params = new URLSearchParams();
-    if (searchQuery) params.set('q', searchQuery);
-    if (locationQuery) params.set('location', locationQuery);
-    if (typeFilter) params.set('type', typeFilter);
-    if (categoryFilter) params.set('category', categoryFilter);
-    if (remoteFilter) params.set('remote', 'true');
-    if (salaryFilter) params.set('salary', salaryFilter);
-    
-    const newUrl = params.toString() ? `/jobs?${params.toString()}` : '/jobs';
-    window.history.pushState({}, '', newUrl);
+    setCurrentPage(1); // Reset to first page on new search
   };
 
   const clearFilters = () => {
     setSearchQuery('');
     setLocationQuery('');
     setTypeFilter('');
-    setCategoryFilter('');
-    setRemoteFilter(false);
-    setSalaryFilter('');
-    setRecentFilter(false);
-    window.history.pushState({}, '', '/jobs');
+    setCurrentPage(1);
   };
 
-  const hasActiveFilters = searchQuery || categoryFilter || typeFilter || remoteFilter || salaryFilter || recentFilter;
+  const totalPages = Math.ceil(total / JOBS_PER_PAGE);
+  const hasActiveFilters = searchQuery || locationQuery || typeFilter;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -156,16 +114,19 @@ function JobsContent() {
       {/* Search and Filters */}
       <form onSubmit={handleSearch} className="card bg-base-200 shadow-lg mb-8">
         <div className="card-body">
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="fieldset md:col-span-2">
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="fieldset">
               <label className="label">Search</label>
               <input
                 type="text"
-                placeholder="Job title, keywords..."
+                placeholder="director 100000 remote..." 
                 className="input w-full"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              <label className="label">
+                <span className="label-text-alt text-xs">Separate terms with spaces for better results</span>
+              </label>
             </div>
             <div className="fieldset">
               <label className="label">Location</label>
@@ -185,70 +146,10 @@ function JobsContent() {
                 onChange={(e) => setTypeFilter(e.target.value)}
               >
                 <option value="">All Types</option>
-                <option value="full-time">Full-time</option>
-                <option value="part-time">Part-time</option>
+                <option value="full_time">Full-time</option>
                 <option value="contract">Contract</option>
+                <option value="temporary">Temporary</option>
               </select>
-            </div>
-          </div>
-
-          {/* Additional Filters Row */}
-          <div className="flex flex-wrap gap-4 mt-4">
-            <div className="fieldset">
-              <label className="label">Category</label>
-              <select 
-                className="select w-full max-w-xs"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <option value="">All Categories</option>
-                <option value="engineering">Engineering</option>
-                <option value="sales">Sales</option>
-                <option value="marketing">Marketing</option>
-                <option value="design">Design</option>
-                <option value="product">Product</option>
-                <option value="customer success">Customer Success</option>
-              </select>
-            </div>
-
-            <div className="fieldset">
-              <label className="label">Minimum Salary</label>
-              <select 
-                className="select w-full max-w-xs"
-                value={salaryFilter}
-                onChange={(e) => setSalaryFilter(e.target.value)}
-              >
-                <option value="">Any Salary</option>
-                <option value="50k+">$50K+</option>
-                <option value="75k+">$75K+</option>
-                <option value="100k+">$100K+</option>
-                <option value="150k+">$150K+</option>
-                <option value="200k+">$200K+</option>
-              </select>
-            </div>
-
-            <div className="form-control">
-              <label className="label cursor-pointer gap-2">
-                <input 
-                  type="checkbox" 
-                  className="checkbox"
-                  checked={remoteFilter}
-                  onChange={(e) => setRemoteFilter(e.target.checked)}
-                />
-                <span className="label-text">Remote Only</span>
-              </label>
-            </div>
-
-            <div className="form-control">
-              <label className="label cursor-pointer gap-2">
-                <input 
-                  type="checkbox" 
-                  className="checkbox"
-                  checked={recentFilter}
-                  onChange={(e) => setRecentFilter(e.target.checked)}
-                />
-                <span className="label-text">Recent Postings</span>
-              </label>
             </div>
           </div>
 
@@ -279,42 +180,18 @@ function JobsContent() {
               </button>
             </span>
           )}
-          {categoryFilter && (
+          {locationQuery && (
             <span className="badge badge-primary gap-2">
-              Category: {categoryFilter}
-              <button onClick={() => setCategoryFilter('')} className="hover:text-error">
+              Location: {locationQuery}
+              <button onClick={() => setLocationQuery('')} className="hover:text-error">
                 <i className="fa-solid fa-times"></i>
               </button>
             </span>
           )}
           {typeFilter && (
             <span className="badge badge-primary gap-2">
-              Type: {typeFilter}
+              Type: {typeFilter.replace('_', ' ')}
               <button onClick={() => setTypeFilter('')} className="hover:text-error">
-                <i className="fa-solid fa-times"></i>
-              </button>
-            </span>
-          )}
-          {remoteFilter && (
-            <span className="badge badge-primary gap-2">
-              Remote
-              <button onClick={() => setRemoteFilter(false)} className="hover:text-error">
-                <i className="fa-solid fa-times"></i>
-              </button>
-            </span>
-          )}
-          {salaryFilter && (
-            <span className="badge badge-primary gap-2">
-              Salary: {salaryFilter}
-              <button onClick={() => setSalaryFilter('')} className="hover:text-error">
-                <i className="fa-solid fa-times"></i>
-              </button>
-            </span>
-          )}
-          {recentFilter && (
-            <span className="badge badge-primary gap-2">
-              Recent
-              <button onClick={() => setRecentFilter(false)} className="hover:text-error">
                 <i className="fa-solid fa-times"></i>
               </button>
             </span>
@@ -329,8 +206,8 @@ function JobsContent() {
             'Loading jobs...'
           ) : (
             <>
-              Showing {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'}
-              {hasActiveFilters && ` (filtered from ${jobs.length} total)`}
+              Showing {((currentPage - 1) * JOBS_PER_PAGE) + 1}-{Math.min(currentPage * JOBS_PER_PAGE, total)} of {total} {total === 1 ? 'job' : 'jobs'}
+              {hasActiveFilters && ' (filtered)'}
             </>
           )}
         </p>
@@ -350,7 +227,7 @@ function JobsContent() {
           <div className="flex items-center justify-center py-12">
             <span className="loading loading-spinner loading-lg"></span>
           </div>
-        ) : filteredJobs.length === 0 ? (
+        ) : jobs.length === 0 ? (
           <div className="card bg-base-100 shadow-lg">
             <div className="card-body text-center py-12">
               <i className="fa-solid fa-briefcase text-6xl text-base-content/20 mb-4"></i>
@@ -366,7 +243,8 @@ function JobsContent() {
             </div>
           </div>
         ) : (
-          filteredJobs.map((job) => (
+          <>
+            {jobs.map((job) => (
             <Link
               key={job.id}
               href={`/jobs/${job.id}`}
@@ -413,19 +291,53 @@ function JobsContent() {
                 </div>
               </div>
             </Link>
-          ))
+            ))}
+          </>
         )}
       </div>
 
       {/* Pagination */}
-      {filteredJobs.length > 0 && (
-        <div className="flex justify-center mt-8">
+      {!loading && jobs.length > 0 && totalPages > 1 && (
+        <div className="flex flex-col items-center gap-4 mt-8">
+          <div className="text-sm text-base-content/70">
+            Page {currentPage} of {totalPages}
+          </div>
           <div className="join">
-            <button className="join-item btn">«</button>
-            <button className="join-item btn btn-active">1</button>
-            <button className="join-item btn">2</button>
-            <button className="join-item btn">3</button>
-            <button className="join-item btn">»</button>
+            <button 
+              className="join-item btn"
+              onClick={() => setCurrentPage(p => p - 1)}
+              disabled={currentPage === 1}
+            >
+              «
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+              return (
+                <button
+                  key={pageNum}
+                  className={`join-item btn ${currentPage === pageNum ? 'btn-active' : ''}`}
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button 
+              className="join-item btn"
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage === totalPages}
+            >
+              »
+            </button>
           </div>
         </div>
       )}

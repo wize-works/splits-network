@@ -100,30 +100,84 @@ export class AtsRepository {
     }
 
     // Job methods
-    async findJobs(filters?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<Job[]> {
-        let query = this.supabase.schema('ats').from('jobs').select('*');
+    async findJobs(filters?: { 
+        status?: string; 
+        search?: string; 
+        location?: string;
+        employment_type?: string;
+        limit?: number; 
+        offset?: number;
+    }): Promise<Job[]> {
+        // Use database function for efficient search including company name
+        const searchTerms = filters?.search 
+            ? filters.search.trim().split(/\s+/).filter(term => term.length > 0)
+            : null;
 
-        if (filters?.status) {
-            query = query.eq('status', filters.status);
-        }
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .rpc('search_jobs_with_company', {
+                search_terms: searchTerms,
+                filter_status: filters?.status || null,
+                filter_location: filters?.location || null,
+                filter_employment_type: filters?.employment_type || null,
+                result_limit: filters?.limit || 50,
+                result_offset: filters?.offset || 0,
+            });
 
-        if (filters?.search) {
-            query = query.or(`title.ilike.%${filters.search}%,department.ilike.%${filters.search}%,location.ilike.%${filters.search}%`);
-        }
-
-        query = query.order('created_at', { ascending: false });
-
-        // Add pagination
-        if (filters?.limit) {
-            query = query.limit(filters.limit);
-        }
-        if (filters?.offset) {
-            query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
-        }
-
-        const { data, error } = await query;
         if (error) throw error;
-        return data || [];
+        
+        // Transform database results to Job format with company data
+        return (data || []).map((row: any) => ({
+            id: row.id,
+            company_id: row.company_id,
+            title: row.title,
+            department: row.department,
+            location: row.location,
+            salary_min: row.salary_min,
+            salary_max: row.salary_max,
+            fee_percentage: row.fee_percentage,
+            recruiter_description: row.recruiter_description,
+            candidate_description: row.candidate_description,
+            employment_type: row.employment_type,
+            open_to_relocation: row.open_to_relocation,
+            show_salary_range: row.show_salary_range,
+            splits_fee_percentage: row.splits_fee_percentage,
+            job_owner_id: row.job_owner_id,
+            status: row.status,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            company: {
+                id: row.company_id,
+                name: row.company_name,
+                identity_organization_id: row.company_identity_organization_id,
+                created_at: row.company_created_at,
+                updated_at: row.company_updated_at,
+            },
+        }));
+    }
+
+    async countJobs(filters?: { 
+        status?: string; 
+        search?: string; 
+        location?: string;
+        employment_type?: string;
+    }): Promise<number> {
+        // Use database function for efficient counting
+        const searchTerms = filters?.search 
+            ? filters.search.trim().split(/\s+/).filter(term => term.length > 0)
+            : null;
+
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .rpc('count_jobs_with_company', {
+                search_terms: searchTerms,
+                filter_status: filters?.status || null,
+                filter_location: filters?.location || null,
+                filter_employment_type: filters?.employment_type || null,
+            });
+
+        if (error) throw error;
+        return data || 0;
     }
 
     async findJobById(id: string): Promise<Job | null> {
