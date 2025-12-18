@@ -178,6 +178,7 @@ services:
       IDENTITY_SERVICE_URL: http://identity-service:3001
       ATS_SERVICE_URL: http://ats-service:3002
       NETWORK_SERVICE_URL: http://network-service:3003
+      CANDIDATE_WEBSITE_URL: http://candidate:3101
     volumes:
       - ./services/notification-service/src:/app/services/notification-service/src
       - ./packages:/app/packages

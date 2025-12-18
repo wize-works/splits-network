@@ -1,7 +1,13 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { NetworkService } from '../../service';
+import { Logger } from '@splits-network/shared-logging';
+import { registerConsentRoutes } from './consent-routes';
 
 export function registerRecruiterCandidateRoutes(app: FastifyInstance, service: NetworkService) {
+    // Register consent management routes (for candidate website)
+    const logger = app.log as Logger;
+    registerConsentRoutes(app, service, logger);
+
     // Get recruiter-candidate relationship
     app.get(
         '/recruiter-candidates/:recruiterId/:candidateId',
@@ -60,6 +66,16 @@ export function registerRecruiterCandidateRoutes(app: FastifyInstance, service: 
         async (request: FastifyRequest<{ Params: { recruiterId: string } }>, reply: FastifyReply) => {
             const { recruiterId } = request.params;
             const relationships = await service.findCandidatesByRecruiterId(recruiterId);
+            return reply.send({ data: relationships });
+        }
+    );
+
+    // Get all recruiters for a candidate
+    app.get(
+        '/recruiter-candidates/candidate/:candidateId',
+        async (request: FastifyRequest<{ Params: { candidateId: string } }>, reply: FastifyReply) => {
+            const { candidateId } = request.params;
+            const relationships = await service.findRecruitersByCandidateId(candidateId);
             return reply.send({ data: relationships });
         }
     );

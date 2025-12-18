@@ -21,6 +21,7 @@ async function main() {
     const identityServiceUrl = process.env.IDENTITY_SERVICE_URL || 'http://localhost:3001';
     const atsServiceUrl = process.env.ATS_SERVICE_URL || 'http://localhost:3002';
     const networkServiceUrl = process.env.NETWORK_SERVICE_URL || 'http://localhost:3003';
+    const candidateWebsiteUrl = process.env.CANDIDATE_WEBSITE_URL || 'http://localhost:3101';
 
     const logger = createLogger({
         serviceName: baseConfig.serviceName,
@@ -29,7 +30,7 @@ async function main() {
     });
 
     logger.info(
-        { identityServiceUrl, atsServiceUrl, networkServiceUrl },
+        { identityServiceUrl, atsServiceUrl, networkServiceUrl, candidateWebsiteUrl },
         'Service URLs configured'
     );
 

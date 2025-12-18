@@ -87,4 +87,123 @@ export class CandidatesEventConsumer {
             throw error;
         }
     }
+
+    async handleCandidateInvited(event: DomainEvent): Promise<void> {
+        try {
+            const { relationship_id, recruiter_id, candidate_id, invitation_token, invitation_expires_at } = event.payload;
+
+            this.logger.info({ relationship_id, recruiter_id, candidate_id }, 'Handling candidate invited notification');
+
+            // Fetch candidate details
+            const candidateResponse = await this.services.getAtsService().get<any>(`/candidates/${candidate_id}`);
+            const candidate = candidateResponse.data || candidateResponse;
+
+            // Fetch recruiter details
+            const recruiterResponse = await this.services.getNetworkService().get<any>(`/recruiters/${recruiter_id}`);
+            const recruiter = recruiterResponse.data || recruiterResponse;
+
+            // Fetch recruiter's user profile to get name and email
+            const userResponse = await this.services.getIdentityService().get<any>(`/users/${recruiter.user_id}`);
+            const recruiterUser = userResponse.data || userResponse;
+
+            // Send invitation email to candidate
+            await this.emailService.sendCandidateInvitation(candidate.email, {
+                candidate_name: candidate.full_name,
+                candidate_email: candidate.email,
+                recruiter_name: `${recruiterUser.first_name} ${recruiterUser.last_name}`,
+                recruiter_email: recruiterUser.email,
+                recruiter_bio: recruiter.bio || 'A professional recruiter',
+                invitation_token: invitation_token,
+                invitation_expires_at: invitation_expires_at,
+                relationship_id: relationship_id,
+            });
+
+            this.logger.info({ 
+                candidate_email: candidate.email, 
+                recruiter_id
+            }, 'Candidate invitation email sent successfully');
+
+        } catch (error) {
+            this.logger.error({ err: error, event }, 'Failed to handle candidate invited event');
+            throw error;
+        }
+    }
+
+    async handleConsentGiven(event: DomainEvent): Promise<void> {
+        try {
+            const { relationship_id, recruiter_id, candidate_id, consent_given_at } = event.payload;
+
+            this.logger.info({ relationship_id, recruiter_id, candidate_id }, 'Handling candidate consent given notification');
+
+            // Fetch candidate details
+            const candidateResponse = await this.services.getAtsService().get<any>(`/candidates/${candidate_id}`);
+            const candidate = candidateResponse.data || candidateResponse;
+
+            // Fetch recruiter details
+            const recruiterResponse = await this.services.getNetworkService().get<any>(`/recruiters/${recruiter_id}`);
+            const recruiter = recruiterResponse.data || recruiterResponse;
+
+            // Fetch recruiter's user profile to get email
+            const userResponse = await this.services.getIdentityService().get<any>(`/users/${recruiter.user_id}`);
+            const recruiterUser = userResponse.data || userResponse;
+
+            // Send acceptance notification to recruiter
+            await this.emailService.sendConsentGivenToRecruiter(recruiterUser.email, {
+                recruiter_name: `${recruiterUser.first_name} ${recruiterUser.last_name}`,
+                candidate_name: candidate.full_name,
+                candidate_email: candidate.email,
+                consent_given_at: consent_given_at,
+                userId: recruiter.user_id,
+            });
+
+            this.logger.info({ 
+                recruiter_email: recruiterUser.email, 
+                candidate_id 
+            }, 'Consent given notification sent to recruiter');
+
+        } catch (error) {
+            this.logger.error({ err: error, event }, 'Failed to handle candidate consent given event');
+            throw error;
+        }
+    }
+
+    async handleConsentDeclined(event: DomainEvent): Promise<void> {
+        try {
+            const { relationship_id, recruiter_id, candidate_id, declined_at, declined_reason } = event.payload;
+
+            this.logger.info({ relationship_id, recruiter_id, candidate_id }, 'Handling candidate consent declined notification');
+
+            // Fetch candidate details
+            const candidateResponse = await this.services.getAtsService().get<any>(`/candidates/${candidate_id}`);
+            const candidate = candidateResponse.data || candidateResponse;
+
+            // Fetch recruiter details
+            const recruiterResponse = await this.services.getNetworkService().get<any>(`/recruiters/${recruiter_id}`);
+            const recruiter = recruiterResponse.data || recruiterResponse;
+
+            // Fetch recruiter's user profile to get email
+            const userResponse = await this.services.getIdentityService().get<any>(`/users/${recruiter.user_id}`);
+            const recruiterUser = userResponse.data || userResponse;
+
+            // Send declined notification to recruiter
+            await this.emailService.sendConsentDeclinedToRecruiter(recruiterUser.email, {
+                recruiter_name: `${recruiterUser.first_name} ${recruiterUser.last_name}`,
+                candidate_name: candidate.full_name,
+                candidate_email: candidate.email,
+                declined_at: declined_at,
+                declined_reason: declined_reason,
+                userId: recruiter.user_id,
+            });
+
+            this.logger.info({ 
+                recruiter_email: recruiterUser.email, 
+                candidate_id,
+                has_reason: !!declined_reason
+            }, 'Consent declined notification sent to recruiter');
+
+        } catch (error) {
+            this.logger.error({ err: error, event }, 'Failed to handle candidate consent declined event');
+            throw error;
+        }
+    }
 }

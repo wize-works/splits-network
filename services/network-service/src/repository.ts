@@ -376,6 +376,11 @@ export class NetworkRepository {
         const relationshipEndDate = new Date();
         relationshipEndDate.setMonth(relationshipEndDate.getMonth() + 12);
 
+        // Generate invitation token and expiry (7 days)
+        const invitationToken = this.generateInvitationToken();
+        const invitationExpiresAt = new Date();
+        invitationExpiresAt.setDate(invitationExpiresAt.getDate() + 7);
+
         const { data, error } = await this.supabase
             .schema('network')
             .from('recruiter_candidates')
@@ -385,6 +390,10 @@ export class NetworkRepository {
                 relationship_start_date: new Date(),
                 relationship_end_date: relationshipEndDate,
                 status: 'active',
+                invited_at: new Date(),
+                invitation_token: invitationToken,
+                invitation_expires_at: invitationExpiresAt,
+                consent_given: false,
             })
             .select()
             .single();
@@ -393,12 +402,30 @@ export class NetworkRepository {
         return data;
     }
 
+    private generateInvitationToken(): string {
+        // Generate cryptographically secure random token
+        const crypto = require('crypto');
+        return crypto.randomBytes(32).toString('hex');
+    }
+
     async findCandidatesByRecruiterId(recruiterId: string): Promise<RecruiterCandidate[]> {
         const { data, error } = await this.supabase
             .schema('network')
             .from('recruiter_candidates')
             .select('*')
             .eq('recruiter_id', recruiterId)
+            .eq('status', 'active');
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async findRecruitersByCandidateId(candidateId: string): Promise<RecruiterCandidate[]> {
+        const { data, error } = await this.supabase
+            .schema('network')
+            .from('recruiter_candidates')
+            .select('*')
+            .eq('candidate_id', candidateId)
             .eq('status', 'active');
 
         if (error) throw error;
@@ -429,5 +456,20 @@ export class NetworkRepository {
             relationship_end_date: newEndDate,
             status: 'active',
         });
+    }
+
+    async findRecruiterCandidateByToken(token: string): Promise<RecruiterCandidate | null> {
+        const { data, error } = await this.supabase
+            .schema('network')
+            .from('recruiter_candidates')
+            .select('*')
+            .eq('invitation_token', token)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data;
     }
 }

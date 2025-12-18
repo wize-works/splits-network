@@ -10,6 +10,19 @@ import { requireRoles, AuthenticatedRequest } from '../../rbac';
 export function registerRecruitersRoutes(app: FastifyInstance, services: ServiceRegistry) {
     const networkService = () => services.get('network');
 
+    // Get current user's recruiter profile
+    app.get('/api/recruiters/me', {
+        schema: {
+            description: 'Get current user recruiter profile',
+            tags: ['recruiters'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const data = await networkService().get(`/recruiters/by-user/${req.auth.userId}`);
+        return reply.send(data);
+    });
+
     // List all recruiters (platform admins only)
     app.get('/api/recruiters', {
         preHandler: requireRoles(['platform_admin']),
@@ -91,6 +104,19 @@ export function registerRecruitersRoutes(app: FastifyInstance, services: Service
         const queryString = new URLSearchParams(request.query as any).toString();
         const path = queryString ? `/recruiters/${id}/proposals?${queryString}` : `/recruiters/${id}/proposals`;
         const data = await networkService().get(path, undefined, correlationId);
+        return reply.send(data);
+    });
+
+    // Get recruiters for a candidate
+    app.get('/api/recruiter-candidates/candidate/:candidateId', {
+        schema: {
+            description: 'Get recruiters for a candidate',
+            tags: ['recruiters'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { candidateId } = request.params as { candidateId: string };
+        const data = await networkService().get(`/recruiter-candidates/candidate/${candidateId}`);
         return reply.send(data);
     });
 }

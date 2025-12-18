@@ -2,6 +2,7 @@ import { NetworkRepository } from './repository';
 import { RecruiterService } from './services/recruiters/service';
 import { AssignmentService } from './services/assignments/service';
 import { StatsService } from './services/stats/service';
+import { EventPublisher } from './events';
 import { Recruiter, RecruiterStatus, RoleAssignment } from '@splits-network/shared-types';
 
 /**
@@ -14,7 +15,10 @@ export class NetworkService {
     public readonly assignments: AssignmentService;
     public readonly stats: StatsService;
 
-    constructor(private repository: NetworkRepository) {
+    constructor(
+        private repository: NetworkRepository,
+        private eventPublisher?: EventPublisher
+    ) {
         // Initialize domain services
         this.recruiters = new RecruiterService(repository);
         this.assignments = new AssignmentService(repository);
@@ -110,13 +114,32 @@ export class NetworkService {
         relationship_end_date: string;
         status: 'active' | 'expired' | 'terminated';
     }) {
-        // Note: repository method manages dates internally, but we'll keep this interface
-        // for flexibility and clarity from consumers
-        return this.repository.createRecruiterCandidateRelationship(data.recruiter_id, data.candidate_id);
+        // Create relationship with invitation token
+        const relationship = await this.repository.createRecruiterCandidateRelationship(
+            data.recruiter_id, 
+            data.candidate_id
+        );
+
+        // Emit candidate.invited event for notification service
+        if (this.eventPublisher) {
+            await this.eventPublisher.publish('candidate.invited', {
+                relationship_id: relationship.id,
+                recruiter_id: data.recruiter_id,
+                candidate_id: data.candidate_id,
+                invitation_token: relationship.invitation_token,
+                invitation_expires_at: relationship.invitation_expires_at,
+            }, 'network-service');
+        }
+
+        return relationship;
     }
 
     async findCandidatesByRecruiterId(recruiterId: string) {
         return this.repository.findCandidatesByRecruiterId(recruiterId);
+    }
+
+    async findRecruitersByCandidateId(candidateId: string) {
+        return this.repository.findRecruitersByCandidateId(candidateId);
     }
 
     async updateRecruiterCandidateRelationship(id: string, updates: any) {
@@ -125,5 +148,98 @@ export class NetworkService {
 
     async renewRecruiterCandidateRelationship(id: string) {
         return this.repository.renewRecruiterCandidateRelationship(id);
+    }
+
+    // Invitation consent methods
+    async getRelationshipByInvitationToken(token: string) {
+        return this.repository.findRecruiterCandidateByToken(token);
+    }
+
+    async acceptInvitation(token: string, metadata: {
+        ip_address: string;
+        user_agent: string;
+    }) {
+        const relationship = await this.repository.findRecruiterCandidateByToken(token);
+        
+        if (!relationship) {
+            throw new Error('Invitation not found');
+        }
+        
+        // Check if expired
+        if (relationship.invitation_expires_at && new Date(relationship.invitation_expires_at) < new Date()) {
+            throw new Error('Invitation has expired');
+        }
+        
+        // Check if already processed
+        if (relationship.consent_given === true) {
+            throw new Error('Invitation has already been accepted');
+        }
+        
+        if (relationship.declined_at) {
+            throw new Error('Invitation has already been declined');
+        }
+        
+        // Update with consent
+        const updatedRelationship = await this.repository.updateRecruiterCandidateRelationship(relationship.id, {
+            consent_given: true,
+            consent_given_at: new Date().toISOString(),
+            consent_ip_address: metadata.ip_address,
+            consent_user_agent: metadata.user_agent,
+        });
+
+        // Emit consent given event for recruiter notification
+        if (this.eventPublisher) {
+            await this.eventPublisher.publish('candidate.consent_given', {
+                relationship_id: updatedRelationship.id,
+                recruiter_id: updatedRelationship.recruiter_id,
+                candidate_id: updatedRelationship.candidate_id,
+                consent_given_at: updatedRelationship.consent_given_at,
+            }, 'network-service');
+        }
+
+        return updatedRelationship;
+    }
+
+    async declineInvitation(token: string, metadata: {
+        reason?: string;
+        ip_address: string;
+        user_agent: string;
+    }) {
+        const relationship = await this.repository.findRecruiterCandidateByToken(token);
+        
+        if (!relationship) {
+            throw new Error('Invitation not found');
+        }
+        
+        // Check if already processed
+        if (relationship.consent_given === true) {
+            throw new Error('Invitation has already been accepted');
+        }
+        
+        if (relationship.declined_at) {
+            throw new Error('Invitation has already been declined');
+        }
+        
+        // Update with decline
+        const updatedRelationship = await this.repository.updateRecruiterCandidateRelationship(relationship.id, {
+            consent_given: false,
+            declined_at: new Date().toISOString(),
+            declined_reason: metadata.reason || null,
+            consent_ip_address: metadata.ip_address,
+            consent_user_agent: metadata.user_agent,
+        });
+
+        // Emit consent declined event for recruiter notification
+        if (this.eventPublisher) {
+            await this.eventPublisher.publish('candidate.consent_declined', {
+                relationship_id: updatedRelationship.id,
+                recruiter_id: updatedRelationship.recruiter_id,
+                candidate_id: updatedRelationship.candidate_id,
+                declined_at: updatedRelationship.declined_at,
+                declined_reason: updatedRelationship.declined_reason,
+            }, 'network-service');
+        }
+
+        return updatedRelationship;
     }
 }

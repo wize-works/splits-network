@@ -261,6 +261,16 @@ export interface RecruiterCandidate {
     relationship_start_date: Date;
     relationship_end_date: Date; // 12 months from start
     status: RecruiterCandidateStatus;
+    // Invitation and consent tracking
+    invited_at: Date;
+    invitation_token?: string;
+    invitation_expires_at?: Date;
+    consent_given: boolean;
+    consent_given_at?: Date;
+    consent_ip_address?: string;
+    consent_user_agent?: string;
+    declined_at?: Date;
+    declined_reason?: string;
     created_at: Date;
     updated_at: Date;
 }

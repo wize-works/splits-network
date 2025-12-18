@@ -5,6 +5,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { NetworkRepository } from './repository';
 import { NetworkService } from './service';
+import { EventPublisher } from './events';
 import { registerRoutes } from './routes';
 import { CandidateRoleAssignmentService } from './services/proposals/service';
 import { RecruiterReputationService } from './services/reputation/service';
@@ -66,14 +67,25 @@ async function main() {
         dbConfig.supabaseUrl,
         dbConfig.supabaseServiceRoleKey || dbConfig.supabaseAnonKey
     );
-    const service = new NetworkService(repository);
+
+    // Initialize event publisher
+    const rabbitMqUrl = process.env.RABBITMQ_URL || 'amqp://localhost';
+    const eventPublisher = new EventPublisher(rabbitMqUrl, logger);
+    
+    try {
+        await eventPublisher.connect();
+        logger.info('Event publisher connected');
+    } catch (error) {
+        logger.warn({ err: error }, 'Failed to connect event publisher - continuing without it');
+    }
+
+    const service = new NetworkService(repository, eventPublisher);
     
     // Phase 2 services
     const proposalService = new CandidateRoleAssignmentService(repository);
     const reputationService = new RecruiterReputationService(repository);
 
     // Initialize and start domain event consumer (for recruiter-candidate relationships)
-    const rabbitMqUrl = process.env.RABBITMQ_URL || 'amqp://localhost';
     const domainConsumer = new DomainEventConsumer(rabbitMqUrl, service, logger);
     
     try {
@@ -87,6 +99,7 @@ async function main() {
     process.on('SIGTERM', async () => {
         logger.info('SIGTERM received, shutting down gracefully');
         await domainConsumer.stop();
+        await eventPublisher.close();
         await app.close();
         process.exit(0);
     });

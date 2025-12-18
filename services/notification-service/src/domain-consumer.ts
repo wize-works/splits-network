@@ -75,6 +75,9 @@ export class DomainEventConsumer {
             await this.channel.bindQueue(this.queue, this.exchange, 'candidate_sourced');
             await this.channel.bindQueue(this.queue, this.exchange, 'candidate_outreach_recorded');
             await this.channel.bindQueue(this.queue, this.exchange, 'ownership_conflict_detected');
+            await this.channel.bindQueue(this.queue, this.exchange, 'candidate_invited');
+            await this.channel.bindQueue(this.queue, this.exchange, 'candidate_consent_given');
+            await this.channel.bindQueue(this.queue, this.exchange, 'candidate_consent_declined');
             
             // Phase 2 events - Proposals
             await this.channel.bindQueue(this.queue, this.exchange, 'proposal_created');
@@ -180,6 +183,15 @@ export class DomainEventConsumer {
                 break;
             case 'ownership.conflict_detected':
                 await this.candidatesConsumer.handleOwnershipConflict(event);
+                break;
+            case 'candidate.invited':
+                await this.candidatesConsumer.handleCandidateInvited(event);
+                break;
+            case 'candidate.consent_given':
+                await this.candidatesConsumer.handleConsentGiven(event);
+                break;
+            case 'candidate.consent_declined':
+                await this.candidatesConsumer.handleConsentDeclined(event);
                 break;
 
             // Collaboration domain

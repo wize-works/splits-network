@@ -19,6 +19,7 @@ import { registerBillingRoutes } from './routes/billing/routes';
 import { registerDocumentsRoutes } from './routes/documents/routes';
 import { registerDashboardsRoutes } from './routes/dashboards/routes';
 import { registerAdminRoutes } from './routes/admin/routes';
+import { registerNetworkPublicRoutes } from './routes/network/public-routes';
 
 /**
  * Helper to resolve internal user ID and memberships from Clerk ID
@@ -60,6 +61,7 @@ export function registerRoutes(app: FastifyInstance, services: ServiceRegistry) 
     });
 
     // Register all domain-specific routes
+    registerNetworkPublicRoutes(app, services); // Public routes first (no auth required)
     registerIdentityRoutes(app, services);
     registerRolesRoutes(app, services);
     registerJobsRoutes(app, services);
