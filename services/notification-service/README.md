@@ -23,7 +23,7 @@ The notification service is now fully functional and sends real emails via Resen
 ### Prerequisites
 
 1. **Resend API Key**: Set `RESEND_API_KEY` in your environment or Supabase Vault
-2. **From Email**: Configure `RESEND_FROM_EMAIL` (defaults to `noreply@splits.network`)
+2. **From Email**: Configure `RESEND_FROM_EMAIL` (defaults to `noreply@updates.splits.network`)
 3. **All services running**: `docker-compose up -d`
 
 ### Method 1: Submit a Candidate via API
@@ -106,7 +106,7 @@ NETWORK_SERVICE_URL=http://network-service:3003
 
 # Resend Configuration
 RESEND_API_KEY=<your-resend-api-key>
-RESEND_FROM_EMAIL=noreply@splits.network
+RESEND_FROM_EMAIL=noreply@updates.splits.network
 
 # RabbitMQ
 RABBITMQ_URL=amqp://splits:splits_local_dev@rabbitmq:5672

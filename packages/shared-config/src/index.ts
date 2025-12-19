@@ -173,7 +173,7 @@ export async function loadStripeConfigFromVault(): Promise<StripeConfig> {
 export function loadResendConfig(): ResendConfig {
     return {
         apiKey: getEnvOrThrow('RESEND_API_KEY'),
-        fromEmail: getEnvOrDefault('RESEND_FROM_EMAIL', 'notifications@splits.network'),
+        fromEmail: getEnvOrDefault('RESEND_FROM_EMAIL', 'notifications@updates.splits.network'),
     };
 }
 
@@ -186,7 +186,7 @@ export async function loadResendConfigFromVault(): Promise<ResendConfig> {
     const { getSecret } = await import('./vault-server');
     return {
         apiKey: await getSecret('resend_api_key'),
-        fromEmail: getEnvOrDefault('RESEND_FROM_EMAIL', 'notifications@splits.network'),
+        fromEmail: getEnvOrDefault('RESEND_FROM_EMAIL', 'notifications@updates.splits.network'),
     };
 }
 

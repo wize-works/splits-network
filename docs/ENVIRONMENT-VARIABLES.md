@@ -246,7 +246,7 @@ RABBITMQ_URL=amqp://guest:guest@localhost:5672
 RESEND_API_KEY=re_...
 
 # Email settings
-FROM_EMAIL=noreply@splits.network
+FROM_EMAIL=noreply@updates.splits.network
 FROM_NAME=Splits Network
 
 # Logging
