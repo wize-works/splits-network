@@ -423,6 +423,99 @@ export function registerDashboardsRoutes(app: FastifyInstance, services: Service
         }
     });
 
+    app.get('/api/candidate/applications', {
+        schema: {
+            description: 'Get all candidate applications',
+            tags: ['dashboards', 'candidates'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const correlationId = getCorrelationId(request);
+
+        try {
+            // Get candidate profile by email from Clerk
+            const userEmail = req.auth?.email;
+            if (!userEmail) {
+                return reply.send({ data: [] });
+            }
+
+            // Try to find candidate by email
+            let candidateId: string | null = null;
+            try {
+                const candidatesResponse: any = await atsService().get(
+                    `/candidates?email=${encodeURIComponent(userEmail)}`,
+                    undefined,
+                    correlationId
+                );
+                const candidates = candidatesResponse.data || [];
+                if (candidates.length > 0) {
+                    candidateId = candidates[0].id;
+                }
+            } catch (error) {
+                request.log.warn({ error, email: userEmail }, 'Could not find candidate profile');
+            }
+
+            if (!candidateId) {
+                return reply.send({ data: [] });
+            }
+
+            // Get all applications for this candidate
+            const applicationsResponse: any = await atsService().get(
+                `/applications?candidate_id=${candidateId}`,
+                undefined,
+                correlationId
+            );
+            const applications = applicationsResponse.data || [];
+
+            // Get job details for each application
+            const fullApplications = await Promise.all(
+                applications.map(async (app: any) => {
+                    try {
+                        const jobResponse: any = await atsService().get(
+                            `/jobs/${app.job_id}`,
+                            undefined,
+                            correlationId
+                        );
+                        const job = jobResponse.data;
+
+                        return {
+                            id: app.id,
+                            job_id: app.job_id,
+                            job_title: job?.title || 'Unknown Position',
+                            company: job?.company?.name || 'Unknown Company',
+                            location: job?.location || 'Remote',
+                            status: app.stage,
+                            stage: app.stage,
+                            applied_at: app.created_at,
+                            updated_at: app.updated_at,
+                            notes: app.notes,
+                        };
+                    } catch (error) {
+                        request.log.warn({ error, applicationId: app.id }, 'Could not get job details');
+                        return {
+                            id: app.id,
+                            job_id: app.job_id,
+                            job_title: 'Unknown Position',
+                            company: 'Unknown Company',
+                            location: 'Remote',
+                            status: app.stage,
+                            stage: app.stage,
+                            applied_at: app.created_at,
+                            updated_at: app.updated_at,
+                            notes: app.notes,
+                        };
+                    }
+                })
+            );
+
+            return reply.send({ data: fullApplications });
+        } catch (error) {
+            request.log.error({ error }, 'Error fetching applications');
+            return reply.status(500).send({ error: 'Failed to load applications' });
+        }
+    });
+
     // Legacy: Admin stats endpoint (aggregates from multiple services)
     app.get('/api/admin/stats', {
         preHandler: requireRoles(['platform_admin']),

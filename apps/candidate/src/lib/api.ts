@@ -153,12 +153,29 @@ export interface RecentApplication {
     applied_at: string;
 }
 
+export interface Application {
+    id: string;
+    job_id: string;
+    job_title: string;
+    company: string;
+    location: string;
+    status: string;
+    stage: string;
+    applied_at: string;
+    updated_at: string;
+    notes?: string;
+}
+
 export async function getDashboardStats(authToken: string): Promise<DashboardStats> {
     return fetchApi<DashboardStats>('/api/candidate/dashboard/stats', {}, authToken);
 }
 
 export async function getRecentApplications(authToken: string): Promise<RecentApplication[]> {
     return fetchApi<RecentApplication[]>('/api/candidate/dashboard/recent-applications', {}, authToken);
+}
+
+export async function getApplications(authToken: string): Promise<Application[]> {
+    return fetchApi<Application[]>('/api/candidate/applications', {}, authToken);
 }
 
 // Documents API
