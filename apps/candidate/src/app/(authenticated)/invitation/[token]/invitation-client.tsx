@@ -137,10 +137,10 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
+            <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <span className="loading loading-spinner loading-lg text-primary"></span>
-                    <p className="mt-4 text-gray-600">Loading invitation...</p>
+                    <p className="mt-4 text-base-content/70">Loading invitation...</p>
                 </div>
             </div>
         );
@@ -148,7 +148,7 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
 
     if (error || !invitation || !recruiter || !recruiterUser || !candidate) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 p-4">
+            <div className="min-h-screen flex items-center justify-center p-4">
                 <div className="card w-full max-w-2xl bg-base-100 shadow-xl">
                     <div className="card-body">
                         <div className="alert alert-error">
@@ -182,11 +182,11 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
 
     if (showDeclineForm) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 p-4">
+            <div className="min-h-screen flex items-center justify-center p-4">
                 <div className="card w-full max-w-2xl bg-base-100 shadow-xl">
                     <div className="card-body">
                         <h2 className="card-title text-2xl">Decline Invitation</h2>
-                        <p className="text-gray-600">
+                        <p className="text-base-content/70">
                             Are you sure you want to decline this invitation from {recruiterUser.name}?
                         </p>
 
@@ -240,28 +240,28 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
-            <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen bg-base-200 py-12 px-4">
+            <div className="max-w-4xl mx-auto space-y-6">
                 {/* Header Card */}
-                <div className="card bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-xl mb-6">
+                <div className="card bg-base-100 shadow-xl">
                     <div className="card-body text-center">
                         <h1 className="text-4xl font-bold mb-2">Welcome to Applicant Network</h1>
-                        <p className="text-xl opacity-90">You've been invited by a professional recruiter</p>
+                        <p className="text-xl text-base-content/70">You've been invited by a professional recruiter</p>
                     </div>
                 </div>
 
                 {/* Recruiter Info Card */}
-                <div className="card bg-base-100 shadow-xl mb-6">
+                <div className="card bg-base-100 shadow-xl">
                     <div className="card-body">
-                        <h2 className="card-title text-2xl text-purple-600">
+                        <h2 className="card-title text-2xl">
                             <i className="fa-solid fa-user-tie"></i>
                             About Your Recruiter
                         </h2>
                         <div className="divider my-2"></div>
                         
                         <div className="flex items-start gap-4">
-                            <div className="avatar placeholder">
-                                <div className="bg-purple-600 text-white rounded-full w-16 h-16">
+                            <div className="avatar avatar-placeholder">
+                                <div className="bg-primary text-primary-content rounded-full w-16 h-16">
                                     <span className="text-2xl">
                                         {recruiterUser?.name?.split(' ').map(part => part[0]).join('').slice(0, 2) || ''}
                                     </span>
@@ -271,9 +271,9 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                                 <h3 className="text-xl font-bold">
                                     {recruiterUser?.name}
                                 </h3>
-                                <p className="text-gray-600">{recruiterUser?.email}</p>
+                                <p className="text-base-content/70">{recruiterUser?.email}</p>
                                 {recruiter.bio && (
-                                    <p className="mt-3 text-gray-700">{recruiter.bio}</p>
+                                    <p className="mt-3">{recruiter.bio}</p>
                                 )}
                             </div>
                         </div>
@@ -281,9 +281,9 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                 </div>
 
                 {/* What is Applicant Network Card */}
-                <div className="card bg-base-100 shadow-xl mb-6">
+                <div className="card bg-base-100 shadow-xl">
                     <div className="card-body">
-                        <h2 className="card-title text-2xl text-purple-600">
+                        <h2 className="card-title text-2xl">
                             <i className="fa-solid fa-circle-info"></i>
                             What is Applicant Network?
                         </h2>
@@ -295,19 +295,19 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                         
                         <ul className="space-y-3">
                             <li className="flex items-start gap-3">
-                                <i className="fa-solid fa-check-circle text-green-600 mt-1"></i>
+                                <i className="fa-solid fa-check-circle text-success mt-1"></i>
                                 <span><strong>Track Opportunities:</strong> See all job opportunities your recruiter finds for you</span>
                             </li>
                             <li className="flex items-start gap-3">
-                                <i className="fa-solid fa-check-circle text-green-600 mt-1"></i>
+                                <i className="fa-solid fa-check-circle text-success mt-1"></i>
                                 <span><strong>Centralized Applications:</strong> Manage all your applications in one place</span>
                             </li>
                             <li className="flex items-start gap-3">
-                                <i className="fa-solid fa-check-circle text-green-600 mt-1"></i>
+                                <i className="fa-solid fa-check-circle text-success mt-1"></i>
                                 <span><strong>Direct Communication:</strong> Stay in touch with your recruiter throughout the process</span>
                             </li>
                             <li className="flex items-start gap-3">
-                                <i className="fa-solid fa-check-circle text-green-600 mt-1"></i>
+                                <i className="fa-solid fa-check-circle text-success mt-1"></i>
                                 <span><strong>Progress Updates:</strong> Get real-time updates on your job search progress</span>
                             </li>
                         </ul>
@@ -315,9 +315,9 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                 </div>
 
                 {/* Right to Represent Card */}
-                <div className="card bg-base-100 shadow-xl mb-6">
+                <div className="card bg-base-100 shadow-xl">
                     <div className="card-body">
-                        <h2 className="card-title text-2xl text-purple-600">
+                        <h2 className="card-title text-2xl">
                             <i className="fa-solid fa-file-contract"></i>
                             What is "Right to Represent"?
                         </h2>
@@ -328,29 +328,121 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                             to submit your profile to job opportunities on your behalf. This is a standard agreement in the recruiting industry.
                         </p>
                         
-                        <div className="bg-purple-50 rounded-lg p-4 space-y-3">
+                        <div className="bg-base-200 rounded-lg p-4 space-y-3">
                             <div className="flex items-start gap-3">
-                                <i className="fa-solid fa-handshake text-purple-600 mt-1"></i>
+                                <i className="fa-solid fa-handshake text-primary mt-1"></i>
                                 <span><strong>Formalizes Your Relationship:</strong> Creates a professional working agreement with your recruiter</span>
                             </div>
                             <div className="flex items-start gap-3">
-                                <i className="fa-solid fa-shield-halved text-purple-600 mt-1"></i>
+                                <i className="fa-solid fa-shield-halved text-primary mt-1"></i>
                                 <span><strong>Prevents Duplicates:</strong> Ensures you're not submitted to the same job by multiple recruiters</span>
                             </div>
                             <div className="flex items-start gap-3">
-                                <i className="fa-solid fa-award text-purple-600 mt-1"></i>
+                                <i className="fa-solid fa-award text-primary mt-1"></i>
                                 <span><strong>Protects Credit:</strong> Ensures your recruiter gets recognition for placements they facilitate</span>
                             </div>
                             <div className="flex items-start gap-3">
-                                <i className="fa-solid fa-user-check text-purple-600 mt-1"></i>
+                                <i className="fa-solid fa-user-check text-primary mt-1"></i>
                                 <span><strong>Safeguards Your Interests:</strong> Protects you throughout the entire hiring process</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                {/* Agreement Card */}
+                <div className="card bg-base-100 shadow-xl border-2 border-primary">
+                    <div className="card-body">
+                        <h2 className="card-title text-2xl">
+                            <i className="fa-solid fa-file-signature"></i>
+                            Right to Represent Agreement
+                        </h2>
+                        <div className="divider my-2"></div>
+                        
+                        <div className="bg-base-200 rounded-lg p-6 space-y-4 text-sm">
+                            <p className="font-semibold text-base">
+                                Please review the following agreement carefully before accepting this invitation:
+                            </p>
+                            
+                            <div className="space-y-3">
+                                <p>
+                                    <strong>1. Authorization to Represent:</strong> By accepting this invitation, I, <strong>{candidate?.full_name || 'the Candidate'}</strong>, 
+                                    hereby authorize {recruiterUser?.name} ("<strong>Recruiter</strong>") to represent me in seeking employment opportunities 
+                                    and to submit my profile, resume, and related information to potential employers.
+                                </p>
+                                
+                                <p>
+                                    <strong>2. Exclusive Representation Period:</strong> I acknowledge that for any position to which the Recruiter submits 
+                                    my profile, the Recruiter shall have the exclusive right to represent me for that specific position for a period 
+                                    of twelve (12) months from the date of submission, or until I am hired for that position, whichever occurs first.
+                                </p>
+                                
+                                <p>
+                                    <strong>3. No Duplicate Submissions:</strong> I agree not to apply directly to any company or through any other recruiter 
+                                    for positions to which the Recruiter has already submitted my profile during the exclusive representation period, 
+                                    unless I have notified the Recruiter in writing and received acknowledgment of withdrawal.
+                                </p>
+                                
+                                <p>
+                                    <strong>4. Recruiter's Commission:</strong> I understand that the Recruiter's compensation is paid directly by the 
+                                    hiring employer upon successful placement, and I will not be responsible for any fees or commissions related to 
+                                    the Recruiter's services.
+                                </p>
+                                
+                                <p>
+                                    <strong>5. Accuracy of Information:</strong> I confirm that all information provided in my profile, resume, and 
+                                    communications with the Recruiter is accurate and complete to the best of my knowledge. I will promptly notify 
+                                    the Recruiter of any material changes to my employment status or availability.
+                                </p>
+                                
+                                <p>
+                                    <strong>6. Communication and Updates:</strong> I agree to maintain reasonable communication with the Recruiter 
+                                    throughout the recruitment process and to provide timely updates regarding interviews, offers, and my continued 
+                                    interest in opportunities presented.
+                                </p>
+                                
+                                <p>
+                                    <strong>7. Confidentiality:</strong> I understand that the Recruiter may share my information with potential 
+                                    employers in confidence, and I authorize such disclosure for the purpose of securing employment opportunities.
+                                </p>
+                                
+                                <p>
+                                    <strong>8. Right to Decline:</strong> I retain the right to decline any opportunity presented by the Recruiter 
+                                    without penalty. This agreement does not obligate me to accept any position offered through the Recruiter's efforts.
+                                </p>
+                                
+                                <p>
+                                    <strong>9. Termination:</strong> Either party may terminate this agreement at any time by providing written notice 
+                                    through the Applicant Network platform. Termination will not affect the Recruiter's rights regarding positions 
+                                    to which my profile was submitted prior to termination.
+                                </p>
+                                
+                                <p>
+                                    <strong>10. Governing Terms:</strong> This agreement is governed by the terms of service of Applicant Network 
+                                    and applicable employment laws. By accepting this invitation, I acknowledge that I have read, understood, and 
+                                    agree to these terms.
+                                </p>
+                            </div>
+                            
+                            <div className="bg-base-100 rounded-lg p-4 mt-4 border-l-4 border-primary">
+                                <p className="text-xs text-base-content/70">
+                                    <strong>Effective Date:</strong> This agreement becomes effective upon your acceptance of this invitation 
+                                    and remains in effect until terminated by either party as described above.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="alert alert-info mt-4">
+                            <i className="fa-solid fa-info-circle"></i>
+                            <span className="text-sm">
+                                By clicking "Accept Invitation" below, you acknowledge that you have read and agree to the terms of this 
+                                Right to Represent Agreement with {recruiterUser?.name}.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Expiry Warning */}
-                <div className="alert alert-warning mb-6">
+                <div className="alert alert-warning">
                     <i className="fa-solid fa-clock"></i>
                     <span>
                         <strong>Time Sensitive:</strong> This invitation expires on {formattedExpiry}. 
@@ -360,7 +452,7 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
 
                 {/* Error Alert */}
                 {error && (
-                    <div className="alert alert-error mb-6">
+                    <div className="alert alert-error">
                         <i className="fa-solid fa-circle-exclamation"></i>
                         <span>{error}</span>
                     </div>
@@ -402,7 +494,7 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                             </button>
                         </div>
 
-                        <p className="text-sm text-gray-500 mt-4 text-center">
+                        <p className="text-sm text-base-content/70 mt-4 text-center">
                             Have questions? Contact {recruiterUser?.name?.split(' ')[0]} directly at{' '}
                             <a href={`mailto:${recruiterUser?.email}`} className="link link-primary">
                                 {recruiterUser?.email}
