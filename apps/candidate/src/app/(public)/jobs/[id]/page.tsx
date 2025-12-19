@@ -39,7 +39,7 @@ export default async function JobDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8">
       {/* Back Button */}
       <Link href="/jobs" className="btn btn-ghost mb-6">
         <i className="fa-solid fa-arrow-left"></i>

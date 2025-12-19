@@ -212,7 +212,7 @@ export default function NewIntegrationPage() {
   const platformConfig = selectedPlatform ? PLATFORMS[selectedPlatform] : null;
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Link href="/integrations" className="btn btn-ghost btn-circle">

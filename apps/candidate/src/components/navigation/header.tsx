@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
-import { UserButton } from '@clerk/nextjs';
 import { useEffect, useState, useRef } from 'react';
+import UserDropdown from './user-dropdown';
 
 export default function Header() {
   const { isSignedIn } = useAuth();
@@ -349,7 +349,7 @@ export default function Header() {
                 <i className="fa-solid fa-bell text-lg"></i>
                 <span className="badge badge-primary badge-xs indicator-item"></span>
               </button>
-              <UserButton afterSignOutUrl="/" />
+              <UserDropdown />
             </div>
           ) : (
             <div className="hidden lg:flex gap-2">

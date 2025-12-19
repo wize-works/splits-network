@@ -52,7 +52,7 @@ export default function AboutPage() {
                         </div>
 
                         {/* Story */}
-                        <div className="prose lg:prose-xl max-w-4xl mx-auto">
+                        <div className="prose lg:prose-xl mx-auto">
                             <h2 className="text-3xl font-bold text-center mb-8">Our Story</h2>
                             <p className="text-lg text-base-content/80">
                                 Splits Network was born from years of frustration with the split placement process. 

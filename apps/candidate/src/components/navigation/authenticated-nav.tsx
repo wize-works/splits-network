@@ -1,5 +1,5 @@
-import { UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
+import UserDropdown from './user-dropdown';
 
 export default function AuthenticatedNav() {
   return (
@@ -41,7 +41,7 @@ export default function AuthenticatedNav() {
               </Link>
             </li>
             <li className="ml-4">
-              <UserButton afterSignOutUrl="/" />
+              <UserDropdown />
             </li>
           </ul>
         </div>
