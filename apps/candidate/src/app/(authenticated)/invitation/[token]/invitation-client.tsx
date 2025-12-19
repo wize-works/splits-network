@@ -187,7 +187,7 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                     <div className="card-body">
                         <h2 className="card-title text-2xl">Decline Invitation</h2>
                         <p className="text-gray-600">
-                            Are you sure you want to decline this invitation from {recruiterUser.first_name} {recruiterUser.last_name}?
+                            Are you sure you want to decline this invitation from {recruiterUser.name}?
                         </p>
 
                         <div className="fieldset mt-4">
@@ -263,15 +263,15 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                             <div className="avatar placeholder">
                                 <div className="bg-purple-600 text-white rounded-full w-16 h-16">
                                     <span className="text-2xl">
-                                        {recruiterUser.first_name[0]}{recruiterUser.last_name[0]}
+                                        {recruiterUser?.name?.split(' ').map(part => part[0]).join('').slice(0, 2) || ''}
                                     </span>
                                 </div>
                             </div>
                             <div className="flex-1">
                                 <h3 className="text-xl font-bold">
-                                    {recruiterUser.first_name} {recruiterUser.last_name}
+                                    {recruiterUser?.name}
                                 </h3>
-                                <p className="text-gray-600">{recruiterUser.email}</p>
+                                <p className="text-gray-600">{recruiterUser?.email}</p>
                                 {recruiter.bio && (
                                     <p className="mt-3 text-gray-700">{recruiter.bio}</p>
                                 )}
@@ -324,7 +324,7 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                         <div className="divider my-2"></div>
                         
                         <p className="mb-4">
-                            By accepting this invitation, you're giving {recruiterUser.first_name} {recruiterUser.last_name} permission 
+                            By accepting this invitation, you're giving {recruiterUser?.name} permission 
                             to submit your profile to job opportunities on your behalf. This is a standard agreement in the recruiting industry.
                         </p>
                         
@@ -354,7 +354,7 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                     <i className="fa-solid fa-clock"></i>
                     <span>
                         <strong>Time Sensitive:</strong> This invitation expires on {formattedExpiry}. 
-                        If you don't respond by then, {recruiterUser.first_name} will need to send a new invitation.
+                        If you don't respond by then, {recruiterUser?.name?.split(' ')[0]} will need to send a new invitation.
                     </span>
                 </div>
 
@@ -403,9 +403,9 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
                         </div>
 
                         <p className="text-sm text-gray-500 mt-4 text-center">
-                            Have questions? Contact {recruiterUser.first_name} directly at{' '}
-                            <a href={`mailto:${recruiterUser.email}`} className="link link-primary">
-                                {recruiterUser.email}
+                            Have questions? Contact {recruiterUser?.name?.split(' ')[0]} directly at{' '}
+                            <a href={`mailto:${recruiterUser?.email}`} className="link link-primary">
+                                {recruiterUser?.email}
                             </a>
                         </p>
                     </div>

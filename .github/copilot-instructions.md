@@ -233,20 +233,28 @@ Copilot should follow these patterns for all services:
      - `404` when a resource is not found.
      - `409` for conflicts (e.g., duplicate submissions).
    - Prefer structured errors over generic `Error` when practical.
+   - Return errors in standard format: `{ error: { code: "ERROR_CODE", message: "..." } }`
 
-4. **TypeScript**
+4. **API Response Format**
+   - **ALL successful responses MUST use**: `reply.send({ data: <payload> })`
+   - **NEVER return unwrapped data**: `reply.send(payload)` is incorrect
+   - See `docs/guidance/api-response-format.md` for complete standard
+   - API Gateway proxies responses as-is, so backend services MUST wrap correctly
+   - Frontend clients expect and unwrap the `{ data: ... }` envelope
+
+5. **TypeScript**
    - Use explicit types and interfaces for:
      - Request DTOs.
      - Response DTOs.
      - Domain models.
    - Reuse shared types from `packages/shared-types` wherever possible.
 
-5. **Config & Secrets**
+6. **Config & Secrets**
    - Use `packages/shared-config` to load environment variables.
    - Never hardcode API keys (Stripe, Resend, Clerk, etc.).
    - Assume Kubernetes Secrets are wired to env vars.
 
-6. **Database Migrations**
+7. **Database Migrations**
    - Each service owns migrations for its schema only.
    - Use Supabase migration tools or SQL migration files.
    - Never create hard foreign keys across schemas unless absolutely necessary.
@@ -317,6 +325,7 @@ When setting up new services or apps:
    - See `docs/splits-network-phase1-prd.md` for Phase 1 scope and data models.
    - See `docs/guidance/form-controls.md` for form implementation standards.
    - See `docs/guidance/user-roles-and-permissions.md` for comprehensive RBAC, user roles, capabilities, restrictions, API endpoints, and workflows.
+   - See `docs/guidance/api-response-format.md` for API response format standards (all endpoints must comply).
    - Check `.vscode/mcp.json` for configured Supabase MCP server.
 
 ---
