@@ -1,57 +1,8 @@
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
-
-// Mock data - will be replaced with API calls
-const mockApplications = [
-  {
-    id: '1',
-    job_id: '1',
-    job_title: 'Senior Software Engineer',
-    company: 'Tech Corp',
-    location: 'San Francisco, CA',
-    status: 'Interview Scheduled',
-    applied_at: '2025-12-10',
-    updated_at: '2025-12-15',
-    stage: 'Technical Interview',
-    notes: 'Interview scheduled for Dec 20th at 2pm',
-  },
-  {
-    id: '2',
-    job_id: '2',
-    job_title: 'Product Manager',
-    company: 'Startup Inc',
-    location: 'New York, NY',
-    status: 'Under Review',
-    applied_at: '2025-12-08',
-    updated_at: '2025-12-12',
-    stage: 'Resume Review',
-    notes: 'Application under review by hiring team',
-  },
-  {
-    id: '3',
-    job_id: '3',
-    job_title: 'UX Designer',
-    company: 'Design Studio',
-    location: 'Remote',
-    status: 'Applied',
-    applied_at: '2025-12-05',
-    updated_at: '2025-12-05',
-    stage: 'Submitted',
-    notes: null,
-  },
-  {
-    id: '4',
-    job_id: '4',
-    job_title: 'Full Stack Developer',
-    company: 'DevCo',
-    location: 'Austin, TX',
-    status: 'Rejected',
-    applied_at: '2025-11-28',
-    updated_at: '2025-12-03',
-    stage: 'Application Review',
-    notes: 'Position filled by another candidate',
-  },
-];
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { getApplications, Application } from '@/lib/api';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -71,9 +22,29 @@ const getStatusColor = (status: string) => {
 };
 
 export default async function ApplicationsPage() {
-  // TODO: Replace with API call
-  // const applications = await apiClient.get('/candidates/me/applications', token);
-  const applications = mockApplications;
+  const { userId, getToken } = await auth();
+
+  if (!userId) {
+    redirect('/sign-in');
+  }
+
+  // Get authentication token
+  const token = await getToken();
+  if (!token) {
+    redirect('/sign-in');
+  }
+
+  // Fetch real applications data
+  let applications: Application[];
+  let error = null;
+  
+  try {
+    applications = await getApplications(token);
+  } catch (err) {
+    console.error('Error fetching applications:', err);
+    error = 'Failed to load applications';
+    applications = [];
+  }
 
   const activeApps = applications.filter(app => 
     !['Rejected', 'Withdrawn', 'Offer Accepted'].includes(app.status)
@@ -90,6 +61,14 @@ export default async function ApplicationsPage() {
           Track the status of all your job applications
         </p>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="alert alert-error mb-6">
+          <i className="fa-solid fa-circle-exclamation"></i>
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
