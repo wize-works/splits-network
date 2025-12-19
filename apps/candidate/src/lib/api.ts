@@ -18,16 +18,24 @@ export class ApiError extends Error {
 
 async function fetchApi<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    authToken?: string | null
 ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...options.headers as Record<string, string>,
+    };
+    
+    // Add auth token if provided
+    if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
     const response = await fetch(url, {
         ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers,
-        },
+        headers,
     });
 
     if (!response.ok) {
@@ -79,30 +87,33 @@ export interface UserDetails {
     email: string;
 }
 
-export async function getInvitationDetails(token: string): Promise<InvitationDetails> {
-    return fetchApi<InvitationDetails>(`/api/network/recruiter-candidates/invitation/${token}`);
+export async function getInvitationDetails(token: string, authToken?: string | null): Promise<InvitationDetails> {
+    return fetchApi<InvitationDetails>(`/api/network/recruiter-candidates/invitation/${token}`, {}, authToken);
 }
 
-export async function acceptInvitation(token: string): Promise<{ success: boolean; message: string }> {
+export async function acceptInvitation(token: string, authToken?: string | null): Promise<{ success: boolean; message: string }> {
     return fetchApi<{ success: boolean; message: string }>(
         `/api/network/recruiter-candidates/invitation/${token}/accept`,
         {
             method: 'POST',
             body: JSON.stringify({}),
-        }
+        },
+        authToken
     );
 }
 
 export async function declineInvitation(
     token: string,
-    reason?: string
+    reason?: string,
+    authToken?: string | null
 ): Promise<{ success: boolean; message: string }> {
     return fetchApi<{ success: boolean; message: string }>(
         `/api/network/recruiter-candidates/invitation/${token}/decline`,
         {
             method: 'POST',
             body: JSON.stringify({ reason }),
-        }
+        },
+        authToken
     );
 }
 

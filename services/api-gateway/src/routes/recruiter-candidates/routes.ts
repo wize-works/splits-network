@@ -163,6 +163,75 @@ export function registerRecruiterCandidateRoutes(app: FastifyInstance, services:
         return reply.send(data);
     });
 
+    // Get invitation details by token (authenticated - user must be signed in to view)
+    app.get('/api/network/recruiter-candidates/invitation/:token', {
+        schema: {
+            description: 'Get invitation details by token (requires authentication)',
+            tags: ['recruiters'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const { token } = request.params as { token: string };
+        const correlationId = getCorrelationId(request);
+        const data = await networkService().get(
+            `/recruiter-candidates/invitation/${token}`,
+            undefined,
+            correlationId
+        );
+        return reply.send(data);
+    });
+
+    // Accept invitation (authenticated - user must be signed in)
+    app.post('/api/network/recruiter-candidates/invitation/:token/accept', {
+        schema: {
+            description: 'Accept recruiter invitation (requires authentication)',
+            tags: ['recruiters'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const { token } = request.params as { token: string };
+        const correlationId = getCorrelationId(request);
+        
+        // Pass authenticated user info to service
+        const data = await networkService().post(
+            `/recruiter-candidates/invitation/${token}/accept`,
+            { 
+                userId: req.auth.userId,
+                ...(request.body as Record<string, any> || {})
+            },
+            undefined,
+            correlationId
+        );
+        return reply.send(data);
+    });
+
+    // Decline invitation (authenticated - user must be signed in)
+    app.post('/api/network/recruiter-candidates/invitation/:token/decline', {
+        schema: {
+            description: 'Decline recruiter invitation (requires authentication)',
+            tags: ['recruiters'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const { token } = request.params as { token: string };
+        const correlationId = getCorrelationId(request);
+        
+        // Pass authenticated user info to service
+        const data = await networkService().post(
+            `/recruiter-candidates/invitation/${token}/decline`,
+            { 
+                userId: req.auth.userId,
+                ...(request.body as Record<string, any> || {})
+            },
+            undefined,
+            correlationId
+        );
+        return reply.send(data);
+    });
+
     // Get specific recruiter-candidate relationship - this is the most generic route, register last
     app.get('/api/recruiter-candidates/:recruiterId/:candidateId', {
         schema: {

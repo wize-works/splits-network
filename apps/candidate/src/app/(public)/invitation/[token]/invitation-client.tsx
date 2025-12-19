@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import {
     getInvitationDetails,
     getRecruiterDetails,
@@ -22,6 +23,7 @@ interface InvitationPageClientProps {
 
 export default function InvitationPageClient({ token }: InvitationPageClientProps) {
     const router = useRouter();
+    const { getToken, isSignedIn } = useAuth();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [invitation, setInvitation] = useState<InvitationDetails | null>(null);
@@ -41,8 +43,11 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
             setLoading(true);
             setError(null);
 
+            // Get auth token if user is signed in
+            const authToken = isSignedIn ? await getToken() : null;
+
             // Fetch invitation details
-            const invitationData = await getInvitationDetails(token);
+            const invitationData = await getInvitationDetails(token, authToken);
             setInvitation(invitationData);
 
             // Fetch recruiter details
@@ -79,11 +84,18 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
     const handleAccept = async () => {
         if (!invitation) return;
 
+        // Require authentication to accept
+        if (!isSignedIn) {
+            setError('You must be signed in to accept this invitation. Please sign in or create an account.');
+            return;
+        }
+
         try {
             setProcessing(true);
             setError(null);
 
-            await acceptInvitation(token);
+            const authToken = await getToken();
+            await acceptInvitation(token, authToken);
 
             // Redirect to success page
             router.push(`/invitation/${token}/accepted`);
@@ -100,11 +112,18 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
     const handleDecline = async () => {
         if (!invitation) return;
 
+        // Require authentication to decline
+        if (!isSignedIn) {
+            setError('You must be signed in to decline this invitation. Please sign in or create an account.');
+            return;
+        }
+
         try {
             setProcessing(true);
             setError(null);
 
-            await declineInvitation(token, declineReason || undefined);
+            const authToken = await getToken();
+            await declineInvitation(token, declineReason || undefined, authToken);
 
             // Redirect to declined page
             router.push(`/invitation/${token}/declined`);
