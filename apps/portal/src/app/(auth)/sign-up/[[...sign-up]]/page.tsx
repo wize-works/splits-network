@@ -1,12 +1,14 @@
 'use client';
 
-import { useSignUp } from '@clerk/nextjs';
+import { useSignUp, useAuth, useClerk } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function SignUpPage() {
     const { isLoaded, signUp, setActive } = useSignUp();
+    const { isSignedIn } = useAuth();
+    const { signOut } = useClerk();
     const router = useRouter();
     
     const [email, setEmail] = useState('');
@@ -17,6 +19,13 @@ export default function SignUpPage() {
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // If user is already signed in, redirect to dashboard
+    useEffect(() => {
+        if (isLoaded && isSignedIn) {
+            router.push('/dashboard');
+        }
+    }, [isLoaded, isSignedIn, router]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -159,6 +168,9 @@ export default function SignUpPage() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Clerk CAPTCHA widget container - required for bot protection */}
+                        <div id="clerk-captcha"></div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="fieldset">
                                 <label className="label">First Name</label>

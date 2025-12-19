@@ -1,18 +1,26 @@
 'use client';
 
-import { useSignIn } from '@clerk/nextjs';
+import { useSignIn, useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function SignInPage() {
     const { isLoaded, signIn, setActive } = useSignIn();
+    const { isSignedIn } = useAuth();
     const router = useRouter();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // If user is already signed in, redirect to dashboard
+    useEffect(() => {
+        if (isLoaded && isSignedIn) {
+            router.push('/dashboard');
+        }
+    }, [isLoaded, isSignedIn, router]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
