@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
 import { formatSalary, formatDate } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
 
@@ -23,6 +24,7 @@ interface PageProps {
 
 export default async function JobDetailPage({ params }: PageProps) {
   const { id } = await params;
+  const { userId } = await auth();
   
   let job: Job | null = null;
   
@@ -93,10 +95,17 @@ export default async function JobDetailPage({ params }: PageProps) {
               )}
             </div>
             <div className="flex gap-2">
-              <Link href="/sign-up" className="btn btn-primary btn-lg">
-                <i className="fa-solid fa-paper-plane"></i>
-                Apply Now
-              </Link>
+              {userId ? (
+                <Link href={`/jobs/${job.id}/apply`} className="btn btn-primary btn-lg">
+                  <i className="fa-solid fa-paper-plane"></i>
+                  Apply Now
+                </Link>
+              ) : (
+                <Link href={`/sign-in?redirect=${encodeURIComponent(`/jobs/${job.id}/apply`)}`} className="btn btn-primary btn-lg">
+                  <i className="fa-solid fa-paper-plane"></i>
+                  Apply Now
+                </Link>
+              )}
               <button className="btn btn-outline btn-lg">
                 <i className="fa-solid fa-bookmark"></i>
                 Save
@@ -133,26 +142,28 @@ export default async function JobDetailPage({ params }: PageProps) {
       )}
 
       {/* Apply CTA */}
-      <div className="card bg-primary text-white shadow-lg">
-        <div className="card-body text-center">
-          <h3 className="text-2xl font-bold mb-4">
-            Ready to Apply?
-          </h3>
-          <p className="mb-6">
-            Create an account to apply with one click and track your application.
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Link href="/sign-up" className="btn btn-lg bg-white text-primary hover:bg-gray-100">
-              <i className="fa-solid fa-user-plus"></i>
-              Create Account
-            </Link>
-            <Link href="/sign-in" className="btn btn-lg btn-outline text-white border-white hover:bg-white hover:text-primary">
-              <i className="fa-solid fa-right-to-bracket"></i>
-              Sign In
-            </Link>
+      {!userId && (
+        <div className="card bg-primary text-white shadow-lg">
+          <div className="card-body text-center">
+            <h3 className="text-2xl font-bold mb-4">
+              Ready to Apply?
+            </h3>
+            <p className="mb-6">
+              Create an account to apply with one click and track your application.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Link href={`/sign-up?redirect=${encodeURIComponent(`/jobs/${job.id}/apply`)}`} className="btn btn-lg bg-white text-primary hover:bg-gray-100">
+                <i className="fa-solid fa-user-plus"></i>
+                Create Account
+              </Link>
+              <Link href={`/sign-in?redirect=${encodeURIComponent(`/jobs/${job.id}/apply`)}`} className="btn btn-lg btn-outline text-white border-white hover:bg-white hover:text-primary">
+                <i className="fa-solid fa-right-to-bracket"></i>
+                Sign In
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

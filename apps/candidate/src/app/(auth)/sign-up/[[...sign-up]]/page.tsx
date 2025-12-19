@@ -1,13 +1,14 @@
 'use client';
 
 import { useSignUp } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 
 export default function SignUpPage() {
     const { isLoaded, signUp, setActive } = useSignUp();
     const router = useRouter();
+    const searchParams = useSearchParams();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -17,6 +18,9 @@ export default function SignUpPage() {
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    
+    // Get redirect parameter
+    const redirect = searchParams.get('redirect');
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -58,7 +62,7 @@ export default function SignUpPage() {
 
             if (completeSignUp.status === 'complete') {
                 await setActive({ session: completeSignUp.createdSessionId });
-                router.push('/dashboard');
+                router.push(redirect || '/dashboard');
             } else {
                 setError('Verification incomplete. Please try again.');
             }
@@ -75,7 +79,7 @@ export default function SignUpPage() {
         signUp.authenticateWithRedirect({
             strategy: provider,
             redirectUrl: '/sso-callback',
-            redirectUrlComplete: '/dashboard',
+            redirectUrlComplete: redirect || '/dashboard',
         });
     };
 

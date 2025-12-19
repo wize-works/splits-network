@@ -1,18 +1,22 @@
 'use client';
 
 import { useSignIn } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 
 export default function SignInPage() {
     const { isLoaded, signIn, setActive } = useSignIn();
     const router = useRouter();
+    const searchParams = useSearchParams();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    
+    // Get redirect parameter
+    const redirect = searchParams.get('redirect');
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -29,7 +33,7 @@ export default function SignInPage() {
             
             if (signInAttempt.status === 'complete') {
                 await setActive({ session: signInAttempt.createdSessionId });
-                router.push('/dashboard');
+                router.push(redirect || '/dashboard');
             } else {
                 setError('Sign in incomplete. Please try again.');
             }
@@ -46,7 +50,7 @@ export default function SignInPage() {
         signIn.authenticateWithRedirect({
             strategy: provider,
             redirectUrl: '/sso-callback',
-            redirectUrlComplete: '/dashboard',
+            redirectUrlComplete: redirect || '/dashboard',
         });
     };
 
