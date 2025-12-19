@@ -61,15 +61,15 @@ export default function InvitationPageClient({ token }: InvitationPageClientProp
             setInvitation(invitationData);
 
             // Fetch recruiter details
-            const recruiterData = await getRecruiterDetails(invitationData.recruiter_id);
+            const recruiterData = await getRecruiterDetails(invitationData.recruiter_id, authToken);
             setRecruiter(recruiterData);
 
             // Fetch recruiter user details
-            const userData = await getUserDetails(recruiterData.user_id);
+            const userData = await getUserDetails(recruiterData.user_id, authToken);
             setRecruiterUser(userData);
 
             // Fetch candidate details
-            const candidateData = await getCandidateDetails(invitationData.candidate_id);
+            const candidateData = await getCandidateDetails(invitationData.candidate_id, authToken);
             setCandidate(candidateData);
 
         } catch (err) {
