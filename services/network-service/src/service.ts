@@ -242,4 +242,69 @@ export class NetworkService {
 
         return updatedRelationship;
     }
+
+    async resendInvitation(relationshipId: string) {
+        // Get the relationship
+        const relationship = await this.repository.getRecruiterCandidateRelationshipById(relationshipId);
+        
+        if (!relationship) {
+            throw new Error('Relationship not found');
+        }
+
+        // Can only resend if not yet accepted or declined
+        if (relationship.consent_given === true) {
+            throw new Error('Cannot resend invitation - candidate has already accepted');
+        }
+
+        if (relationship.declined_at) {
+            throw new Error('Cannot resend invitation - candidate has already declined');
+        }
+
+        // Resend invitation with new token and expiry
+        const updatedRelationship = await this.repository.resendInvitation(relationshipId);
+
+        // Emit candidate.invited event for notification service
+        if (this.eventPublisher) {
+            await this.eventPublisher.publish('candidate.invited', {
+                relationship_id: updatedRelationship.id,
+                recruiter_id: updatedRelationship.recruiter_id,
+                candidate_id: updatedRelationship.candidate_id,
+                invitation_token: updatedRelationship.invitation_token,
+                invitation_expires_at: updatedRelationship.invitation_expires_at,
+                resend: true,
+            }, 'network-service');
+        }
+
+        return updatedRelationship;
+    }
+
+    async cancelInvitation(relationshipId: string) {
+        // Get the relationship
+        const relationship = await this.repository.getRecruiterCandidateRelationshipById(relationshipId);
+        
+        if (!relationship) {
+            throw new Error('Relationship not found');
+        }
+
+        // Can only cancel if not yet accepted
+        if (relationship.consent_given === true) {
+            throw new Error('Cannot cancel invitation - candidate has already accepted');
+        }
+
+        // Terminate the relationship (this removes recruiter's access)
+        const updatedRelationship = await this.repository.updateRecruiterCandidateRelationship(relationshipId, {
+            status: 'terminated',
+        });
+
+        // Emit invitation cancelled event
+        if (this.eventPublisher) {
+            await this.eventPublisher.publish('candidate.invitation_cancelled', {
+                relationship_id: updatedRelationship.id,
+                recruiter_id: updatedRelationship.recruiter_id,
+                candidate_id: updatedRelationship.candidate_id,
+            }, 'network-service');
+        }
+
+        return updatedRelationship;
+    }
 }

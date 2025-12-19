@@ -90,6 +90,44 @@ export function registerRecruiterCandidateRoutes(app: FastifyInstance, service: 
         }
     );
 
+    // Resend invitation to candidate
+    app.post(
+        '/recruiter-candidates/:id/resend-invitation',
+        async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+            const { id } = request.params;
+            try {
+                const relationship = await service.resendInvitation(id);
+                return reply.send({ 
+                    data: relationship,
+                    message: 'Invitation resent successfully'
+                });
+            } catch (error: any) {
+                return reply.status(400).send({ 
+                    error: error.message || 'Failed to resend invitation'
+                });
+            }
+        }
+    );
+
+    // Cancel invitation (before candidate accepts)
+    app.post(
+        '/recruiter-candidates/:id/cancel-invitation',
+        async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+            const { id } = request.params;
+            try {
+                const relationship = await service.cancelInvitation(id);
+                return reply.send({ 
+                    data: relationship,
+                    message: 'Invitation cancelled successfully'
+                });
+            } catch (error: any) {
+                return reply.status(400).send({ 
+                    error: error.message || 'Failed to cancel invitation'
+                });
+            }
+        }
+    );
+
     // Terminate recruiter-candidate relationship
     app.patch(
         '/recruiter-candidates/:id/terminate',

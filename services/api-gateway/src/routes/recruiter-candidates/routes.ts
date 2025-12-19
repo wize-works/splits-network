@@ -104,6 +104,46 @@ export function registerRecruiterCandidateRoutes(app: FastifyInstance, services:
         return reply.send(data);
     });
 
+    // Resend invitation to candidate (recruiter or platform admin)
+    app.post('/api/recruiter-candidates/:id/resend-invitation', {
+        preHandler: requireRoles(['recruiter', 'platform_admin']),
+        schema: {
+            description: 'Resend invitation to candidate with new token and expiry',
+            tags: ['recruiters'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const correlationId = getCorrelationId(request);
+        const data = await networkService().post(
+            `/recruiter-candidates/${id}/resend-invitation`,
+            {},
+            undefined,
+            correlationId
+        );
+        return reply.send(data);
+    });
+
+    // Cancel invitation (recruiter or platform admin)
+    app.post('/api/recruiter-candidates/:id/cancel-invitation', {
+        preHandler: requireRoles(['recruiter', 'platform_admin']),
+        schema: {
+            description: 'Cancel a pending invitation',
+            tags: ['recruiters'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const correlationId = getCorrelationId(request);
+        const data = await networkService().post(
+            `/recruiter-candidates/${id}/cancel-invitation`,
+            {},
+            undefined,
+            correlationId
+        );
+        return reply.send(data);
+    });
+
     // Terminate recruiter-candidate relationship (platform admin only) - specific action routes before generic :id
     app.patch('/api/recruiter-candidates/:id/terminate', {
         preHandler: requireRoles(['platform_admin']),

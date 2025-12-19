@@ -369,6 +369,21 @@ export class NetworkRepository {
         return data;
     }
 
+    async getRecruiterCandidateRelationshipById(id: string): Promise<RecruiterCandidate | null> {
+        const { data, error } = await this.supabase
+            .schema('network')
+            .from('recruiter_candidates')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data;
+    }
+
     async createRecruiterCandidateRelationship(
         recruiterId: string,
         candidateId: string
@@ -440,6 +455,28 @@ export class NetworkRepository {
             .schema('network')
             .from('recruiter_candidates')
             .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async resendInvitation(id: string): Promise<RecruiterCandidate> {
+        // Generate new invitation token and expiry (7 days from now)
+        const invitationToken = this.generateInvitationToken();
+        const invitationExpiresAt = new Date();
+        invitationExpiresAt.setDate(invitationExpiresAt.getDate() + 7);
+
+        const { data, error } = await this.supabase
+            .schema('network')
+            .from('recruiter_candidates')
+            .update({
+                invitation_token: invitationToken,
+                invitation_expires_at: invitationExpiresAt,
+                invited_at: new Date(),
+            })
             .eq('id', id)
             .select()
             .single();

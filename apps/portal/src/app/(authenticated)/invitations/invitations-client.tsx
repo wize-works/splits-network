@@ -39,6 +39,8 @@ export default function InvitationsPageClient() {
     const [invitations, setInvitations] = useState<InvitationWithCandidate[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'declined'>('all');
+    const [resendingId, setResendingId] = useState<string | null>(null);
+    const [cancellingId, setCancellingId] = useState<string | null>(null);
 
     useEffect(() => {
         loadInvitations();
@@ -130,6 +132,61 @@ export default function InvitationsPageClient() {
             day: 'numeric',
             year: 'numeric',
         });
+    };
+
+    const canResendInvitation = (invitation: RecruiterCandidate) => {
+        // Can only resend if not yet accepted or declined
+        return !invitation.consent_given && !invitation.declined_at;
+    };
+
+    const handleResendInvitation = async (invitationId: string) => {
+        try {
+            setResendingId(invitationId);
+            setError(null);
+
+            const token = await getToken();
+            if (!token) {
+                throw new Error('Not authenticated');
+            }
+
+            const client = createAuthenticatedClient(token);
+            await client.post(`/recruiter-candidates/${invitationId}/resend-invitation`, {});
+
+            // Reload invitations to get updated data
+            await loadInvitations();
+        } catch (err: any) {
+            setError(err.response?.data?.error || err.message || 'Failed to resend invitation');
+        } finally {
+            setResendingId(null);
+        }
+    };
+
+    const handleCancelInvitation = async (invitation: InvitationWithCandidate) => {
+        const candidateName = invitation.candidate?.full_name || 'this candidate';
+        
+        if (!confirm(`Are you sure you want to cancel the invitation for ${candidateName}? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            setCancellingId(invitation.id);
+            setError(null);
+
+            const token = await getToken();
+            if (!token) {
+                throw new Error('Not authenticated');
+            }
+
+            const client = createAuthenticatedClient(token);
+            await client.post(`/recruiter-candidates/${invitation.id}/cancel-invitation`, {});
+
+            // Reload invitations to get updated data
+            await loadInvitations();
+        } catch (err: any) {
+            setError(err.response?.data?.error || err.message || 'Failed to cancel invitation');
+        } finally {
+            setCancellingId(null);
+        }
     };
 
     const filteredInvitations = getFilteredInvitations();
@@ -277,11 +334,42 @@ export default function InvitationsPageClient() {
                                                 <div className="flex gap-2">
                                                     <button
                                                         type="button"
-                                                        className="btn btn-sm btn-ghost"
+                                                        className="btn btn-sm"
                                                         onClick={() => router.push(`/candidates/${invitation.candidate_id}`)}
+                                                        title="View candidate"
                                                     >
                                                         <i className="fa-solid fa-eye"></i>
                                                     </button>
+                                                    {canResendInvitation(invitation) && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-sm btn-primary"
+                                                                onClick={() => handleResendInvitation(invitation.id)}
+                                                                disabled={resendingId === invitation.id || cancellingId === invitation.id}
+                                                                title="Resend invitation"
+                                                            >
+                                                                {resendingId === invitation.id ? (
+                                                                    <span className="loading loading-spinner loading-xs"></span>
+                                                                ) : (
+                                                                    <i className="fa-solid fa-paper-plane"></i>
+                                                                )}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-sm btn-error btn-outline"
+                                                                onClick={() => handleCancelInvitation(invitation)}
+                                                                disabled={resendingId === invitation.id || cancellingId === invitation.id}
+                                                                title="Cancel invitation"
+                                                            >
+                                                                {cancellingId === invitation.id ? (
+                                                                    <span className="loading loading-spinner loading-xs"></span>
+                                                                ) : (
+                                                                    <i className="fa-solid fa-trash"></i>
+                                                                )}
+                                                            </button>
+                                                        </>
+                                                    )}
                                                     {invitation.declined_reason && (
                                                         <button
                                                             type="button"
