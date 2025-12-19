@@ -1,7 +1,7 @@
 'use client';
 
 import { useSignUp, useAuth, useClerk } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -10,6 +10,7 @@ export default function SignUpPage() {
     const { isSignedIn } = useAuth();
     const { signOut } = useClerk();
     const router = useRouter();
+    const searchParams = useSearchParams();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -19,6 +20,17 @@ export default function SignUpPage() {
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Check for invitation parameters
+    const invitationId = searchParams.get('invitation_id');
+    const invitationEmail = searchParams.get('email');
+
+    // Pre-fill email if from invitation
+    useEffect(() => {
+        if (invitationEmail && !email) {
+            setEmail(invitationEmail);
+        }
+    }, [invitationEmail]);
 
     const handleSignOut = async () => {
         setIsLoading(true);
@@ -75,7 +87,13 @@ export default function SignUpPage() {
             // Try to complete sign up regardless of status if we have a session
             if (completeSignUp.createdSessionId) {
                 await setActive({ session: completeSignUp.createdSessionId });
-                router.push('/dashboard');
+                
+                // If user signed up via invitation, redirect to acceptance page
+                if (invitationId) {
+                    router.push(`/accept-invitation/${invitationId}`);
+                } else {
+                    router.push('/dashboard');
+                }
             } else {
                 setError(`Sign up incomplete. Status: ${completeSignUp.status}. Please check the console for details.`);
             }
@@ -90,10 +108,16 @@ export default function SignUpPage() {
     const signUpWithOAuth = (provider: 'oauth_google' | 'oauth_github' | 'oauth_microsoft') => {
         if (!isLoaded) return;
         
+        // Build redirect URL with invitation params if present
+        const redirectUrl = '/sso-callback';
+        const redirectUrlComplete = invitationId 
+            ? `/accept-invitation/${invitationId}`
+            : '/dashboard';
+        
         signUp.authenticateWithRedirect({
             strategy: provider,
-            redirectUrl: '/sso-callback',
-            redirectUrlComplete: '/dashboard',
+            redirectUrl,
+            redirectUrlComplete,
         });
     };
 
@@ -219,6 +243,13 @@ export default function SignUpPage() {
                     <h2 className="card-title text-2xl font-bold justify-center mb-6">
                         Create Your Account
                     </h2>
+
+                    {invitationId && (
+                        <div className="alert alert-info mb-4">
+                            <i className="fa-solid fa-envelope-open-text"></i>
+                            <span>Complete sign-up to accept your invitation</span>
+                        </div>
+                    )}
 
                     {error && (
                         <div className="alert alert-error mb-4">

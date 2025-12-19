@@ -125,6 +125,28 @@ export class IdentityRepository {
         return data || [];
     }
 
+    async getMembershipsByOrganization(orgId: string): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('memberships')
+            .select(`
+                id,
+                role,
+                created_at,
+                user_id,
+                users:user_id (
+                    id,
+                    email,
+                    first_name,
+                    last_name
+                )
+            `)
+            .eq('organization_id', orgId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    }
+
     async createMembership(
         membership: Omit<Membership, 'id' | 'created_at' | 'updated_at'>
     ): Promise<Membership> {
@@ -183,6 +205,118 @@ export class IdentityRepository {
             .eq('user_id', userId);
 
         if (error) throw error;
+    }
+
+    // Invitation methods
+    async createInvitation(invitation: any): Promise<any> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('invitations')
+            .insert(invitation)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async findInvitationById(id: string): Promise<any | null> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('invitations')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data;
+    }
+
+    async findInvitationByClerkId(clerkInvitationId: string): Promise<any | null> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('invitations')
+            .select('*')
+            .eq('clerk_invitation_id', clerkInvitationId)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data;
+    }
+
+    async findPendingInvitationByEmailAndOrg(email: string, organizationId: string): Promise<any | null> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('invitations')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .eq('organization_id', organizationId)
+            .eq('status', 'pending')
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data;
+    }
+
+    async findInvitationsByOrganization(organizationId: string): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('invitations')
+            .select('*')
+            .eq('organization_id', organizationId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async findPendingInvitationsByEmail(email: string): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('invitations')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async updateInvitation(id: string, updates: any): Promise<any> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('invitations')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async deleteInvitation(id: string): Promise<void> {
+        const { error } = await this.supabase
+            .schema('identity').from('invitations')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+    }
+
+    async deleteExpiredInvitations(): Promise<number> {
+        const { data, error } = await this.supabase
+            .schema('identity').from('invitations')
+            .delete()
+            .eq('status', 'pending')
+            .lt('expires_at', new Date().toISOString())
+            .select('id');
+
+        if (error) throw error;
+        return data?.length || 0;
     }
 }
 

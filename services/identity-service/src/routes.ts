@@ -8,6 +8,7 @@ import { IdentityService } from './service';
 import { registerUsersRoutes } from './routes/users/routes';
 import { registerOrganizationsRoutes } from './routes/organizations/routes';
 import { registerMembershipsRoutes } from './routes/memberships/routes';
+import { registerInvitationsRoutes } from './routes/invitations/routes';
 import { registerWebhooksRoutes } from './routes/webhooks/routes';
 import { registerConsentRoutes } from './routes/consent/routes';
 
@@ -16,6 +17,7 @@ export function registerRoutes(app: FastifyInstance, service: IdentityService) {
     registerUsersRoutes(app, service.users);
     registerOrganizationsRoutes(app, service.organizations);
     registerMembershipsRoutes(app, service.memberships);
+    registerInvitationsRoutes(app, service.invitations);
     registerWebhooksRoutes(app, service.webhooks);
     registerConsentRoutes(app, service.consent);
 }

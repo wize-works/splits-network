@@ -124,13 +124,13 @@ export interface MaskedCandidate {
     _masked: true; // Flag to indicate this is masked data
 }
 
-export type ApplicationStage = 'submitted' | 'screen' | 'interview' | 'offer' | 'hired' | 'rejected';
+export type ApplicationStage = 'draft' | 'screen' | 'submitted' | 'interview' | 'offer' | 'hired' | 'rejected';
 
 // Audit log for tracking application actions
 export interface ApplicationAuditLog {
     id: string;
     application_id: string;
-    action: 'accepted' | 'rejected' | 'stage_changed' | 'viewed' | 'created';
+    action: 'accepted' | 'rejected' | 'stage_changed' | 'viewed' | 'created' | 'draft_saved' | 'submitted_to_recruiter' | 'recruiter_reviewed' | 'submitted_to_company' | 'withdrawn' | 'prescreen_requested';
     performed_by_user_id?: string;
     performed_by_role?: string;
     company_id?: string;
@@ -149,6 +149,7 @@ export interface Application {
     recruiter_id?: string;
     stage: ApplicationStage;
     notes?: string;
+    recruiter_notes?: string;  // NEW: Recruiter's notes/pitch added during review
     accepted_by_company: boolean;
     accepted_at?: Date;
     created_at: Date;

@@ -222,6 +222,22 @@ export class ApiClient {
         return this.request(`/recruiters/${recruiterId}/jobs`);
     }
 
+    // Recruiter Application Review Methods
+    async getPendingApplications(recruiterId: string) {
+        return this.request(`/recruiters/${recruiterId}/pending-applications`);
+    }
+
+    async getApplicationFullDetails(applicationId: string) {
+        return this.request(`/applications/${applicationId}/full`);
+    }
+
+    async recruiterSubmitApplication(applicationId: string, data: { recruiterNotes?: string }) {
+        return this.request(`/applications/${applicationId}/recruiter-submit`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
     // Subscriptions
     async getMySubscription() {
         return this.request('/subscriptions/me');
@@ -260,6 +276,21 @@ export class ApiClient {
 
     async deleteDocument(id: string) {
         return this.request(`/documents/${id}`, { method: 'DELETE' });
+    }
+
+    // Pre-screen requests (company feature)
+    async requestPreScreen(
+        applicationId: string,
+        data: {
+            company_id: string;
+            recruiter_id?: string;
+            message?: string;
+        }
+    ) {
+        return this.request(`/applications/${applicationId}/request-prescreen`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
     }
 }
 

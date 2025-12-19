@@ -838,5 +838,80 @@ export class AtsRepository {
         if (error) throw error;
         return data || [];
     }
+
+    // Document linking methods (uses existing documents table with entity pattern)
+    async linkDocumentToApplication(
+        documentId: string,
+        applicationId: string,
+        isPrimary: boolean
+    ): Promise<void> {
+        // Update document to link it to the application
+        const { error } = await this.supabase
+            .from('documents')
+            .update({
+                entity_type: 'application',
+                entity_id: applicationId,
+                is_primary: isPrimary,
+            })
+            .eq('id', documentId);
+
+        if (error) throw error;
+    }
+
+    async getDocumentsForApplication(applicationId: string): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .from('documents')
+            .select('*')
+            .eq('entity_type', 'application')
+            .eq('entity_id', applicationId)
+            .order('is_primary', { ascending: false })
+            .order('uploaded_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    // Pre-screen answer methods
+    async createPreScreenAnswer(answer: {
+        application_id: string;
+        question_id: string;
+        answer: any;
+    }): Promise<any> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('job_pre_screen_answers')
+            .insert(answer)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async getPreScreenAnswersForApplication(applicationId: string): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('job_pre_screen_answers')
+            .select(`
+                *,
+                question:job_pre_screen_questions(*)
+            `)
+            .eq('application_id', applicationId);
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async getPreScreenQuestionsForJob(jobId: string): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('job_pre_screen_questions')
+            .select('*')
+            .eq('job_id', jobId)
+            .order('order_index', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
+    }
 }
 

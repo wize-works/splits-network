@@ -75,6 +75,20 @@ export class AtsService {
     async getApplicationsForCompany(companyId: string, filters?: any) { return this.applications.getApplicationsForCompany(companyId, filters); }
     async getApplicationAuditLog(applicationId: string) { return this.applications.getApplicationAuditLog(applicationId); }
     async getCompanyAuditLogs(companyId: string, limit?: number) { return this.applications.getCompanyAuditLogs(companyId, limit); }
+    
+    // New candidate application workflow methods
+    async submitCandidateApplication(params: any) { return this.applications.submitCandidateApplication(params); }
+    async recruiterSubmitApplication(applicationId: string, recruiterId: string, options?: any) { return this.applications.recruiterSubmitApplication(applicationId, recruiterId, options); }
+    async withdrawApplication(applicationId: string, candidateId: string, reason?: string) { return this.applications.withdrawApplication(applicationId, candidateId, reason); }
+    async getPendingApplicationsForRecruiter(recruiterId: string) { return this.applications.getPendingApplicationsForRecruiter(recruiterId); }
+    async requestPreScreen(applicationId: string, companyId: string, requestedByUserId: string, options?: { recruiter_id?: string; message?: string }) { return this.applications.requestPreScreen(applicationId, companyId, requestedByUserId, options); }
+    
+    // Pre-screen methods
+    async getPreScreenQuestionsForJob(jobId: string) { return this.repository.getPreScreenQuestionsForJob(jobId); }
+    async getPreScreenAnswersForApplication(applicationId: string) { return this.repository.getPreScreenAnswersForApplication(applicationId); }
+    
+    // Document methods  
+    async getDocumentsForApplication(applicationId: string) { return this.repository.getDocumentsForApplication(applicationId); }
 
     // Placements
     async getPlacements(filters?: any) { return this.placements.getPlacements(filters); }

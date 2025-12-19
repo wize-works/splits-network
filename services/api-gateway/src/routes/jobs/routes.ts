@@ -143,4 +143,17 @@ export function registerJobsRoutes(app: FastifyInstance, services: ServiceRegist
         const data = await networkService().get(path, undefined, correlationId);
         return reply.send(data);
     });
+
+    // Get pre-screen questions for a job
+    app.get('/api/jobs/:jobId/pre-screen-questions', {
+        schema: {
+            description: 'Get pre-screen questions for a job',
+            tags: ['jobs'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { jobId } = request.params as { jobId: string };
+        const data = await atsService().get(`/jobs/${jobId}/pre-screen-questions`);
+        return reply.send(data);
+    });
 }

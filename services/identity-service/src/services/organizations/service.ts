@@ -15,4 +15,8 @@ export class OrganizationsService {
     ): Promise<Organization> {
         return await this.repository.createOrganization({ name, type });
     }
+
+    async getOrganizationMemberships(organizationId: string) {
+        return await this.repository.getMembershipsByOrganization(organizationId);
+    }
 }

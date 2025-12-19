@@ -144,7 +144,6 @@ WHERE entity_type = 'application'
 -- - notes: Store candidate notes
 -- - recruiter_notes: NULL for drafts
 -- - stage: 'draft'
--- - submitted_at: NULL for drafts
 
 -- Application documents linked via documents table:
 -- WHERE entity_type = 'application' AND entity_id = '<draft-application-id>'
@@ -262,11 +261,6 @@ CREATE INDEX IF NOT EXISTS idx_applications_draft
 CREATE INDEX IF NOT EXISTS idx_applications_recruiter_review 
     ON ats.applications(recruiter_id, stage) 
     WHERE stage = 'screen';
-
--- Add index for submitted applications
-CREATE INDEX IF NOT EXISTS idx_applications_submitted_at 
-    ON ats.applications(submitted_at DESC)
-    WHERE submitted_at IS NOT NULL;
 ```
 
 ---
@@ -317,10 +311,6 @@ CREATE INDEX IF NOT EXISTS idx_applications_recruiter_review
     ON ats.applications(recruiter_id, stage) 
     WHERE stage = 'screen';
 
-CREATE INDEX IF NOT EXISTS idx_applications_submitted_at 
-    ON ats.applications(submitted_at DESC)
-    WHERE submitted_at IS NOT NULL;
-
 COMMIT;
 ```
 
@@ -336,7 +326,6 @@ COMMIT;
 BEGIN;
 
 -- 1. Drop indexes
-DROP INDEX IF EXISTS ats.idx_applications_submitted_at;
 DROP INDEX IF EXISTS ats.idx_applications_recruiter_review;
 DROP INDEX IF EXISTS ats.idx_applications_draft;
 
@@ -493,7 +482,6 @@ After this migration, the following indexes support the candidate application wo
 ### Applications (new indexes)
 - `idx_applications_draft` - Query candidate's draft applications
 - `idx_applications_recruiter_review` - Query applications pending recruiter review
-- `idx_applications_submitted_at` - Query recent submissions
 
 ### Documents (existing table)
 - Use existing indexes on `entity_type` and `entity_id` for application documents

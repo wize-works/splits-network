@@ -73,7 +73,7 @@ Authorization: Bearer <clerk_jwt_token>
       recruiter_id: string | null;      // NULL if no recruiter relationship
       stage: string;                    // 'screen' (pending recruiter) or 'submitted' (to company)
       created_at: string;
-      submitted_at: string | null;      // ISO timestamp (null if pending recruiter)
+      // Submission timestamp tracked in application_audit_log
     };
     has_recruiter: boolean;             // Whether candidate has recruiter relationship
     next_steps: string;                 // Human-readable next steps
@@ -175,9 +175,9 @@ Authorization: Bearer <clerk_jwt_token>
         status: string;
         stage: string;
         submitted_by: string;
-        candidate_submitted_at: string;
         created_at: string;
         updated_at: string;
+        // Submission timestamps available in workflow_events from audit log
       }
     ];
     total: number;
@@ -242,7 +242,6 @@ Authorization: Bearer <clerk_jwt_token>
     status: string;
     stage: string;
     submitted_by: string;
-    candidate_submitted_at: string;
     // Temporal data via application_audit_log:
     workflow_events: [
       {
@@ -359,7 +358,7 @@ Authorization: Bearer <clerk_jwt_token>
         job: { id: string; title: string; company: { name: string } };
         candidate: { id: string; full_name: string; email: string };
         stage: 'screen';  // Pending recruiter review
-        candidate_submitted_at: string;
+        created_at: string;  // When application was created
         documents_count: number;
         has_all_answers: boolean;
       }

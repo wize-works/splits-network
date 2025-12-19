@@ -30,4 +30,13 @@ export function registerOrganizationsRoutes(
             return reply.status(201).send({ data: org });
         }
     );
+
+    // Get organization memberships
+    app.get(
+        '/organizations/:organizationId/memberships',
+        async (request: FastifyRequest<{ Params: { organizationId: string } }>, reply: FastifyReply) => {
+            const memberships = await service.getOrganizationMemberships(request.params.organizationId);
+            return reply.send({ data: memberships });
+        }
+    );
 }

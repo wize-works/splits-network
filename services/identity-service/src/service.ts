@@ -4,9 +4,11 @@
  */
 
 import { IdentityRepository } from './repository';
+import { EventPublisher } from './events';
 import { UsersService } from './services/users/service';
 import { OrganizationsService } from './services/organizations/service';
 import { MembershipsService } from './services/memberships/service';
+import { InvitationsService } from './services/invitations/service';
 import { WebhooksService } from './services/webhooks/service';
 import { ConsentService } from './services/consent/service';
 import { User, Organization, Membership } from '@splits-network/shared-types';
@@ -16,13 +18,15 @@ export class IdentityService {
     public readonly users: UsersService;
     public readonly organizations: OrganizationsService;
     public readonly memberships: MembershipsService;
+    public readonly invitations: InvitationsService;
     public readonly webhooks: WebhooksService;
     public readonly consent: ConsentService;
 
-    constructor(private repository: IdentityRepository) {
+    constructor(private repository: IdentityRepository, eventPublisher?: EventPublisher) {
         this.users = new UsersService(repository);
         this.organizations = new OrganizationsService(repository);
         this.memberships = new MembershipsService(repository);
+        this.invitations = new InvitationsService(repository, eventPublisher);
         this.webhooks = new WebhooksService(repository);
         this.consent = new ConsentService(repository);
     }

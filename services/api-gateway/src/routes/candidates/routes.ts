@@ -378,4 +378,29 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         const data = await atsService().get(`/candidates/${id}/protection-status`, undefined, correlationId);
         return reply.send(data);
     });
+
+    // Get my applications (candidate self-service)
+    app.get('/api/candidates/me/applications', {
+        preHandler: requireRoles(['candidate']),
+        schema: {
+            description: 'Get my applications',
+            tags: ['candidates'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const correlationId = getCorrelationId(request);
+        
+        // TODO: Get candidate ID from user ID via identity/network service
+        // For now, assume candidate_id query param or derive from auth
+        const candidateId = (request.query as any).candidate_id || req.auth.userId;
+        
+        const queryString = new URLSearchParams({ 
+            candidate_id: candidateId,
+            ...(request.query as any)
+        }).toString();
+        
+        const data = await atsService().get(`/applications?${queryString}`, undefined, correlationId);
+        return reply.send(data);
+    });
 }

@@ -5,16 +5,19 @@ import { useAuth } from '@clerk/nextjs';
 import { createAuthenticatedClient } from '@/lib/api-client';
 import StageChangeDropdown from './stage-change-dropdown';
 import HireModal from './hire-modal';
+import PreScreenRequestModal from './pre-screen-request-modal';
 import DocumentList from '@/components/document-list';
 
 interface Application {
     id: string;
     candidate_id: string;
     job_id: string;
+    recruiter_id?: string | null;
     stage: string;
     status: string;
     notes?: string;
     created_at: string;
+    candidate?: any;
 }
 
 const stages = [
@@ -35,8 +38,11 @@ export default function CandidatePipeline({ roleId }: CandidatePipelineProps) {
     const [applications, setApplications] = useState<Application[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStage, setSelectedStage] = useState<string | null>(null);
+    const [showNeedsPreScreen, setShowNeedsPreScreen] = useState(false);
     const [hireApplication, setHireApplication] = useState<Application | null>(null);
+    const [preScreenApplication, setPreScreenApplication] = useState<Application | null>(null);
     const [expandedCandidate, setExpandedCandidate] = useState<string | null>(null);
+    const [companyId, setCompanyId] = useState<string>('');
 
     useEffect(() => {
         fetchApplications();
@@ -54,6 +60,12 @@ export default function CandidatePipeline({ roleId }: CandidatePipelineProps) {
             const client = createAuthenticatedClient(token);
             const response: any = await client.getApplicationsByJob(roleId);
             setApplications(response.data || []);
+            
+            // Get company ID from first application (if any)
+            if (response.data && response.data.length > 0) {
+                const jobResponse: any = await client.getJob(roleId);
+                setCompanyId(jobResponse.data?.company_id || '');
+            }
         } catch (error) {
             console.error('Failed to fetch applications:', error);
         } finally {
@@ -79,9 +91,13 @@ export default function CandidatePipeline({ roleId }: CandidatePipelineProps) {
         }
     };
 
-    const filteredApplications = selectedStage
+    const filteredApplications = showNeedsPreScreen
+        ? applications.filter(app => !app.recruiter_id && app.stage === 'submitted')
+        : selectedStage
         ? applications.filter(app => app.stage === selectedStage)
         : applications;
+    
+    const needsPreScreenCount = applications.filter(app => !app.recruiter_id && app.stage === 'submitted').length;
 
     if (loading) {
         return (
@@ -104,19 +120,40 @@ export default function CandidatePipeline({ roleId }: CandidatePipelineProps) {
                     {/* Stage Tabs */}
                     <div className="tabs tabs-boxed bg-base-200 mt-4">
                         <a
-                            className={`tab ${selectedStage === null ? 'tab-active' : ''}`}
-                            onClick={() => setSelectedStage(null)}
+                            className={`tab ${!showNeedsPreScreen && selectedStage === null ? 'tab-active' : ''}`}
+                            onClick={() => {
+                                setShowNeedsPreScreen(false);
+                                setSelectedStage(null);
+                            }}
                         >
                             All
                             <span className="badge badge-sm ml-2">{applications.length}</span>
                         </a>
+                        {needsPreScreenCount > 0 && (
+                            <a
+                                className={`tab ${showNeedsPreScreen ? 'tab-active' : ''}`}
+                                onClick={() => {
+                                    setShowNeedsPreScreen(true);
+                                    setSelectedStage(null);
+                                }}
+                            >
+                                <i className="fa-solid fa-user-check mr-1"></i>
+                                Needs Pre-Screen
+                                <span className="badge badge-warning badge-sm ml-2">
+                                    {needsPreScreenCount}
+                                </span>
+                            </a>
+                        )}
                         {stages.map((stage) => {
                             const count = applications.filter(app => app.stage === stage.key).length;
                             return (
                                 <a
                                     key={stage.key}
-                                    className={`tab ${selectedStage === stage.key ? 'tab-active' : ''}`}
-                                    onClick={() => setSelectedStage(stage.key)}
+                                    className={`tab ${!showNeedsPreScreen && selectedStage === stage.key ? 'tab-active' : ''}`}
+                                    onClick={() => {
+                                        setShowNeedsPreScreen(false);
+                                        setSelectedStage(stage.key);
+                                    }}
                                 >
                                     {stage.label}
                                     {count > 0 && (
@@ -188,6 +225,15 @@ export default function CandidatePipeline({ roleId }: CandidatePipelineProps) {
                                                     <td>{new Date(application.created_at).toLocaleDateString()}</td>
                                                     <td>
                                                         <div className="flex gap-2">
+                                                            {!application.recruiter_id && application.stage === 'submitted' && (
+                                                                <button
+                                                                    className="btn btn-warning btn-xs gap-1"
+                                                                    onClick={() => setPreScreenApplication(application)}
+                                                                >
+                                                                    <i className="fa-solid fa-user-check"></i>
+                                                                    Request Pre-Screen
+                                                                </button>
+                                                            )}
                                                             {application.stage === 'offer' && application.status === 'active' && (
                                                                 <button
                                                                     className="btn btn-success btn-xs gap-1"
@@ -227,10 +273,18 @@ export default function CandidatePipeline({ roleId }: CandidatePipelineProps) {
                         <div className="text-center py-12">
                             <i className="fa-solid fa-users text-6xl text-base-content/20"></i>
                             <h3 className="text-xl font-semibold mt-4">
-                                {selectedStage ? `No candidates in ${stages.find(s => s.key === selectedStage)?.label}` : 'No Candidates Yet'}
+                                {showNeedsPreScreen
+                                    ? 'No Applications Need Pre-Screen'
+                                    : selectedStage
+                                    ? `No candidates in ${stages.find(s => s.key === selectedStage)?.label}`
+                                    : 'No Candidates Yet'}
                             </h3>
                             <p className="text-base-content/70 mt-2">
-                                {selectedStage ? 'Try a different stage' : 'Be the first to submit a candidate for this role'}
+                                {showNeedsPreScreen
+                                    ? 'All direct applications have been assigned to recruiters'
+                                    : selectedStage
+                                    ? 'Try a different stage'
+                                    : 'Be the first to submit a candidate for this role'}
                             </p>
                         </div>
                     )}
@@ -243,6 +297,19 @@ export default function CandidatePipeline({ roleId }: CandidatePipelineProps) {
                     onClose={() => setHireApplication(null)}
                     onSuccess={() => {
                         setHireApplication(null);
+                        fetchApplications();
+                    }}
+                />
+            )}
+
+            {preScreenApplication && (
+                <PreScreenRequestModal
+                    application={preScreenApplication}
+                    jobId={roleId}
+                    companyId={companyId}
+                    onClose={() => setPreScreenApplication(null)}
+                    onSuccess={() => {
+                        setPreScreenApplication(null);
                         fetchApplications();
                     }}
                 />

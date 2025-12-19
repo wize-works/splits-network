@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import { UnauthorizedError, ForbiddenError } from '@splits-network/shared-fastify';
 
-export type UserRole = 'recruiter' | 'company_admin' | 'hiring_manager' | 'platform_admin';
+export type UserRole = 'candidate' | 'recruiter' | 'company_admin' | 'hiring_manager' | 'platform_admin';
 
 export interface MembershipContext {
     id: string;

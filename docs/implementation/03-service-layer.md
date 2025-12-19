@@ -470,7 +470,6 @@ async submitCandidateApplication(params: {
     candidate_id: params.candidateId,
     recruiter_id: recruiterId,
     stage: stage,
-    submitted_at: submittedAt,
     notes: params.notes,
   });
 
@@ -598,7 +597,6 @@ async recruiterSubmitApplication(
   // 4. Update application stage and notes
   const updatedApplication = await this.repository.updateApplication(applicationId, {
     stage: 'submitted',  // Move from 'screen' to 'submitted'
-    submitted_at: new Date(),  // Now officially submitted to company
     recruiter_notes: options?.recruiterNotes || null,
   });
 

@@ -11,6 +11,7 @@ import { PlacementsEmailService } from './services/placements/service';
 import { ProposalsEmailService } from './services/proposals/service';
 import { CandidatesEmailService } from './services/candidates/service';
 import { CollaborationEmailService } from './services/collaboration/service';
+import { InvitationsEmailService } from './services/invitations/service';
 
 export class NotificationService {
     public readonly applications: ApplicationsEmailService;
@@ -18,6 +19,7 @@ export class NotificationService {
     public readonly proposals: ProposalsEmailService;
     public readonly candidates: CandidatesEmailService;
     public readonly collaboration: CollaborationEmailService;
+    public readonly invitations: InvitationsEmailService;
 
     constructor(
         repository: NotificationRepository,
@@ -32,6 +34,7 @@ export class NotificationService {
         this.proposals = new ProposalsEmailService(resend, repository, fromEmail, logger);
         this.candidates = new CandidatesEmailService(resend, repository, fromEmail, logger);
         this.collaboration = new CollaborationEmailService(resend, repository, fromEmail, logger);
+        this.invitations = new InvitationsEmailService(resend, repository, fromEmail, logger);
     }
 
     // Legacy compatibility methods - delegate to domain services

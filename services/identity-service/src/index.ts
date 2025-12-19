@@ -5,6 +5,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { IdentityRepository } from './repository';
 import { IdentityService } from './service';
+import { EventPublisher } from './events';
 import { registerRoutes } from './routes';
 
 async function main() {
@@ -46,6 +47,7 @@ async function main() {
                 { name: 'users', description: 'User management' },
                 { name: 'organizations', description: 'Organization management' },
                 { name: 'memberships', description: 'User-organization memberships' },
+                { name: 'invitations', description: 'Organization invitations' },
                 { name: 'webhooks', description: 'Webhook endpoints' },
             ],
         },
@@ -64,7 +66,18 @@ async function main() {
         dbConfig.supabaseUrl,
         dbConfig.supabaseServiceRoleKey || dbConfig.supabaseAnonKey
     );
-    const service = new IdentityService(repository);
+
+    // Initialize event publisher
+    const rabbitMqUrl = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
+    const eventPublisher = new EventPublisher(rabbitMqUrl, logger);
+    
+    try {
+        await eventPublisher.connect();
+    } catch (error) {
+        logger.warn({ error }, 'Failed to connect to RabbitMQ - events will not be published');
+    }
+
+    const service = new IdentityService(repository, eventPublisher);
 
     // Register routes
     registerRoutes(app, service);

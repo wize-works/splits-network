@@ -9,6 +9,10 @@
             "path": "apps/portal"
         },
         {
+            "name": "📱 Candidate Portal (Next.js)",
+            "path": "apps/candidate"
+        },
+        {
             "name": "🔐 Identity Service",
             "path": "services/identity-service"
         },
@@ -122,6 +126,20 @@
                 ]
             },
             {
+                "name": "Candidate Portal (Next.js)",
+                "type": "node",
+                "request": "launch",
+                "cwd": "${workspaceFolder:📱 Candidate Portal (Next.js)}",
+                "runtimeExecutable": "pnpm",
+                "runtimeArgs": [
+                    "dev"
+                ],
+                "console": "integratedTerminal",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            },
+            {
                 "name": "Identity Service",
                 "type": "node",
                 "request": "launch",
@@ -223,6 +241,7 @@
                 "name": "Full Stack",
                 "configurations": [
                     "Portal (Next.js)",
+                    "Candidate Portal (Next.js)",
                     "Identity Service",
                     "ATS Service",
                     "Network Service",
@@ -269,6 +288,21 @@
                 "command": "pnpm dev",
                 "options": {
                     "cwd": "${workspaceFolder:📱 Portal (Next.js)}"
+                },
+                "group": "none",
+                "isBackground": true,
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "dedicated",
+                    "group": "dev-servers"
+                }
+            },
+            {
+                "label": "Dev: CandidatePortal",
+                "type": "shell",
+                "command": "pnpm dev",
+                "options": {
+                    "cwd": "${workspaceFolder:📱 Candidate Portal (Next.js)}"
                 },
                 "group": "none",
                 "isBackground": true,
@@ -388,6 +422,7 @@
                 "label": "Dev: Full Stack",
                 "dependsOn": [
                     "Dev: Portal",
+                    "Dev: CandidatePortal",
                     "Dev: API Gateway",
                     "Dev: Identity Service",
                     "Dev: ATS Service",

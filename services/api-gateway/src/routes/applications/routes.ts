@@ -104,4 +104,106 @@ export function registerApplicationsRoutes(app: FastifyInstance, services: Servi
         const data = await atsService().patch(`/applications/${id}/stage`, request.body);
         return reply.send(data);
     });
+
+    // Submit candidate application (candidate self-service)
+    app.post('/api/applications/submit', {
+        preHandler: requireRoles(['candidate']),
+        schema: {
+            description: 'Submit candidate application',
+            tags: ['applications'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const correlationId = getCorrelationId(request);
+        
+        request.log.info({ 
+            userId: req.auth.userId,
+            body: request.body 
+        }, 'Candidate submitting application');
+
+        const data = await atsService().post('/applications/submit', request.body, correlationId);
+        return reply.status(201).send(data);
+    });
+
+    // Withdraw application (candidates only)
+    app.post('/api/applications/:id/withdraw', {
+        preHandler: requireRoles(['candidate']),
+        schema: {
+            description: 'Withdraw application',
+            tags: ['applications'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const correlationId = getCorrelationId(request);
+        const data = await atsService().post(`/applications/${id}/withdraw`, request.body, correlationId);
+        return reply.send(data);
+    });
+
+    // Get full application details with documents and pre-screen answers
+    app.get('/api/applications/:id/full', {
+        schema: {
+            description: 'Get full application details',
+            tags: ['applications'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const data = await atsService().get(`/applications/${id}/full`);
+        return reply.send(data);
+    });
+
+    // Get pending applications for recruiter
+    app.get('/api/recruiters/:recruiterId/pending-applications', {
+        preHandler: requireRoles(['recruiter']),
+        schema: {
+            description: 'Get pending applications for recruiter',
+            tags: ['applications', 'recruiters'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { recruiterId } = request.params as { recruiterId: string };
+        const data = await atsService().get(`/recruiters/${recruiterId}/pending-applications`);
+        return reply.send(data);
+    });
+
+    // Recruiter submits application to company
+    app.post('/api/applications/:id/recruiter-submit', {
+        preHandler: requireRoles(['recruiter']),
+        schema: {
+            description: 'Recruiter submits application to company',
+            tags: ['applications', 'recruiters'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const correlationId = getCorrelationId(request);
+        const data = await atsService().post(`/applications/${id}/recruiter-submit`, request.body, correlationId);
+        return reply.send(data);
+    });
+
+    // Company requests pre-screen for direct application
+    app.post('/api/applications/:id/request-prescreen', {
+        preHandler: requireRoles(['company_admin', 'hiring_manager']),
+        schema: {
+            description: 'Request recruiter pre-screen for direct application',
+            tags: ['applications', 'company'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const { id } = request.params as { id: string };
+        const correlationId = getCorrelationId(request);
+        
+        // Add user context to request body
+        const requestBody = {
+            ...(request.body as any),
+            requested_by_user_id: req.auth.userId,
+        };
+
+        const data = await atsService().post(`/applications/${id}/request-prescreen`, requestBody, correlationId);
+        return reply.send(data);
+    });
 }
+

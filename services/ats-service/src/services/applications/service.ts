@@ -323,4 +323,353 @@ export class ApplicationService {
     async getCompanyAuditLogs(companyId: string, limit?: number) {
         return await this.repository.getAuditLogsForCompany(companyId, limit);
     }
+
+    /**
+     * Submit candidate-initiated application
+     * Handles both direct (no recruiter) and recruiter-represented applications
+     */
+    async submitCandidateApplication(params: {
+        candidateId: string;
+        jobId: string;
+        documentIds: string[];
+        primaryResumeId: string;
+        preScreenAnswers?: Array<{ question_id: string; answer: any }>;
+        notes?: string;
+    }): Promise<{
+        application: Application;
+        hasRecruiter: boolean;
+        nextSteps: string;
+    }> {
+        const { candidateId, jobId, documentIds, primaryResumeId, preScreenAnswers, notes } = params;
+
+        // 1. Verify job exists
+        const job = await this.repository.findJobById(jobId);
+        if (!job) {
+            throw new Error(`Job ${jobId} not found`);
+        }
+
+        // 2. Verify candidate exists
+        const candidate = await this.repository.findCandidateById(candidateId);
+        if (!candidate) {
+            throw new Error(`Candidate ${candidateId} not found`);
+        }
+
+        // 3. Check for existing application
+        const existingApplications = await this.repository.findApplications({
+            job_id: jobId,
+            candidate_id: candidateId,
+        });
+        if (existingApplications.length > 0) {
+            throw new Error(`Candidate has already applied to this job`);
+        }
+
+        // 4. Check if candidate has a recruiter relationship (12-month window)
+        // For now, check candidate.recruiter_id or make call to network service
+        const hasRecruiter = !!candidate.recruiter_id;
+        const recruiterId = candidate.recruiter_id || undefined;
+
+        // 5. Determine initial stage based on recruiter status
+        const initialStage: ApplicationStage = hasRecruiter ? 'screen' : 'submitted';
+
+        // 6. Create application
+        const application = await this.repository.createApplication({
+            job_id: jobId,
+            candidate_id: candidateId,
+            recruiter_id: recruiterId,
+            stage: initialStage,
+            notes: notes,
+            accepted_by_company: false,
+        });
+
+        // 7. Link documents to application (via documents table with entity pattern)
+        if (documentIds && documentIds.length > 0) {
+            await Promise.all(
+                documentIds.map(async (docId) => {
+                    await this.repository.linkDocumentToApplication(
+                        docId,
+                        application.id,
+                        docId === primaryResumeId
+                    );
+                })
+            );
+        }
+
+        // 8. Save pre-screen answers
+        if (preScreenAnswers && preScreenAnswers.length > 0) {
+            await Promise.all(
+                preScreenAnswers.map(async (answer) => {
+                    await this.repository.createPreScreenAnswer({
+                        application_id: application.id,
+                        question_id: answer.question_id,
+                        answer: answer.answer,
+                    });
+                })
+            );
+        }
+
+        // 9. Create audit log entry
+        const auditAction = hasRecruiter ? 'submitted_to_recruiter' : 'submitted_to_company';
+        await this.repository.createAuditLog({
+            application_id: application.id,
+            action: auditAction,
+            performed_by_user_id: candidateId,
+            performed_by_role: 'candidate',
+            company_id: job.company_id,
+            new_value: {
+                stage: initialStage,
+                candidate_id: candidateId,
+                job_id: jobId,
+                recruiter_id: recruiterId,
+            },
+            metadata: {
+                document_count: documentIds.length,
+                has_pre_screen_answers: !!preScreenAnswers && preScreenAnswers.length > 0,
+                notes: notes,
+            },
+        });
+
+        // 10. Publish event
+        await this.eventPublisher.publish(
+            'application.created',
+            {
+                application_id: application.id,
+                job_id: jobId,
+                candidate_id: candidateId,
+                recruiter_id: recruiterId,
+                company_id: job.company_id,
+                stage: initialStage,
+                has_recruiter: hasRecruiter,
+                document_ids: documentIds,
+            },
+            'ats-service'
+        );
+
+        // 11. Return result with next steps
+        const nextSteps = hasRecruiter
+            ? 'Your application has been sent to your recruiter for review. They will enhance and submit it to the company.'
+            : 'Your application has been submitted directly to the company. They will review and contact you if interested.';
+
+        return {
+            application,
+            hasRecruiter,
+            nextSteps,
+        };
+    }
+
+    /**
+     * Recruiter submits application to company after review
+     */
+    async recruiterSubmitApplication(
+        applicationId: string,
+        recruiterId: string,
+        options?: {
+            recruiterNotes?: string;
+        }
+    ): Promise<Application> {
+        const application = await this.getApplicationById(applicationId);
+
+        // Verify application is in screen stage
+        if (application.stage !== 'screen') {
+            throw new Error(`Application must be in 'screen' stage to submit to company`);
+        }
+
+        // Verify recruiter owns this application
+        if (application.recruiter_id !== recruiterId) {
+            throw new Error(`Recruiter does not own this application`);
+        }
+
+        // Update application stage to submitted and add recruiter notes
+        const updated = await this.repository.updateApplication(applicationId, {
+            stage: 'submitted',
+            recruiter_notes: options?.recruiterNotes,
+        });
+
+        // Get job for audit log
+        const job = await this.repository.findJobById(application.job_id);
+
+        // Create audit log
+        await this.repository.createAuditLog({
+            application_id: applicationId,
+            action: 'submitted_to_company',
+            performed_by_user_id: recruiterId,
+            performed_by_role: 'recruiter',
+            company_id: job?.company_id,
+            old_value: { stage: 'screen' },
+            new_value: { stage: 'submitted', recruiter_notes: options?.recruiterNotes },
+            metadata: {
+                job_id: application.job_id,
+                candidate_id: application.candidate_id,
+            },
+        });
+
+        // Publish event
+        await this.eventPublisher.publish(
+            'application.submitted_to_company',
+            {
+                application_id: applicationId,
+                job_id: application.job_id,
+                candidate_id: application.candidate_id,
+                recruiter_id: recruiterId,
+                company_id: job?.company_id,
+            },
+            'ats-service'
+        );
+
+        return updated;
+    }
+
+    /**
+     * Candidate withdraws application
+     */
+    async withdrawApplication(
+        applicationId: string,
+        candidateId: string,
+        reason?: string
+    ): Promise<Application> {
+        const application = await this.getApplicationById(applicationId);
+
+        // Verify candidate owns this application
+        if (application.candidate_id !== candidateId) {
+            throw new Error(`Candidate does not own this application`);
+        }
+
+        // Cannot withdraw if already in offer/hired stage
+        if (['offer', 'hired'].includes(application.stage)) {
+            throw new Error(`Cannot withdraw application in ${application.stage} stage`);
+        }
+
+        // Update to rejected stage
+        const updated = await this.repository.updateApplication(applicationId, {
+            stage: 'rejected',
+            notes: application.notes ? `${application.notes}\n\nWithdrawn by candidate: ${reason || 'No reason provided'}` : `Withdrawn by candidate: ${reason || 'No reason provided'}`,
+        });
+
+        // Get job for audit log
+        const job = await this.repository.findJobById(application.job_id);
+
+        // Create audit log
+        await this.repository.createAuditLog({
+            application_id: applicationId,
+            action: 'withdrawn',
+            performed_by_user_id: candidateId,
+            performed_by_role: 'candidate',
+            company_id: job?.company_id,
+            old_value: { stage: application.stage },
+            new_value: { stage: 'rejected' },
+            metadata: {
+                reason: reason,
+                job_id: application.job_id,
+            },
+        });
+
+        // Publish event
+        await this.eventPublisher.publish(
+            'application.withdrawn',
+            {
+                application_id: applicationId,
+                job_id: application.job_id,
+                candidate_id: candidateId,
+                recruiter_id: application.recruiter_id,
+                reason: reason,
+            },
+            'ats-service'
+        );
+
+        return updated;
+    }
+
+    /**
+     * Get pending applications for recruiter review
+     */
+    async getPendingApplicationsForRecruiter(recruiterId: string): Promise<Application[]> {
+        return await this.repository.findApplications({
+            recruiter_id: recruiterId,
+            stage: 'screen',
+        });
+    }
+
+    /**
+     * Request pre-screen for a direct candidate application
+     * Company can assign to specific recruiter or request auto-assignment
+     */
+    async requestPreScreen(
+        applicationId: string,
+        companyId: string,
+        requestedByUserId: string,
+        options: {
+            recruiter_id?: string;
+            message?: string;
+        } = {}
+    ): Promise<Application> {
+        // Get application and validate
+        const application = await this.repository.findApplicationById(applicationId);
+        if (!application) {
+            throw new Error(`Application ${applicationId} not found`);
+        }
+
+        // Get job to verify company ownership
+        const job = await this.repository.findJobById(application.job_id);
+        if (!job) {
+            throw new Error(`Job ${application.job_id} not found`);
+        }
+
+        if (job.company_id !== companyId) {
+            throw new Error('Cannot request pre-screen for application from different company');
+        }
+
+        // Validate application is a direct submission (no recruiter yet)
+        if (application.recruiter_id) {
+            throw new Error('Application already has a recruiter assigned');
+        }
+
+        // Validate application is in submitted stage
+        if (application.stage !== 'submitted') {
+            throw new Error(`Cannot request pre-screen for application in ${application.stage} stage`);
+        }
+
+        // Update application with recruiter and change stage to 'screen'
+        const updated = await this.repository.updateApplication(applicationId, {
+            recruiter_id: options.recruiter_id || undefined,
+            stage: 'screen',
+        });
+
+        // Create audit log
+        await this.repository.createAuditLog({
+            application_id: applicationId,
+            action: 'prescreen_requested',
+            performed_by_user_id: requestedByUserId,
+            performed_by_role: 'company_admin',
+            company_id: companyId,
+            old_value: {
+                stage: 'submitted',
+                recruiter_id: null,
+            },
+            new_value: {
+                stage: 'screen',
+                recruiter_id: options.recruiter_id || null,
+            },
+            metadata: {
+                message: options.message,
+                auto_assign: !options.recruiter_id,
+            },
+        });
+
+        // Publish event
+        await this.eventPublisher.publish(
+            'application.prescreen_requested',
+            {
+                application_id: applicationId,
+                job_id: application.job_id,
+                candidate_id: application.candidate_id,
+                company_id: companyId,
+                recruiter_id: options.recruiter_id,
+                requested_by_user_id: requestedByUserId,
+                message: options.message,
+                auto_assign: !options.recruiter_id,
+            },
+            'ats-service'
+        );
+
+        return updated;
+    }
 }

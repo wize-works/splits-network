@@ -2,26 +2,53 @@ import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { getApplications, Application } from '@/lib/api';
+import { getMyApplications } from '@/lib/api-client';
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'Interview Scheduled':
-      return 'badge-success';
-    case 'Under Review':
+const getStatusColor = (stage: string) => {
+  switch (stage) {
+    case 'draft':
+      return 'badge-ghost';
+    case 'screen':
+    case 'submitted':
       return 'badge-info';
-    case 'Applied':
+    case 'interviewing':
       return 'badge-primary';
-    case 'Rejected':
+    case 'offer':
+      return 'badge-success';
+    case 'rejected':
+    case 'withdrawn':
       return 'badge-error';
-    case 'Offer Received':
-      return 'badge-warning';
     default:
       return 'badge-ghost';
   }
 };
 
-export default async function ApplicationsPage() {
+const formatStage = (stage: string) => {
+  switch (stage) {
+    case 'draft':
+      return 'Draft';
+    case 'screen':
+      return 'Recruiter Review';
+    case 'submitted':
+      return 'Submitted';
+    case 'interviewing':
+      return 'Interviewing';
+    case 'offer':
+      return 'Offer';
+    case 'rejected':
+      return 'Rejected';
+    case 'withdrawn':
+      return 'Withdrawn';
+    default:
+      return stage;
+  }
+};
+
+export default async function ApplicationsPage({
+  searchParams,
+}: {
+  searchParams: { success?: string };
+}) {
   const { userId, getToken } = await auth();
 
   if (!userId) {
@@ -35,22 +62,26 @@ export default async function ApplicationsPage() {
   }
 
   // Fetch real applications data
-  let applications: Application[];
+  let applications: any[] = [];
   let error = null;
   
   try {
-    applications = await getApplications(token);
+    const data = await getMyApplications(token);
+    // API returns { data: [...] } wrapper
+    applications = (data as any).data || data || [];
   } catch (err) {
     console.error('Error fetching applications:', err);
     error = 'Failed to load applications';
     applications = [];
   }
 
+  const showSuccess = searchParams.success === 'true';
+
   const activeApps = applications.filter(app => 
-    !['Rejected', 'Withdrawn', 'Offer Accepted'].includes(app.status)
+    !['rejected', 'withdrawn'].includes(app.stage)
   );
   const inactiveApps = applications.filter(app => 
-    ['Rejected', 'Withdrawn', 'Offer Accepted'].includes(app.status)
+    ['rejected', 'withdrawn'].includes(app.stage)
   );
 
   return (
@@ -61,6 +92,14 @@ export default async function ApplicationsPage() {
           Track the status of all your job applications
         </p>
       </div>
+
+      {/* Success Message */}
+      {showSuccess && (
+        <div className="alert alert-success mb-6">
+          <i className="fa-solid fa-circle-check"></i>
+          <span>Application submitted successfully!</span>
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (
@@ -124,32 +163,37 @@ export default async function ApplicationsPage() {
                         href={`/jobs/${app.job_id}`}
                         className="card-title text-2xl hover:text-primary"
                       >
-                        {app.job_title}
+                        {app.job?.title || 'Unknown Position'}
                       </Link>
-                      <p className="text-lg font-semibold mb-2">{app.company}</p>
+                      <p className="text-lg font-semibold mb-2">{app.job?.company?.name || 'Unknown Company'}</p>
                       <div className="flex flex-wrap gap-3 text-sm text-base-content/70 mb-4">
+                        {app.job?.location && (
+                          <span>
+                            <i className="fa-solid fa-location-dot"></i> {app.job.location}
+                          </span>
+                        )}
                         <span>
-                          <i className="fa-solid fa-location-dot"></i> {app.location}
-                        </span>
-                        <span>
-                          <i className="fa-solid fa-calendar"></i> Applied {formatDate(app.applied_at)}
+                          <i className="fa-solid fa-calendar"></i> Applied {formatDate(app.created_at)}
                         </span>
                         <span>
                           <i className="fa-solid fa-clock"></i> Updated {formatDate(app.updated_at)}
                         </span>
                       </div>
                       <div className="mb-3">
-                        <span className={`badge badge-lg ${getStatusColor(app.status)}`}>
-                          {app.status}
-                        </span>
-                        <span className="ml-2 text-sm text-base-content/70">
-                          Current Stage: {app.stage}
+                        <span className={`badge badge-lg ${getStatusColor(app.stage)}`}>
+                          {formatStage(app.stage)}
                         </span>
                       </div>
-                      {app.notes && (
+                      {app.recruiter && (
+                        <div className="text-sm text-base-content/60 mb-2">
+                          <i className="fa-solid fa-user"></i> Represented by{' '}
+                          {app.recruiter.first_name} {app.recruiter.last_name}
+                        </div>
+                      )}
+                      {app.recruiter_notes && (
                         <div className="alert alert-info">
                           <i className="fa-solid fa-circle-info"></i>
-                          <span>{app.notes}</span>
+                          <span>{app.recruiter_notes}</span>
                         </div>
                       )}
                     </div>
@@ -187,21 +231,23 @@ export default async function ApplicationsPage() {
                 <div className="card-body">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div className="flex-1">
-                      <h3 className="card-title text-xl">{app.job_title}</h3>
-                      <p className="font-semibold mb-2">{app.company}</p>
+                      <h3 className="card-title text-xl">{app.job?.title || 'Unknown Position'}</h3>
+                      <p className="font-semibold mb-2">{app.job?.company?.name || 'Unknown Company'}</p>
                       <div className="flex flex-wrap gap-3 text-sm text-base-content/70 mb-3">
+                        {app.job?.location && (
+                          <span>
+                            <i className="fa-solid fa-location-dot"></i> {app.job.location}
+                          </span>
+                        )}
                         <span>
-                          <i className="fa-solid fa-location-dot"></i> {app.location}
-                        </span>
-                        <span>
-                          <i className="fa-solid fa-calendar"></i> Applied {formatDate(app.applied_at)}
+                          <i className="fa-solid fa-calendar"></i> Applied {formatDate(app.created_at)}
                         </span>
                       </div>
-                      <span className={`badge ${getStatusColor(app.status)}`}>
-                        {app.status}
+                      <span className={`badge ${getStatusColor(app.stage)}`}>
+                        {formatStage(app.stage)}
                       </span>
-                      {app.notes && (
-                        <p className="text-sm text-base-content/70 mt-2">{app.notes}</p>
+                      {app.recruiter_notes && (
+                        <p className="text-sm text-base-content/70 mt-2">{app.recruiter_notes}</p>
                       )}
                     </div>
                   </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useSignIn, useAuth, useClerk } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 
@@ -10,11 +10,15 @@ export default function SignInPage() {
     const { isSignedIn } = useAuth();
     const { signOut } = useClerk();
     const router = useRouter();
+    const searchParams = useSearchParams();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Check for invitation parameters
+    const invitationId = searchParams.get('invitation_id');
 
     const handleSignOut = async () => {
         setIsLoading(true);
@@ -37,7 +41,13 @@ export default function SignInPage() {
             
             if (signInAttempt.status === 'complete') {
                 await setActive({ session: signInAttempt.createdSessionId });
-                router.push('/dashboard');
+                
+                // If user signed in via invitation, redirect to acceptance page
+                if (invitationId) {
+                    router.push(`/accept-invitation/${invitationId}`);
+                } else {
+                    router.push('/dashboard');
+                }
             } else {
                 setError('Sign in incomplete. Please try again.');
             }
@@ -51,10 +61,16 @@ export default function SignInPage() {
     const signInWithOAuth = (provider: 'oauth_google' | 'oauth_github' | 'oauth_microsoft') => {
         if (!isLoaded) return;
         
+        // Build redirect URL with invitation params if present
+        const redirectUrl = '/sso-callback';
+        const redirectUrlComplete = invitationId 
+            ? `/accept-invitation/${invitationId}`
+            : '/dashboard';
+        
         signIn.authenticateWithRedirect({
             strategy: provider,
-            redirectUrl: '/sso-callback',
-            redirectUrlComplete: '/dashboard',
+            redirectUrl,
+            redirectUrlComplete,
         });
     };
 

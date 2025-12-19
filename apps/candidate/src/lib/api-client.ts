@@ -75,3 +75,40 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
+
+// Application API methods
+export async function submitApplication(data: {
+  job_id: string;
+  document_ids: string[];
+  primary_resume_id: string;
+  pre_screen_answers?: Array<{ question_id: string; answer: any }>;
+  notes?: string;
+}, token: string) {
+  return apiClient.post('/applications/submit', data, token);
+}
+
+export async function getMyApplications(token: string) {
+  return apiClient.get('/candidates/me/applications', token);
+}
+
+export async function getApplicationDetails(applicationId: string, token: string) {
+  return apiClient.get(`/applications/${applicationId}/full`, token);
+}
+
+export async function withdrawApplication(applicationId: string, reason: string | undefined, token: string) {
+  return apiClient.post(`/applications/${applicationId}/withdraw`, { reason }, token);
+}
+
+// Job API methods
+export async function getJob(jobId: string, token: string) {
+  return apiClient.get(`/jobs/${jobId}`, token);
+}
+
+export async function getPreScreenQuestions(jobId: string, token: string) {
+  return apiClient.get(`/jobs/${jobId}/pre-screen-questions`, token);
+}
+
+// Document API methods
+export async function getMyDocuments(token: string) {
+  return apiClient.get('/documents', token);
+}

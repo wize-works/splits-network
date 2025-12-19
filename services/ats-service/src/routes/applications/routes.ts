@@ -127,4 +127,186 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
             return reply.send({ data: auditLog });
         }
     );
+
+    // Submit candidate application (new candidate-initiated flow)
+    app.post(
+        '/applications/submit',
+        async (request: FastifyRequest<{ Body: {
+            job_id: string;
+            document_ids: string[];
+            primary_resume_id: string;
+            pre_screen_answers?: Array<{ question_id: string; answer: any }>;
+            notes?: string;
+        } }>, reply: FastifyReply) => {
+            const { job_id, document_ids, primary_resume_id, pre_screen_answers, notes } = request.body;
+
+            // Extract candidate ID from authenticated user context
+            // TODO: Get from auth middleware
+            const candidateId = (request as any).auth?.userId;
+
+            if (!candidateId) {
+                throw new BadRequestError('Candidate ID not found in auth context');
+            }
+
+            if (!job_id || !document_ids || document_ids.length === 0 || !primary_resume_id) {
+                throw new BadRequestError('Missing required fields: job_id, document_ids, primary_resume_id');
+            }
+
+            const result = await service.submitCandidateApplication({
+                candidateId,
+                jobId: job_id,
+                documentIds: document_ids,
+                primaryResumeId: primary_resume_id,
+                preScreenAnswers: pre_screen_answers,
+                notes,
+            });
+
+            request.log.info({
+                applicationId: result.application.id,
+                jobId: job_id,
+                candidateId,
+                hasRecruiter: result.hasRecruiter,
+                stage: result.application.stage,
+            }, 'Candidate submitted application');
+
+            return reply.status(201).send({ data: result });
+        }
+    );
+
+    // Withdraw application
+    app.post(
+        '/applications/:id/withdraw',
+        async (request: FastifyRequest<{
+            Params: { id: string };
+            Body: { reason?: string };
+        }>, reply: FastifyReply) => {
+            // Extract candidate ID from auth context
+            const candidateId = (request as any).auth?.userId;
+
+            if (!candidateId) {
+                throw new BadRequestError('Candidate ID not found in auth context');
+            }
+
+            const application = await service.withdrawApplication(
+                request.params.id,
+                candidateId,
+                request.body.reason
+            );
+
+            request.log.info({
+                applicationId: request.params.id,
+                candidateId,
+                reason: request.body.reason,
+            }, 'Application withdrawn by candidate');
+
+            return reply.send({ data: application });
+        }
+    );
+
+    // Get pending applications for recruiter
+    app.get(
+        '/recruiters/:recruiterId/pending-applications',
+        async (request: FastifyRequest<{ Params: { recruiterId: string } }>, reply: FastifyReply) => {
+            const applications = await service.getPendingApplicationsForRecruiter(request.params.recruiterId);
+            return reply.send({ data: applications });
+        }
+    );
+
+    // Recruiter submits application to company
+    app.post(
+        '/applications/:id/recruiter-submit',
+        async (request: FastifyRequest<{
+            Params: { id: string };
+            Body: { recruiter_notes?: string };
+        }>, reply: FastifyReply) => {
+            // Extract recruiter ID from auth context
+            const recruiterId = (request as any).auth?.userId;
+
+            if (!recruiterId) {
+                throw new BadRequestError('Recruiter ID not found in auth context');
+            }
+
+            const application = await service.recruiterSubmitApplication(
+                request.params.id,
+                recruiterId,
+                { recruiterNotes: request.body.recruiter_notes }
+            );
+
+            request.log.info({
+                applicationId: request.params.id,
+                recruiterId,
+                stage: application.stage,
+            }, 'Recruiter submitted application to company');
+
+            return reply.send({ data: application });
+        }
+    );
+
+    // Get pre-screen questions for a job
+    app.get(
+        '/jobs/:jobId/pre-screen-questions',
+        async (request: FastifyRequest<{ Params: { jobId: string } }>, reply: FastifyReply) => {
+            const questions = await service.getPreScreenQuestionsForJob(request.params.jobId);
+            return reply.send({ data: questions });
+        }
+    );
+
+    // Get application details with documents and pre-screen answers
+    app.get(
+        '/applications/:id/full',
+        async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+            const application = await service.getApplicationById(request.params.id);
+            const documents = await service.getDocumentsForApplication(request.params.id);
+            const preScreenAnswers = await service.getPreScreenAnswersForApplication(request.params.id);
+            const auditLog = await service.getApplicationAuditLog(request.params.id);
+
+            return reply.send({
+                data: {
+                    ...application,
+                    documents,
+                    pre_screen_answers: preScreenAnswers,
+                    workflow_events: auditLog,
+                },
+            });
+        }
+    );
+
+    // Request pre-screen for direct application
+    app.post(
+        '/applications/:id/request-prescreen',
+        async (
+            request: FastifyRequest<{
+                Params: { id: string };
+                Body: {
+                    company_id: string;
+                    requested_by_user_id: string;
+                    recruiter_id?: string;
+                    message?: string;
+                };
+            }>,
+            reply: FastifyReply
+        ) => {
+            const { company_id, requested_by_user_id, recruiter_id, message } = request.body;
+
+            if (!company_id || !requested_by_user_id) {
+                throw new BadRequestError('Missing required fields: company_id and requested_by_user_id');
+            }
+
+            const application = await service.requestPreScreen(
+                request.params.id,
+                company_id,
+                requested_by_user_id,
+                { recruiter_id, message }
+            );
+
+            request.log.info({
+                applicationId: request.params.id,
+                companyId: company_id,
+                recruiterId: recruiter_id || 'auto-assign',
+            }, 'Pre-screen requested for application');
+
+            return reply.send({ data: application });
+        }
+    );
 }
+

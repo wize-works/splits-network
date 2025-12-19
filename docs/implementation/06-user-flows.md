@@ -79,7 +79,7 @@ Detailed step-by-step user experience flows for all actors in the application sy
   - `recruiter_id`: NULL
   - `stage`: 'applied'
   - `accepted_by_company`: false
-  - `submitted_at`: current timestamp
+  - Audit log entry created with `action='submitted_to_company'`
 
 - **Notifications:**
   - Email to company: "New application from [Candidate] for [Job Title]"
@@ -125,7 +125,6 @@ Detailed step-by-step user experience flows for all actors in the application sy
   - `recruiter_id`: Set to candidate's recruiter ID
   - `stage`: 'screen' (pending recruiter review)
   - `accepted_by_company`: false
-  - `submitted_at`: NULL (not yet submitted to company)
   - `created_at`: timestamp
   - **Temporal tracking:** Audit log entry with action='submitted_to_recruiter'
 
@@ -189,7 +188,6 @@ Detailed step-by-step user experience flows for all actors in the application sy
 - **Application Record Updated:**
   - `stage`: 'submitted' (moved from 'screen' to 'submitted')
   - `accepted_by_company`: false
-  - `submitted_at`: current timestamp
   - `recruiter_notes`: Added to application
   - **Temporal tracking:** Audit log entries with actions='recruiter_reviewed' and 'submitted_to_company'
 
@@ -277,7 +275,7 @@ Detailed step-by-step user experience flows for all actors in the application sy
    - Application updated:
      - `recruiter_id`: Set to assigned recruiter
      - `stage`: 'screen' (now pending recruiter review)
-     - `submitted_to_recruiter_at`: timestamp
+     - Audit log entry created with `action='prescreen_requested'`
    - Event emitted: `prescreen.requested`
 
 5. **Recruiter Notified**

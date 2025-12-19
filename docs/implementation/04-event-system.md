@@ -156,7 +156,7 @@ Application Details:
 - Position: {{job_title}}
 - Company: {{company_name}}
 - Location: {{job_location}}
-- Submitted: {{submitted_at}}
+- Submitted: {{created_at}}
 
 Documents Submitted:
 {{#each documents}}
@@ -355,7 +355,7 @@ Candidate: {{candidate_name}}
 {{#if recruiter_name}}
 Recruiter: {{recruiter_name}}
 {{/if}}
-Applied: {{submitted_at}}
+Applied: {{created_at}}
 
 {{#if recruiter_name}}
 This candidate is represented by {{recruiter_name}}, who has pre-screened and endorsed them for this role.

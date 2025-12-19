@@ -8,6 +8,7 @@ import { PlacementsEventConsumer } from './consumers/placements/consumer';
 import { ProposalsEventConsumer } from './consumers/proposals/consumer';
 import { CandidatesEventConsumer } from './consumers/candidates/consumer';
 import { CollaborationEventConsumer } from './consumers/collaboration/consumer';
+import { InvitationsConsumer } from './consumers/invitations/consumer';
 
 export class DomainEventConsumer {
     private connection: Connection | null = null;
@@ -20,6 +21,7 @@ export class DomainEventConsumer {
     private proposalsConsumer: ProposalsEventConsumer;
     private candidatesConsumer: CandidatesEventConsumer;
     private collaborationConsumer: CollaborationEventConsumer;
+    private invitationsConsumer: InvitationsConsumer;
 
     constructor(
         private rabbitMqUrl: string,
@@ -27,6 +29,8 @@ export class DomainEventConsumer {
         services: ServiceRegistry,
         private logger: Logger
     ) {
+        const portalUrl = process.env.PORTAL_URL || 'http://localhost:3001';
+        
         this.applicationsConsumer = new ApplicationsEventConsumer(
             notificationService.applications,
             services,
@@ -52,6 +56,12 @@ export class DomainEventConsumer {
             services,
             logger
         );
+        this.invitationsConsumer = new InvitationsConsumer(
+            notificationService,
+            services,
+            logger,
+            portalUrl
+        );
     }
 
     async connect(): Promise<void> {
@@ -69,6 +79,9 @@ export class DomainEventConsumer {
             await this.channel.bindQueue(this.queue, this.exchange, 'application_created');
             await this.channel.bindQueue(this.queue, this.exchange, 'application_accepted');
             await this.channel.bindQueue(this.queue, this.exchange, 'application_stage_changed');
+            await this.channel.bindQueue(this.queue, this.exchange, 'application_submitted_to_company');
+            await this.channel.bindQueue(this.queue, this.exchange, 'application_withdrawn');
+            await this.channel.bindQueue(this.queue, this.exchange, 'application_prescreen_requested');
             await this.channel.bindQueue(this.queue, this.exchange, 'placement_created');
             
             // Phase 2 events - Ownership & Sourcing
@@ -95,6 +108,10 @@ export class DomainEventConsumer {
             // Phase 2 events - Collaboration
             await this.channel.bindQueue(this.queue, this.exchange, 'collaborator_added');
             await this.channel.bindQueue(this.queue, this.exchange, 'reputation_updated');
+            
+            // Invitation events
+            await this.channel.bindQueue(this.queue, this.exchange, 'invitation.created');
+            await this.channel.bindQueue(this.queue, this.exchange, 'invitation.revoked');
 
             this.logger.info('Connected to RabbitMQ and bound to events');
 
@@ -137,13 +154,22 @@ export class DomainEventConsumer {
         switch (event.event_type) {
             // Applications domain
             case 'application.created':
-                await this.applicationsConsumer.handleApplicationCreated(event);
+                await this.applicationsConsumer.handleCandidateApplicationSubmitted(event);
+                break;
+            case 'application.submitted_to_company':
+                await this.applicationsConsumer.handleRecruiterSubmittedToCompany(event);
+                break;
+            case 'application.withdrawn':
+                await this.applicationsConsumer.handleApplicationWithdrawn(event);
                 break;
             case 'application.accepted':
                 await this.applicationsConsumer.handleApplicationAccepted(event);
                 break;
             case 'application.stage_changed':
                 await this.applicationsConsumer.handleApplicationStageChanged(event);
+                break;
+            case 'application.prescreen_requested':
+                await this.applicationsConsumer.handlePreScreenRequested(event);
                 break;
 
             // Placements domain
@@ -197,6 +223,14 @@ export class DomainEventConsumer {
             // Collaboration domain
             case 'collaborator.added':
                 await this.collaborationConsumer.handleCollaboratorAdded(event);
+                break;
+
+            // Invitations domain
+            case 'invitation.created':
+                await this.invitationsConsumer.handleInvitationCreated(event);
+                break;
+            case 'invitation.revoked':
+                await this.invitationsConsumer.handleInvitationRevoked(event);
                 break;
 
             default:

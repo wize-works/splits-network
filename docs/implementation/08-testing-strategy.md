@@ -126,7 +126,7 @@ describe('ApplicationService', () => {
       // Mock: recruiter owns application
       // Call recruiterSubmitApplication
       // Assert: stage updated to 'applied'
-      // Assert: submitted_at timestamp set
+      // Assert: Audit log entries created (recruiter_reviewed, submitted_to_company)
       // Assert: recruiter_notes saved
       // Assert: event emitted: application.submitted_to_company
     });
@@ -366,7 +366,13 @@ it('should route application to recruiter when active relationship exists', asyn
   expect(response.statusCode).toBe(201);
   expect(response.json().data.application.recruiter_id).toBe(recruiter.id);
   expect(response.json().data.application.stage).toBe('recruiter_review');
-  expect(response.json().data.application.submitted_at).toBeNull();
+  // Verify submitted_to_recruiter audit log entry exists
+  const auditEntry = await db.from('ats.application_audit_log')
+    .select('*')
+    .eq('application_id', response.json().data.application.id)
+    .eq('action', 'submitted_to_recruiter')
+    .single();
+  expect(auditEntry).toBeTruthy();
 
   // 5. Verify event: application.submitted_to_recruiter
 });
@@ -402,7 +408,13 @@ it('should allow recruiter to approve and submit application', async () => {
     .eq('id', application.id)
     .single();
   expect(updated.stage).toBe('applied');
-  expect(updated.submitted_at).not.toBeNull();
+  // Verify submitted_to_company audit log entry exists
+  const auditEntry = await db.from('ats.application_audit_log')
+    .select('*')
+    .eq('application_id', application.id)
+    .eq('action', 'submitted_to_company')
+    .single();
+  expect(auditEntry).toBeTruthy();
 
   // 4. Verify candidate_role_assignment created
   const assignment = await db.from('network.candidate_role_assignments')
