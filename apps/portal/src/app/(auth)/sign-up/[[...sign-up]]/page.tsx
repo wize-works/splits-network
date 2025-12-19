@@ -20,12 +20,11 @@ export default function SignUpPage() {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // If user is already signed in, redirect to dashboard
-    useEffect(() => {
-        if (isLoaded && isSignedIn) {
-            router.push('/dashboard');
-        }
-    }, [isLoaded, isSignedIn, router]);
+    const handleSignOut = async () => {
+        setIsLoading(true);
+        await signOut();
+        setIsLoading(false);
+    };
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -87,6 +86,57 @@ export default function SignUpPage() {
             redirectUrlComplete: '/dashboard',
         });
     };
+
+    // Show message if user is already signed in
+    if (isLoaded && isSignedIn) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
+                <div className="card w-full max-w-md bg-base-100 shadow-xl">
+                    <div className="card-body">
+                        <h2 className="card-title text-2xl font-bold justify-center mb-6">
+                            Already Signed In
+                        </h2>
+
+                        <div className="alert alert-info mb-4">
+                            <i className="fa-solid fa-circle-info"></i>
+                            <span>You're already signed in to your account.</span>
+                        </div>
+
+                        <p className="text-center mb-4">
+                            To create a new account, you'll need to sign out first.
+                        </p>
+
+                        <div className="space-y-2">
+                            <button
+                                onClick={() => router.push('/dashboard')}
+                                className="btn btn-primary w-full"
+                            >
+                                <i className="fa-solid fa-home"></i>
+                                Go to Dashboard
+                            </button>
+                            <button
+                                onClick={handleSignOut}
+                                className="btn btn-outline w-full"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <span className="loading loading-spinner loading-sm"></span>
+                                        Signing out...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fa-solid fa-right-from-bracket"></i>
+                                        Sign Out & Create New Account
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (pendingVerification) {
         return (
