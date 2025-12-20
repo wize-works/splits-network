@@ -103,8 +103,7 @@ export default function HomePage() {
                             <div className="card-body">
                                 <div className="badge badge-secondary badge-lg mb-4">For Candidates</div>
                                 <h3 className="card-title text-3xl mb-4">
-                                    <i className="fa-solid fa-user-check text-secondary"></i>
-                                    Applicant
+                                    <img src='/applicant.png' alt='Applicant Network' className='h-10 mr-3 inline-block' />
                                 </h3>
                                 <p className="text-lg mb-6">
                                     A modern, candidate-first portal that transforms the application experience.
@@ -204,12 +203,14 @@ export default function HomePage() {
             {/* Footer */}
             <footer className="footer footer-center p-10 bg-base-200 text-base-content border-t border-base-300">
                 <aside>
-                    <p className="font-bold text-xl text-primary mb-2">Employment Networks</p>
+                    <p className="font-bold text-xl text-primary mb-2">
+                        <img src="/logo.svg" alt="Employment Networks" className="h-14 inline-block mr-2" />
+                    </p>
                     <p className="text-base-content/70">
-                        Building the future of recruiting
+                        Building the future of recruiting and employment through innovative platforms.
                     </p>
                     <p className="text-sm text-base-content/50 mt-4">
-                        © {new Date().getFullYear()} Employment Networks. All rights reserved.
+                        © {new Date().getFullYear()} Employment Networks, Inc. All rights reserved.
                     </p>
                 </aside>
                 <nav>
