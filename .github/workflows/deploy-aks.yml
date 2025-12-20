@@ -209,20 +209,20 @@ jobs:
                   kubectl rollout status deployment/portal --timeout=180s --namespace=splits-network
 
             - name: Deploy Candidate Website
-              run: |Corporate Website
+              run: |
+                  kubectl apply -f infra/k8s/candidate/ --namespace=splits-network
+
+            - name: Wait for Candidate Website to be ready
+              run: |
+                  kubectl rollout status deployment/candidate --timeout=180s --namespace=splits-network
+
+            - name: Deploy Corporate Website
               run: |
                   kubectl apply -f infra/k8s/corporate/ --namespace=splits-network
 
             - name: Wait for Corporate Website to be ready
               run: |
                   kubectl rollout status deployment/corporate --timeout=180s --namespace=splits-network
-
-            - name: Deploy 
-                  kubectl apply -f infra/k8s/candidate/ --namespace=splits-network
-
-            - name: Wait for Candidate Website to be ready
-              run: |
-                  kubectl rollout status deployment/candidate --timeout=180s --namespace=splits-network
 
             - name: Deploy Ingress
               run: |
