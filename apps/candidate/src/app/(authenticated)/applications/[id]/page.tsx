@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { formatDate } from '@/lib/utils';
-import WithdrawButton from '@/components/WithdrawButton';
+import WithdrawButton from '@/components/withdraw-button';
 
 const getStatusColor = (stage: string) => {
     switch (stage) {
