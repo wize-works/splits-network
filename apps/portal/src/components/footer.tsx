@@ -22,26 +22,26 @@ export function Footer() {
                     {/* Brand Column */}
                     <div className="lg:col-span-2">
                         <div className="flex items-center gap-2 mb-4">
-                            <span className="text-2xl font-bold">The Splits Network</span>
+                            <img src="/logo.svg" alt="Splits Network" className="h-18" />
                         </div>
                         <p className="text-base-content/70 mb-6 max-w-md">
                             The modern platform for split-fee recruiting. Connecting specialized recruiters with companies seeking top talent.
                         </p>
                         <div className="flex gap-3">
-                            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" 
-                               className="btn btn-circle btn-ghost btn-sm hover:bg-primary hover:text-primary-content">
+                            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"
+                                className="btn btn-circle btn-ghost btn-sm hover:bg-primary hover:text-primary-content">
                                 <i className="fa-brands fa-twitter text-lg"></i>
                             </a>
-                            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" 
-                               className="btn btn-circle btn-ghost btn-sm hover:bg-primary hover:text-primary-content">
+                            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer"
+                                className="btn btn-circle btn-ghost btn-sm hover:bg-primary hover:text-primary-content">
                                 <i className="fa-brands fa-linkedin text-lg"></i>
                             </a>
-                            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" 
-                               className="btn btn-circle btn-ghost btn-sm hover:bg-primary hover:text-primary-content">
+                            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"
+                                className="btn btn-circle btn-ghost btn-sm hover:bg-primary hover:text-primary-content">
                                 <i className="fa-brands fa-facebook text-lg"></i>
                             </a>
-                            <a href="https://github.com" target="_blank" rel="noopener noreferrer" 
-                               className="btn btn-circle btn-ghost btn-sm hover:bg-primary hover:text-primary-content">
+                            <a href="https://github.com" target="_blank" rel="noopener noreferrer"
+                                className="btn btn-circle btn-ghost btn-sm hover:bg-primary hover:text-primary-content">
                                 <i className="fa-brands fa-github text-lg"></i>
                             </a>
                         </div>

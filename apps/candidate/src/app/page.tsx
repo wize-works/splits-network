@@ -15,10 +15,9 @@ export default function CandidateHomePage() {
                 >
                     <source src="/candidate-hero.mp4" type="video/mp4" />
                 </video>
-                
+
                 {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-base-100/90 to-secondary/10"></div>
-                
+
                 {/* Content */}
                 <div className="hero-content text-center max-w-6xl relative z-10 py-20">
                     <div className="space-y-8">
