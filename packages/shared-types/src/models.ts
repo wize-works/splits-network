@@ -134,7 +134,7 @@ export type ApplicationStage = 'draft' | 'screen' | 'submitted' | 'interview' | 
 export interface ApplicationAuditLog {
     id: string;
     application_id: string;
-    action: 'accepted' | 'rejected' | 'stage_changed' | 'viewed' | 'created' | 'draft_saved' | 'submitted_to_recruiter' | 'recruiter_reviewed' | 'submitted_to_company' | 'withdrawn' | 'prescreen_requested';
+    action: 'accepted' | 'rejected' | 'stage_changed' | 'viewed' | 'created' | 'draft_saved' | 'submitted_to_recruiter' | 'recruiter_reviewed' | 'submitted_to_company' | 'withdrawn' | 'prescreen_requested' | 'note_added';
     performed_by_user_id?: string;
     performed_by_role?: string;
     company_id?: string;
