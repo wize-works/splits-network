@@ -106,8 +106,8 @@ export default function Header() {
                         )}
                     </ul>
                 </div>
-                <Link href="/" className="btn btn-ghost text-xl">
-                    <img src="/logo.svg" alt="Applicant Network" className="min-h-10" />
+                <Link href="/" className="">
+                    <img src="/logo.svg" alt="Applicant Network" className="h-16" />
                 </Link>
             </div>
 

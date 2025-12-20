@@ -19,7 +19,7 @@ export function Header() {
                 document.documentElement.setAttribute('data-theme', saved);
                 setIsDark(saved === 'splits-dark');
             }
-        } catch {}
+        } catch { }
     }, []);
 
     const handleThemeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,7 +29,7 @@ export function Header() {
         setIsDark(checked);
         try {
             localStorage.setItem('theme', theme);
-        } catch {}
+        } catch { }
     };
 
     // Don't show header on auth pages
@@ -57,8 +57,9 @@ export function Header() {
                         </ul>
                     </div>
                 )}
-                <Link href={isSignedIn ? '/dashboard' : '/'} className="text-2xl">
-                    <span className="font-bold">splits</span>
+
+                <Link href="/" className="">
+                    <img src="/logo.svg" alt="Applicant Network" className="h-12" />
                 </Link>
             </div>
 
