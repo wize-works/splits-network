@@ -1,17 +1,62 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { ServiceRegistry } from '../../clients';
-import { requireRoles, AuthenticatedRequest } from '../../rbac';
+import { requireRoles, AuthenticatedRequest, isRecruiter } from '../../rbac';
 
 /**
  * Applications Routes
  * - Application lifecycle management
  * - Stage transitions
+ * - RBAC applied at gateway level for optimal performance
  */
 export function registerApplicationsRoutes(app: FastifyInstance, services: ServiceRegistry) {
     const atsService = () => services.get('ats');
+    const networkService = () => services.get('network');
     const getCorrelationId = (request: FastifyRequest) => (request as any).correlationId;
 
-    // List applications
+    // List applications with server-side pagination and filtering (RBAC optimized)
+    app.get('/api/applications/paginated', {
+        schema: {
+            description: 'List applications with pagination, search, and filters',
+            tags: ['applications'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const correlationId = getCorrelationId(request);
+        
+        // Build query params
+        const queryParams = new URLSearchParams(request.query as any);
+        
+        // For recruiters: automatically add recruiter_id filter (eliminates extra API call from frontend)
+        if (isRecruiter(req.auth)) {
+            // Verify recruiter exists and is active, then add filter
+            try {
+                const recruiterResponse: any = await networkService().get(
+                    `/recruiters/by-user/${req.auth.userId}`,
+                    undefined,
+                    correlationId
+                );
+
+                if (recruiterResponse.data && recruiterResponse.data.status === 'active') {
+                    // Add recruiter_id filter automatically (frontend doesn't need to!)
+                    queryParams.set('recruiter_id', req.auth.userId);
+                } else {
+                    return reply.send({ data: [], pagination: { total: 0, page: 1, limit: 25, total_pages: 0 } });
+                }
+            } catch (error) {
+                request.log.error({ error, userId: req.auth.userId }, 'Failed to verify recruiter status');
+                return reply.status(403).send({ error: 'Failed to verify recruiter status' });
+            }
+        }
+        // For company users/admins: could add company filtering here in the future
+        
+        const queryString = queryParams.toString();
+        const path = `/applications/paginated?${queryString}`;
+        const data = await atsService().get(path, undefined, correlationId);
+        return reply.send(data);
+    });
+
+    // List applications (legacy endpoint)
     app.get('/api/applications', {
         schema: {
             description: 'List all applications',

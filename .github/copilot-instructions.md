@@ -55,6 +55,24 @@ The repo is organized by **responsibility**, not by technology.
    - No reaching across into other service folders at runtime.
    - Use HTTP clients in `packages/shared-clients` to call other services.
 3. **Use shared packages** instead of copy-pasting common code.
+4. **ALWAYS use server-side filtering, searching, pagination, and sorting for list views.**
+   - Client-side filtering does NOT scale and will cause performance issues with large datasets.
+   - Backend endpoints MUST support query parameters: `?page=1&limit=25&search=query&sort_by=field&sort_order=asc`
+   - Backend should return enriched data with JOINs (e.g., applications with candidate, job, company data)
+   - Frontend should use pagination controls and pass all filters to the server
+   - Search should be debounced (300ms delay) to avoid excessive API calls
+   - Example pagination response format:
+     ```json
+     {
+       "data": [...],
+       "pagination": {
+         "total": 1000,
+         "page": 1,
+         "limit": 25,
+         "total_pages": 40
+       }
+     }
+     ```
 
 ---
 

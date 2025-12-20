@@ -4,7 +4,66 @@ import { BadRequestError } from '@splits-network/shared-fastify';
 import { SubmitCandidateDTO, UpdateApplicationStageDTO } from '@splits-network/shared-types';
 
 export function registerApplicationRoutes(app: FastifyInstance, service: AtsService) {
-    // Get all applications with optional filters
+    // Get paginated applications with optional filters and search
+    app.get(
+        '/applications/paginated',
+        async (request: FastifyRequest<{ 
+            Querystring: { 
+                page?: string;
+                limit?: string;
+                search?: string;
+                stage?: string;
+                recruiter_id?: string;
+                job_id?: string;
+                candidate_id?: string;
+                company_id?: string;
+                sort_by?: string;
+                sort_order?: 'asc' | 'desc';
+            } 
+        }>, reply: FastifyReply) => {
+            const page = request.query.page ? parseInt(request.query.page, 10) : 1;
+            const limit = request.query.limit ? parseInt(request.query.limit, 10) : 25;
+            
+            console.log('[DEBUG] /applications/paginated query params:', {
+                recruiter_id: request.query.recruiter_id,
+                page,
+                limit,
+                search: request.query.search,
+                stage: request.query.stage,
+            });
+            
+            const result = await service.getApplicationsPaginated({
+                page,
+                limit,
+                search: request.query.search,
+                stage: request.query.stage,
+                recruiter_id: request.query.recruiter_id,
+                job_id: request.query.job_id,
+                candidate_id: request.query.candidate_id,
+                company_id: request.query.company_id,
+                sort_by: request.query.sort_by,
+                sort_order: request.query.sort_order,
+            });
+            
+            console.log('[DEBUG] Result:', {
+                total: result.total,
+                returned: result.data.length,
+                recruiter_ids: result.data.map(app => app.recruiter_id),
+            });
+            
+            return reply.send({ 
+                data: result.data,
+                pagination: {
+                    total: result.total,
+                    page: result.page,
+                    limit: result.limit,
+                    total_pages: result.total_pages,
+                }
+            });
+        }
+    );
+
+    // Get all applications with optional filters (legacy endpoint)
     app.get(
         '/applications',
         async (request: FastifyRequest<{ Querystring: { recruiter_id?: string; job_id?: string; stage?: string; candidate_id?: string } }>, reply: FastifyReply) => {

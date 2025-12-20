@@ -474,6 +474,100 @@ export class AtsRepository {
         return data || [];
     }
 
+    // Server-side paginated applications with enriched data using database function (fast!)
+    async findApplicationsPaginated(params: {
+        page?: number;
+        limit?: number;
+        search?: string;
+        stage?: string;
+        recruiter_id?: string;
+        job_id?: string;
+        job_ids?: string[];
+        candidate_id?: string;
+        company_id?: string;
+        sort_by?: string;
+        sort_order?: 'asc' | 'desc';
+    }): Promise<{
+        data: Array<Application & {
+            candidate: { id: string; full_name: string; email: string; linkedin_url?: string; _masked?: boolean };
+            job: { id: string; title: string; company_id: string };
+            company: { id: string; name: string };
+            recruiter?: { id: string; name: string; email: string };
+        }>;
+        total: number;
+        page: number;
+        limit: number;
+        total_pages: number;
+    }> {
+        const page = params.page || 1;
+        const limit = params.limit || 25;
+        const offset = (page - 1) * limit;
+        const sortBy = params.sort_by || 'created_at';
+        const sortOrder = params.sort_order || 'desc';
+
+        // Use database function for maximum performance with full-text search
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .rpc('search_applications_paginated', {
+                search_terms: params.search || null,
+                filter_recruiter_id: params.recruiter_id || null,
+                filter_job_id: params.job_id || null,
+                filter_candidate_id: params.candidate_id || null,
+                filter_stage: params.stage || null,
+                filter_company_id: params.company_id || null,
+                sort_column: sortBy,
+                sort_direction: sortOrder,
+                result_limit: limit,
+                result_offset: offset,
+            });
+
+        if (error) throw error;
+
+        // Get total from first row (window function COUNT(*) OVER())
+        const total = data && data.length > 0 ? data[0].total_count : 0;
+
+        // Map database results to expected nested structure
+        const enrichedData = (data || []).map((row: any) => ({
+            id: row.id,
+            job_id: row.job_id,
+            candidate_id: row.candidate_id,
+            recruiter_id: row.recruiter_id,
+            stage: row.stage,
+            notes: row.notes,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            accepted_by_company: row.accepted_by_company,
+            accepted_at: row.accepted_at,
+            recruiter_notes: row.recruiter_notes,
+            application_source: row.application_source,
+            candidate: {
+                id: row.candidate_id,
+                full_name: row.candidate_name,
+                email: row.candidate_email,
+                linkedin_url: row.candidate_linkedin,
+            },
+            job: {
+                id: row.job_id,
+                title: row.job_title,
+                company_id: row.company_id,
+            },
+            company: row.company_id ? {
+                id: row.company_id,
+                name: row.company_name,
+            } : null,
+        }));
+
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+            data: enrichedData,
+            total,
+            page,
+            limit,
+            total_pages: totalPages,
+        };
+    }
+
     async findApplicationById(id: string): Promise<Application | null> {
         const { data, error } = await this.supabase
             .schema('ats')

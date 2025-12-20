@@ -24,9 +24,34 @@ import { registerAdminRoutes } from './routes/admin/routes';
 import { registerNetworkPublicRoutes } from './routes/network/public-routes';
 
 /**
+ * User context cache
+ * Cache user ID and memberships to avoid hitting identity service on every request
+ * TTL: 5 minutes (300,000ms)
+ */
+interface CachedUserContext {
+    userId: string;
+    memberships: any[];
+    expiresAt: number;
+}
+
+const userContextCache = new Map<string, CachedUserContext>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
  * Helper to resolve internal user ID and memberships from Clerk ID
+ * Uses in-memory cache to avoid hitting identity service on every request
  */
 async function resolveUserContext(services: ServiceRegistry, auth: AuthContext, correlationId?: string): Promise<void> {
+    // Check cache first
+    const cached = userContextCache.get(auth.clerkUserId);
+    if (cached && cached.expiresAt > Date.now()) {
+        // Cache hit - use cached data
+        auth.userId = cached.userId;
+        auth.memberships = cached.memberships;
+        return;
+    }
+
+    // Cache miss - fetch from identity service
     const identityService = services.get('identity');
 
     // Sync the Clerk user (idempotent - creates if missing, updates if changed)
@@ -44,6 +69,13 @@ async function resolveUserContext(services: ServiceRegistry, auth: AuthContext, 
     // Update auth context with user ID and memberships
     auth.userId = userId;
     auth.memberships = profileResponse.data.memberships || [];
+
+    // Store in cache
+    userContextCache.set(auth.clerkUserId, {
+        userId: auth.userId,
+        memberships: auth.memberships,
+        expiresAt: Date.now() + CACHE_TTL,
+    });
 }
 
 /**

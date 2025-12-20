@@ -18,6 +18,33 @@ export class ApplicationService {
         return await this.repository.findApplications(filters);
     }
 
+    async getApplicationsPaginated(params: {
+        page?: number;
+        limit?: number;
+        search?: string;
+        stage?: string;
+        recruiter_id?: string;
+        job_id?: string;
+        job_ids?: string[];
+        candidate_id?: string;
+        company_id?: string;
+        sort_by?: string;
+        sort_order?: 'asc' | 'desc';
+    }): Promise<{
+        data: Array<Application & {
+            candidate: { id: string; full_name: string; email: string; linkedin_url?: string; _masked?: boolean };
+            job: { id: string; title: string; company_id: string };
+            company: { id: string; name: string };
+            recruiter?: { id: string; name: string; email: string };
+        }>;
+        total: number;
+        page: number;
+        limit: number;
+        total_pages: number;
+    }> {
+        return await this.repository.findApplicationsPaginated(params);
+    }
+
     async getApplicationById(id: string): Promise<Application> {
         const application = await this.repository.findApplicationById(id);
         if (!application) {
