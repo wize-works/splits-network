@@ -65,23 +65,58 @@ export function registerRecruiterCandidateRoutes(app: FastifyInstance, services:
         return reply.send(data);
     });
 
-    // Get all recruiters for a specific candidate (platform admins only) - must come before /:id routes
+    // Get all recruiters for a specific candidate
+    // - Platform admins see all relationships
+    // - Recruiters only see their own relationship with this candidate
     app.get('/api/recruiter-candidates/candidate/:candidateId', {
-        preHandler: requireRoles(['platform_admin']),
+        preHandler: requireRoles(['recruiter', 'platform_admin']),
         schema: {
-            description: 'Get all recruiters for a candidate',
+            description: 'Get recruiters for a candidate (filtered by role)',
             tags: ['candidates'],
             security: [{ clerkAuth: [] }],
         },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
         const { candidateId } = request.params as { candidateId: string };
         const correlationId = getCorrelationId(request);
-        const data = await networkService().get(
+        
+        // Fetch all relationships from network service
+        const data: any = await networkService().get(
             `/recruiter-candidates/candidate/${candidateId}`,
             undefined,
             correlationId
         );
-        return reply.send(data);
+        
+        // Platform admins see all relationships
+        const userRoles = req.auth.memberships.map(m => m.role);
+        if (userRoles.includes('platform_admin')) {
+            return reply.send(data);
+        }
+        
+        // Recruiters only see their own relationship
+        // Get recruiter ID for current user
+        try {
+            const recruiterResponse: any = await networkService().get(
+                `/recruiters/by-user/${req.auth.userId}`,
+                undefined,
+                correlationId
+            );
+            
+            if (!recruiterResponse.data) {
+                // User is a recruiter but doesn't have a recruiter profile yet
+                return reply.send({ data: [] });
+            }
+            
+            const recruiterId = recruiterResponse.data.id;
+            
+            // Filter to only this recruiter's relationships
+            const filteredData = (data.data || []).filter((rel: any) => rel.recruiter_id === recruiterId);
+            
+            return reply.send({ data: filteredData });
+        } catch (err) {
+            request.log.error({ err, userId: req.auth.userId }, 'Failed to get recruiter profile');
+            return reply.send({ data: [] });
+        }
     });
 
     // Renew recruiter-candidate relationship (recruiter or platform admin) - specific action routes before generic :id

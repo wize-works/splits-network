@@ -30,7 +30,7 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                     setError('Not authenticated');
                     return;
                 }
-                
+
                 const client = createAuthenticatedClient(token);
 
                 // Fetch candidate details
@@ -43,7 +43,7 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                     // If this succeeds, the user has an active relationship or is an admin
                     const relationshipCheck = await client.get(`/candidates/${candidateId}`);
                     setCanEdit(true);
-                    
+
                     // Try to get detailed relationship info
                     try {
                         const relationshipResponse = await client.get(`/recruiter-candidates/candidate/${candidateId}`);
@@ -423,7 +423,7 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
                                         </div>
                                         <div className="flex-shrink-0">
                                             <Link
-                                                href={`/roles/${application.job_id}`}
+                                                href={`/applications/${application.id}`}
                                                 className="btn btn-sm btn-ghost"
                                             >
                                                 <i className="fa-solid fa-arrow-right"></i>

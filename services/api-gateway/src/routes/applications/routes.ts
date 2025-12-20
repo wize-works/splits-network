@@ -91,9 +91,9 @@ export function registerApplicationsRoutes(app: FastifyInstance, services: Servi
         return reply.send(data);
     });
 
-    // Change application stage (company users and admins)
+    // Change application stage (recruiters, company users and admins)
     app.patch('/api/applications/:id/stage', {
-        preHandler: requireRoles(['company_admin', 'hiring_manager', 'platform_admin']),
+        preHandler: requireRoles(['recruiter', 'company_admin', 'hiring_manager', 'platform_admin']),
         schema: {
             description: 'Change application stage',
             tags: ['applications'],

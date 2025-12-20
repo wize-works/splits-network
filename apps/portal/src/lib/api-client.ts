@@ -292,6 +292,11 @@ export class ApiClient {
             body: JSON.stringify(data),
         });
     }
+
+    // Recruiter-Candidate Relationships
+    async getRecruiterCandidateRelationship(recruiterId: string, candidateId: string) {
+        return this.request(`/recruiter-candidates/${recruiterId}/${candidateId}`);
+    }
 }
 
 // Export a singleton instance (for non-authenticated endpoints, if any)

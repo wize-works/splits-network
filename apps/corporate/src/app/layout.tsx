@@ -16,6 +16,7 @@ export const metadata: Metadata = {
                 width: 1200,
                 height: 630,
                 alt: 'Employment Networks - The Future of Recruiting',
+                type: 'image/png',
             },
         ],
         locale: 'en_US',
@@ -26,6 +27,10 @@ export const metadata: Metadata = {
         title: 'Employment Networks - Modern Recruiting & Candidate Experience',
         description: 'Powering the future of recruiting with Splits and Applicant. Transform your hiring process.',
         images: ['https://employment-networks.com/og-image.png'],
+    },
+    // Additional meta tags that Teams may look for
+    other: {
+        'image': 'https://employment-networks.com/og-image.png',
     },
 };
 

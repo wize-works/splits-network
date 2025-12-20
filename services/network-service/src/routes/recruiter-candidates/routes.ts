@@ -9,6 +9,7 @@ export function registerRecruiterCandidateRoutes(app: FastifyInstance, service: 
     registerConsentRoutes(app, service, logger);
 
     // Get recruiter-candidate relationship
+    // Note: A candidate can only have ONE active relationship at a time (enforced by DB constraint)
     app.get(
         '/recruiter-candidates/:recruiterId/:candidateId',
         async (request: FastifyRequest<{ Params: { recruiterId: string; candidateId: string } }>, reply: FastifyReply) => {
@@ -27,6 +28,7 @@ export function registerRecruiterCandidateRoutes(app: FastifyInstance, service: 
     );
 
     // Create recruiter-candidate relationship
+    // Business rule: Only ONE active relationship per candidate
     app.post(
         '/recruiter-candidates',
         async (request: FastifyRequest<{ Body: { recruiter_id: string; candidate_id: string } }>, reply: FastifyReply) => {
@@ -39,13 +41,14 @@ export function registerRecruiterCandidateRoutes(app: FastifyInstance, service: 
                 });
             }
             
-            // Check if relationship already exists
+            // Check if relationship already exists with THIS recruiter
             const existing = await service.getRecruiterCandidateRelationship(recruiter_id, candidate_id);
             if (existing) {
                 return reply.send({ data: existing });
             }
             
-            // Create new 12-month relationship
+            // Create new 12-month exclusive relationship
+            // Note: Repository will enforce single active recruiter per candidate
             const relationshipEndDate = new Date();
             relationshipEndDate.setMonth(relationshipEndDate.getMonth() + 12);
             

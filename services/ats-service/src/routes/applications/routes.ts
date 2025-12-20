@@ -249,7 +249,7 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
         }
     );
 
-    // Get application details with job, company, documents, and pre-screen answers
+    // Get application details with job, company, candidate, documents, and pre-screen answers
     app.get(
         '/applications/:id/full',
         async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
@@ -258,7 +258,9 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
             // Fetch all related data
             let documents: any[] = [];
             let preScreenAnswers: any[] = [];
+            let questions: any[] = [];
             let auditLog: any[] = [];
+            let candidate: any = null;
             
             try {
                 documents = await service.getDocumentsForApplication(request.params.id);
@@ -278,6 +280,16 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
                 // Audit log not found - continue without it
             }
 
+            // Fetch candidate details
+            if (application.candidate_id) {
+                try {
+                    const candidateResponse = await service.getCandidateById(application.candidate_id);
+                    candidate = candidateResponse;
+                } catch (err) {
+                    // Candidate not found - continue without it
+                }
+            }
+
             // Fetch job and company details
             let job = null;
             let company = null;
@@ -290,6 +302,13 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
                         // Add company to job object for easier access
                         job = { ...job, company };
                     }
+                    
+                    // Get pre-screen questions for the job
+                    try {
+                        questions = await service.getPreScreenQuestionsForJob(application.job_id);
+                    } catch (err) {
+                        // No questions - that's okay
+                    }
                 } catch (err) {
                     // Job or company not found - continue without it
                 }
@@ -297,10 +316,12 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
 
             return reply.send({
                 data: {
-                    ...application,
+                    application,
                     job,
+                    candidate,
                     documents,
                     pre_screen_answers: preScreenAnswers,
+                    questions,
                     workflow_events: auditLog,
                 },
             });

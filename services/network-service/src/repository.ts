@@ -388,6 +388,24 @@ export class NetworkRepository {
         recruiterId: string,
         candidateId: string
     ): Promise<RecruiterCandidate> {
+        // Check if candidate already has an active relationship with ANY recruiter
+        // Business rule: only ONE active recruiter per candidate at a time
+        const { data: existingActive, error: checkError } = await this.supabase
+            .schema('network')
+            .from('recruiter_candidates')
+            .select('*')
+            .eq('candidate_id', candidateId)
+            .eq('status', 'active')
+            .single();
+
+        if (existingActive) {
+            throw new Error(
+                `Candidate already has an active relationship with recruiter ${existingActive.recruiter_id}. ` +
+                `A candidate can only have one active recruiter at a time. ` +
+                `Existing relationship expires on ${existingActive.relationship_end_date}.`
+            );
+        }
+
         const relationshipEndDate = new Date();
         relationshipEndDate.setMonth(relationshipEndDate.getMonth() + 12);
 
