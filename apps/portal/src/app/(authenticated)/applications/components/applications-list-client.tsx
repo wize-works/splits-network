@@ -87,8 +87,9 @@ export default function ApplicationsListClient() {
     const [bulkLoading, setBulkLoading] = useState(false);
 
     // Sync state with URL params (e.g., when user clicks back button)
+    // Note: We don't sanitize here during sync, only on initial load
     useEffect(() => {
-        const urlSearch = sanitizeSearchQuery(searchParams.get('search') || '');
+        const urlSearch = searchParams.get('search') || '';
         const urlStage = searchParams.get('stage') || '';
         const urlPage = parseInt(searchParams.get('page') || '1');
 
@@ -167,7 +168,11 @@ export default function ApplicationsListClient() {
             });
 
             if (searchQuery) {
-                params.append('search', searchQuery);
+                // Sanitize search query when sending to API (removes legacy smart search keywords)
+                const cleanedSearch = sanitizeSearchQuery(searchQuery);
+                if (cleanedSearch) {
+                    params.append('search', cleanedSearch);
+                }
             }
             if (stageFilter) {
                 params.append('stage', stageFilter);
