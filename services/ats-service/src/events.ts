@@ -28,10 +28,12 @@ export class EventPublisher {
 
     async publish(eventType: string, payload: Record<string, any>, sourceService: string): Promise<void> {
         if (!this.channel) {
-            this.logger.warn(
-                { event_type: eventType },
-                'Skipping event publish - RabbitMQ channel not initialized'
+            this.logger.error(
+                { event_type: eventType, payload },
+                '❌ CRITICAL: RabbitMQ not connected - event will NOT be published and notifications will NOT be sent!'
             );
+            // Still return instead of throwing to prevent application crashes
+            // But make it very visible that something is wrong
             return;
         }
 
@@ -51,7 +53,7 @@ export class EventPublisher {
             contentType: 'application/json',
         });
 
-        this.logger.info({ event_type: eventType, event_id: event.event_id }, 'Published event');
+        this.logger.info({ event_type: eventType, event_id: event.event_id }, '✅ Published event to RabbitMQ');
     }
 
     isConnected(): boolean {

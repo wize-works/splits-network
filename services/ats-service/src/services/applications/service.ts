@@ -452,7 +452,8 @@ export class ApplicationService {
             if (recruiterRelationship) {
                 // Candidate has an active recruiter relationship
                 hasRecruiter = true;
-                recruiterId = recruiterRelationship.recruiter_user_id; // Use the user_id (not the recruiter table ID)
+                // Use recruiter_id from the network.recruiters table (NOT user_id)
+                recruiterId = recruiterRelationship.recruiter_id;
             }
         } catch (error) {
             console.error('Failed to check recruiter relationships:', error);

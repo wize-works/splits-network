@@ -816,7 +816,7 @@ export class AtsRepository {
     }
 
     async createCandidateOutreach(outreach: any): Promise<any> {
-        const { data, error } = await this.supabase
+        const { data, error} = await this.supabase
             .schema('ats')
             .from('candidate_outreach')
             .insert(outreach)
