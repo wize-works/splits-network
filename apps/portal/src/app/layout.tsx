@@ -7,7 +7,30 @@ import './globals.css';
 
 export const metadata: Metadata = {
     title: 'Splits Network - Recruiting Marketplace',
-    description: 'Split-fee recruiting marketplace platform',
+    description: 'Split-fee recruiting marketplace platform. Collaborate with recruiters, share roles, and split fees while growing your recruiting business.',
+    metadataBase: new URL('https://splits.network'),
+    openGraph: {
+        title: 'Splits Network - Recruiting Marketplace',
+        description: 'Split-fee recruiting marketplace platform. Collaborate with recruiters, share roles, and split fees while growing your recruiting business.',
+        url: 'https://splits.network',
+        siteName: 'Splits Network',
+        images: [
+            {
+                url: '/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: 'Splits Network - Recruiting Marketplace',
+            },
+        ],
+        locale: 'en_US',
+        type: 'website',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Splits Network - Recruiting Marketplace',
+        description: 'Split-fee recruiting marketplace platform. Collaborate with recruiters, share roles, and split fees.',
+        images: ['/og-image.png'],
+    },
 };
 
 export default async function RootLayout({
@@ -19,11 +42,11 @@ export default async function RootLayout({
     // Backend services use Vault for secret management
     // Note: CLERK_SECRET_KEY is used automatically by Clerk SDK on the server
     const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    
+
     if (!publishableKey) {
         throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable');
     }
-    
+
     return (
         <ClerkProvider publishableKey={publishableKey}>
             <html lang="en" data-theme="splits-light">

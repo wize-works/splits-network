@@ -150,7 +150,7 @@ export function Footer() {
                 <div className="container mx-auto px-4 py-6">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         <div className="text-sm text-base-content/60">
-                            © {currentYear} Splits Network. All rights reserved.
+                            © {currentYear} Employment Networks, Inc. All rights reserved.
                         </div>
                         <div className="flex flex-wrap justify-center gap-6 text-sm">
                             <a href="#" className="link link-hover text-base-content/60 hover:text-base-content">

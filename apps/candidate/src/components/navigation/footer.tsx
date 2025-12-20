@@ -34,7 +34,7 @@ export default function Footer() {
             </footer>
             <footer className="footer footer-center p-4 bg-neutral text-neutral-content border-t border-base-300">
                 <aside>
-                    <p>Copyright © {new Date().getFullYear()} Splits Network. All rights reserved.</p>
+                    <p>Copyright © {new Date().getFullYear()} Employment Networks, Inc. All rights reserved.</p>
                 </aside>
                 <nav>
                     <div className="grid grid-flow-col gap-4">
