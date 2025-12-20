@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 
 interface WithdrawButtonProps {
     applicationId: string;
@@ -13,17 +14,25 @@ export default function WithdrawButton({ applicationId, jobTitle }: WithdrawButt
     const [showConfirm, setShowConfirm] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
+    const { getToken } = useAuth();
 
     const handleWithdraw = async () => {
         setIsWithdrawing(true);
         setError(null);
 
         try {
+            const token = await getToken();
+
+            if (!token) {
+                throw new Error('Not authenticated');
+            }
+
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
             const response = await fetch(`${apiUrl}/applications/${applicationId}/withdraw`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
                 },
                 credentials: 'include',
                 body: JSON.stringify({
