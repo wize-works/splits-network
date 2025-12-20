@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
     title: 'Employment Networks - Modern Recruiting & Candidate Experience',
     description: 'Powering the future of recruiting with Splits (collaborative recruiting platform) and Applicant (modern candidate portal). Transform your hiring process with our innovative platforms.',
-    metadataBase: new URL('https://employment-networks.com'),
     openGraph: {
         title: 'Employment Networks - Modern Recruiting & Candidate Experience',
         description: 'Powering the future of recruiting with Splits (collaborative recruiting platform) and Applicant (modern candidate portal). Transform your hiring process.',
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
         siteName: 'Employment Networks',
         images: [
             {
-                url: '/og-image.png',
+                url: 'https://employment-networks.com/og-image.png',
                 width: 1200,
                 height: 630,
                 alt: 'Employment Networks - The Future of Recruiting',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         title: 'Employment Networks - Modern Recruiting & Candidate Experience',
         description: 'Powering the future of recruiting with Splits and Applicant. Transform your hiring process.',
-        images: ['/og-image.png'],
+        images: ['https://employment-networks.com/og-image.png'],
     },
 };
 
@@ -49,5 +49,8 @@ export default function RootLayout({
                 {children}
             </body>
         </html>
+    );
+}
+        </html >
     );
 }

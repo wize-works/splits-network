@@ -8,7 +8,6 @@ import './globals.css';
 export const metadata: Metadata = {
     title: 'Splits Network - Recruiting Marketplace',
     description: 'Split-fee recruiting marketplace platform. Collaborate with recruiters, share roles, and split fees while growing your recruiting business.',
-    metadataBase: new URL('https://splits.network'),
     openGraph: {
         title: 'Splits Network - Recruiting Marketplace',
         description: 'Split-fee recruiting marketplace platform. Collaborate with recruiters, share roles, and split fees while growing your recruiting business.',
@@ -16,7 +15,7 @@ export const metadata: Metadata = {
         siteName: 'Splits Network',
         images: [
             {
-                url: '/og-image.png',
+                url: 'https://splits.network/og-image.png',
                 width: 1200,
                 height: 630,
                 alt: 'Splits Network - Recruiting Marketplace',
@@ -29,7 +28,7 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         title: 'Splits Network - Recruiting Marketplace',
         description: 'Split-fee recruiting marketplace platform. Collaborate with recruiters, share roles, and split fees.',
-        images: ['/og-image.png'],
+        images: ['https://splits.network/og-image.png'],
     },
 };
 

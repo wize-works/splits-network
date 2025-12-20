@@ -8,7 +8,6 @@ import "./globals.css";
 export const metadata: Metadata = {
     title: "Applicant Network - Find Your Next Career Opportunity",
     description: "Browse thousands of job opportunities and manage your job search on Applicant Network. Track applications, verify credentials, and connect with recruiters.",
-    metadataBase: new URL('https://applicant.network'),
     openGraph: {
         title: 'Applicant Network - Find Your Next Career Opportunity',
         description: 'Browse thousands of job opportunities and manage your job search on Applicant Network. Track applications, verify credentials, and connect with recruiters.',
@@ -16,7 +15,7 @@ export const metadata: Metadata = {
         siteName: 'Applicant Network',
         images: [
             {
-                url: '/og-image.png',
+                url: 'https://applicant.network/og-image.png',
                 width: 1200,
                 height: 630,
                 alt: 'Applicant Network - Career Opportunities',
@@ -29,7 +28,7 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         title: 'Applicant Network - Find Your Next Career Opportunity',
         description: 'Browse thousands of job opportunities and manage your job search on Applicant Network.',
-        images: ['/og-image.png'],
+        images: ['https://applicant.network/og-image.png'],
     },
 };
 
