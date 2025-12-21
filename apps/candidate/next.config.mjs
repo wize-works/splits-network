@@ -5,7 +5,6 @@ const nextConfig = {
     reactStrictMode: true,
     transpilePackages: ['@splits-network/shared-types', '@splits-network/shared-config'],
     serverExternalPackages: ['@supabase/supabase-js'],
-    // No rewrites needed - client-side API calls go directly to the gateway
 };
 
 export default withSentryConfig(nextConfig, {
@@ -13,6 +12,10 @@ export default withSentryConfig(nextConfig, {
     project: 'candidate',
     silent: !process.env.CI,
     widenClientFileUpload: true,
+    reactComponentAnnotation: {
+        enabled: true,
+    },
+    tunnelRoute: '/monitoring',
     hideSourceMaps: true,
     disableLogger: true,
     automaticVercelMonitors: true,
