@@ -1072,7 +1072,16 @@ export class AtsRepository {
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data || [];
+        
+        // Map database column names to frontend expected names
+        return (data || []).map(doc => ({
+            ...doc,
+            file_name: doc.filename,
+            file_size: doc.file_size,
+            file_url: doc.storage_path, // Can be used to generate download URL
+            uploaded_at: doc.created_at,
+            is_primary: doc.metadata?.is_primary || false
+        }));
     }
 
     // Pre-screen answer methods

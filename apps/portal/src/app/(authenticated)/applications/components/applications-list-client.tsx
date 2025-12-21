@@ -379,7 +379,7 @@ export default function ApplicationsListClient() {
                                     <th>Stage</th>
                                     {isRecruiter && <th>Recruiter</th>}
                                     <th>Submitted</th>
-                                    {isCompanyUser && <th>Actions</th>}
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>

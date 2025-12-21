@@ -60,33 +60,46 @@ export default async function ApplicationReviewPage({
 
     if (error) {
         return (
-            <div className="container mx-auto px-4 py-8 max-w-4xl">
-                <div className="alert alert-error mb-6">
-                    <i className="fa-solid fa-circle-exclamation"></i>
-                    <span>{error}</span>
+            <div className="space-y-6">
+                <div className="card bg-base-100 shadow-sm">
+                    <div className="card-body">
+                        <div className="alert alert-error">
+                            <i className="fa-solid fa-circle-exclamation"></i>
+                            <span>{error}</span>
+                        </div>
+                        <div className="card-actions justify-start mt-4">
+                            <Link href="/applications/pending" className="btn">
+                                <i className="fa-solid fa-arrow-left"></i>
+                                Back to Pending Applications
+                            </Link>
+                        </div>
+                    </div>
                 </div>
-                <Link href="/applications/pending" className="btn">
-                    <i className="fa-solid fa-arrow-left"></i>
-                    Back to Pending Applications
-                </Link>
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-5xl">
-            <div className="mb-8">
-                <div className="flex items-center gap-2 text-sm text-base-content/60 mb-2">
-                    <Link href="/applications/pending" className="hover:text-primary">
-                        Pending Applications
-                    </Link>
-                    <i className="fa-solid fa-chevron-right text-xs"></i>
-                    <span>Review Application</span>
+        <div className="space-y-6">
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2 text-sm text-base-content/60">
+                <Link href="/applications/pending" className="hover:text-primary">
+                    <i className="fa-solid fa-arrow-left mr-2"></i>
+                    Pending Applications
+                </Link>
+            </div>
+
+            {/* Page Header */}
+            <div className="card bg-base-100 shadow-sm">
+                <div className="card-body">
+                    <h1 className="text-3xl font-bold">
+                        <i className="fa-solid fa-clipboard-check text-primary mr-3"></i>
+                        Review Application
+                    </h1>
+                    <p className="text-base-content/70">
+                        Review the candidate's application and submit it to the company
+                    </p>
                 </div>
-                <h1 className="text-4xl font-bold mb-2">Review Application</h1>
-                <p className="text-lg text-base-content/70">
-                    Review the candidate's application and submit it to the company
-                </p>
             </div>
 
             <ReviewForm

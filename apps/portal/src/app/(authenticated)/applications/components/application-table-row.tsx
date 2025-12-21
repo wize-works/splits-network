@@ -120,31 +120,29 @@ export function ApplicationTableRow({
             <td>
                 <div className="text-sm">{formatDate(application.created_at)}</div>
             </td>
-            {isCompanyUser && (
-                <td className="text-right">
-                    <div className="flex gap-2 justify-end">
-                        {canAccept && (
-                            <button
-                                onClick={onAccept}
-                                className="btn btn-success btn-sm"
-                                disabled={isAccepting}
-                            >
-                                {isAccepting ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                ) : (
-                                    <i className="fa-solid fa-check"></i>
-                                )}
-                            </button>
-                        )}
-                        <Link
-                            href={`/applications/${application.id}`}
-                            className="btn btn-primary btn-sm"
+            <td className="text-right">
+                <div className="flex gap-2 justify-end">
+                    {isCompanyUser && canAccept && (
+                        <button
+                            onClick={onAccept}
+                            className="btn btn-success btn-sm"
+                            disabled={isAccepting}
                         >
-                            <i className="fa-solid fa-arrow-right"></i>
-                        </Link>
-                    </div>
-                </td>
-            )}
+                            {isAccepting ? (
+                                <span className="loading loading-spinner loading-xs"></span>
+                            ) : (
+                                <i className="fa-solid fa-check"></i>
+                            )}
+                        </button>
+                    )}
+                    <Link
+                        href={`/applications/${application.id}`}
+                        className="btn btn-primary btn-sm"
+                    >
+                        <i className="fa-solid fa-arrow-right"></i>
+                    </Link>
+                </div>
+            </td>
         </tr>
     );
 }
