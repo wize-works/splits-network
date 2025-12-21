@@ -128,13 +128,22 @@ export interface MaskedCandidate {
     _masked: true; // Flag to indicate this is masked data
 }
 
-export type ApplicationStage = 'draft' | 'screen' | 'submitted' | 'interview' | 'offer' | 'hired' | 'rejected' | 'withdrawn';
+export type ApplicationStage = 
+    | 'draft'       // Application not yet complete
+    | 'ai_review'   // AI evaluating candidate-job fit
+    | 'screen'      // Initial phone screen (recruiter only, for represented)
+    | 'submitted'   // Submitted to company, awaiting company review
+    | 'interview'   // Formal interviews with company
+    | 'offer'       // Offer extended
+    | 'hired'       // Candidate accepted offer
+    | 'rejected'    // Rejected by recruiter or company
+    | 'withdrawn';  // Candidate withdrew
 
 // Audit log for tracking application actions
 export interface ApplicationAuditLog {
     id: string;
     application_id: string;
-    action: 'accepted' | 'rejected' | 'stage_changed' | 'viewed' | 'created' | 'draft_saved' | 'submitted_to_recruiter' | 'recruiter_reviewed' | 'submitted_to_company' | 'withdrawn' | 'prescreen_requested' | 'note_added';
+    action: 'accepted' | 'rejected' | 'stage_changed' | 'viewed' | 'created' | 'draft_saved' | 'submitted_to_recruiter' | 'recruiter_reviewed' | 'submitted_to_company' | 'withdrawn' | 'prescreen_requested' | 'note_added' | 'ai_review_started' | 'ai_review_completed' | 'ai_review_failed';
     performed_by_user_id?: string;
     performed_by_role?: string;
     company_id?: string;
@@ -143,6 +152,50 @@ export interface ApplicationAuditLog {
     metadata?: Record<string, any>;
     ip_address?: string;
     user_agent?: string;
+    created_at: Date;
+}
+
+// AI Review types
+export type AIRecommendation = 'strong_fit' | 'good_fit' | 'fair_fit' | 'poor_fit';
+export type LocationCompatibility = 'perfect' | 'good' | 'challenging' | 'mismatch';
+
+export interface AISkillsMatch {
+    matched_skills: string[];
+    missing_skills: string[];
+    match_percentage: number;
+}
+
+export interface AIExperienceAnalysis {
+    required_years: number;
+    candidate_years: number;
+    meets_requirement: boolean;
+}
+
+export interface AIReview {
+    id: string;
+    application_id: string;
+    
+    // AI Analysis Results
+    fit_score: number; // 0-100
+    recommendation: AIRecommendation;
+    overall_summary: string;
+    confidence_level: number; // 0-100
+    
+    // Detailed Analysis
+    strengths: string[];
+    concerns: string[];
+    skills_match: AISkillsMatch;
+    
+    // Experience Analysis
+    experience_analysis: AIExperienceAnalysis;
+    
+    // Location
+    location_compatibility: LocationCompatibility;
+    
+    // Metadata
+    model_version: string;
+    processing_time_ms: number;
+    analyzed_at: Date;
     created_at: Date;
 }
 
@@ -156,12 +209,14 @@ export interface Application {
     recruiter_notes?: string;  // NEW: Recruiter's notes/pitch added during review
     accepted_by_company: boolean;
     accepted_at?: Date;
+    ai_reviewed: boolean;  // Whether AI review has been completed
     created_at: Date;
     updated_at: Date;
     // Enriched data from service layer
     candidate?: Candidate | MaskedCandidate;
     recruiter?: { id: string; name: string; email: string };
     job?: Job;
+    ai_review?: AIReview;  // AI analysis results (enriched)
 }
 
 export type PlacementState = 'hired' | 'active' | 'completed' | 'failed';

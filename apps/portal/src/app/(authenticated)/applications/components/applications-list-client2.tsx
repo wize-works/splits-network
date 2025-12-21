@@ -19,6 +19,7 @@ interface Application {
     stage: string;
     accepted_by_company: boolean;
     accepted_at?: string;
+    ai_reviewed: boolean;
     created_at: string;
     updated_at: string;
     candidate: {
@@ -41,6 +42,10 @@ interface Application {
     company: {
         id: string;
         name: string;
+    };
+    ai_review?: {
+        fit_score: number;
+        recommendation: 'strong_fit' | 'good_fit' | 'fair_fit' | 'poor_fit';
     };
 }
 
@@ -68,6 +73,7 @@ export default function ApplicationsListClient() {
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [stageFilter, setStageFilter] = useState('');
+    const [aiScoreFilter, setAIScoreFilter] = useState('');
     const [viewMode, setViewMode] = useViewMode('applicationsViewMode');
     const [userRole, setUserRole] = useState<string | null>(null);
     const [acceptingId, setAcceptingId] = useState<string | null>(null);
@@ -114,6 +120,9 @@ export default function ApplicationsListClient() {
             if (stageFilter) {
                 params.append('stage', stageFilter);
             }
+            if (aiScoreFilter) {
+                params.append('ai_score_filter', aiScoreFilter);
+            }
 
             if (role === 'company_admin' || role === 'hiring_manager') {
                 const companiesRes = await client.get(`/companies?org_id=${membership.organization_id}`);
@@ -134,7 +143,7 @@ export default function ApplicationsListClient() {
         } finally {
             setLoading(false);
         }
-    }, [getToken, pagination.page, pagination.limit, searchQuery, stageFilter]);
+    }, [getToken, pagination.page, pagination.limit, searchQuery, stageFilter, aiScoreFilter]);
 
     // Initial load
     useEffect(() => {
@@ -152,7 +161,7 @@ export default function ApplicationsListClient() {
         }, searchQuery ? 300 : 0);
 
         return () => clearTimeout(timer);
-    }, [searchQuery, stageFilter]);
+    }, [searchQuery, stageFilter, aiScoreFilter]);
 
     // Reload when page changes
     useEffect(() => {
@@ -252,6 +261,7 @@ export default function ApplicationsListClient() {
 
     const getStageColor = (stage: string) => {
         const colors: Record<string, string> = {
+            ai_review: 'badge-warning',
             submitted: 'badge-info',
             screen: 'badge-primary',
             interview: 'badge-warning',
@@ -288,9 +298,11 @@ export default function ApplicationsListClient() {
             <ApplicationFilters
                 searchQuery={searchQuery}
                 stageFilter={stageFilter}
+                aiScoreFilter={aiScoreFilter}
                 viewMode={viewMode}
                 onSearchChange={setSearchQuery}
                 onStageFilterChange={setStageFilter}
+                onAIScoreFilterChange={setAIScoreFilter}
                 onViewModeChange={setViewMode}
             />
 
@@ -372,6 +384,7 @@ export default function ApplicationsListClient() {
                                     <th>Candidate</th>
                                     <th>Job</th>
                                     <th>Company</th>
+                                    <th>AI Score</th>
                                     <th>Stage</th>
                                     {isRecruiter && <th>Recruiter</th>}
                                     <th>Submitted</th>

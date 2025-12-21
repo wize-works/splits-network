@@ -7,6 +7,7 @@ interface ApplicationCardProps {
         accepted_by_company: boolean;
         accepted_at?: string;
         created_at: string;
+        ai_reviewed?: boolean;
         candidate: {
             full_name: string;
             email: string;
@@ -17,6 +18,10 @@ interface ApplicationCardProps {
         };
         company?: {
             name: string;
+        };
+        ai_review?: {
+            fit_score: number;
+            recommendation: 'strong_fit' | 'good_fit' | 'fair_fit' | 'poor_fit';
         };
     };
     canAccept: boolean;
@@ -76,6 +81,14 @@ export function ApplicationCard({
                                 <div className="text-sm mt-1 flex items-center gap-2">
                                     <i className="fa-solid fa-building text-base-content/40"></i>
                                     <span className="text-base-content/70">{application.company.name}</span>
+                                </div>
+                            )}
+                            {application.ai_reviewed && application.ai_review && (
+                                <div className="text-sm mt-2 flex items-center gap-2">
+                                    <i className="fa-solid fa-robot text-primary"></i>
+                                    <span className="font-medium text-primary">
+                                        AI Score: {application.ai_review.fit_score}/100
+                                    </span>
                                 </div>
                             )}
                         </div>

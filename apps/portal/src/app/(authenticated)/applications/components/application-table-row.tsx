@@ -6,6 +6,7 @@ interface ApplicationTableRowProps {
         stage: string;
         accepted_by_company: boolean;
         created_at: string;
+        ai_reviewed?: boolean;
         candidate: {
             full_name: string;
             email: string;
@@ -19,6 +20,10 @@ interface ApplicationTableRowProps {
         };
         recruiter?: {
             name: string;
+        };
+        ai_review?: {
+            fit_score: number;
+            recommendation: 'strong_fit' | 'good_fit' | 'fair_fit' | 'poor_fit';
         };
     };
     canAccept: boolean;
@@ -102,9 +107,22 @@ export function ApplicationTableRow({
                     <span className="text-base-content/40">—</span>
                 )}
             </td>
-            <td><span className={`badge ${getStageColor(application.stage)}`}>
-                {application.stage}
-            </span>
+            <td>
+                {application.ai_reviewed && application.ai_review ? (
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg">{application.ai_review.fit_score}</span>
+                        <span className="text-xs text-base-content/60">/100</span>
+                    </div>
+                ) : application.stage === 'ai_review' ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                ) : (
+                    <span className="text-base-content/40 text-sm">—</span>
+                )}
+            </td>
+            <td>
+                <span className={`badge ${getStageColor(application.stage)}`}>
+                    {application.stage}
+                </span>
             </td>
             {isRecruiter && (
                 <td>
@@ -116,7 +134,8 @@ export function ApplicationTableRow({
                         <span className="text-base-content/40">—</span>
                     )}
                 </td>
-            )}
+            )
+            }
             <td>
                 <div className="text-sm">{formatDate(application.created_at)}</div>
             </td>
@@ -143,6 +162,6 @@ export function ApplicationTableRow({
                     </Link>
                 </div>
             </td>
-        </tr>
+        </tr >
     );
 }

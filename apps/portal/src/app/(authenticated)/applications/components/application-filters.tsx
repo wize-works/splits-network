@@ -3,9 +3,11 @@ import { forwardRef } from 'react';
 interface ApplicationFiltersProps {
     searchQuery: string;
     stageFilter: string;
+    aiScoreFilter: string;
     viewMode: 'grid' | 'table';
     onSearchChange: (value: string) => void;
     onStageFilterChange: (value: string) => void;
+    onAIScoreFilterChange: (value: string) => void;
     onViewModeChange: (mode: 'grid' | 'table') => void;
 }
 
@@ -18,9 +20,11 @@ export const ApplicationFilters = forwardRef<HTMLInputElement, ApplicationFilter
     function ApplicationFilters({
         searchQuery,
         stageFilter,
+        aiScoreFilter,
         viewMode,
         onSearchChange,
         onStageFilterChange,
+        onAIScoreFilterChange,
         onViewModeChange,
     }, ref) {
         return (
@@ -50,6 +54,7 @@ export const ApplicationFilters = forwardRef<HTMLInputElement, ApplicationFilter
                         >
                             <option value="">All Stages</option>
                             <option value="draft">Draft</option>
+                            <option value="ai_review">AI Review</option>
                             <option value="submitted">Submitted</option>
                             <option value="screen">Screen</option>
                             <option value="interview">Interview</option>
@@ -57,6 +62,19 @@ export const ApplicationFilters = forwardRef<HTMLInputElement, ApplicationFilter
                             <option value="hired">Hired</option>
                             <option value="rejected">Rejected</option>
                             <option value="withdrawn">Withdrawn</option>
+                        </select>
+
+                        {/* AI Score Filter */}
+                        <select
+                            className="select min-w-[180px]"
+                            value={aiScoreFilter}
+                            onChange={(e) => onAIScoreFilterChange(e.target.value)}
+                        >
+                            <option value="">All AI Scores</option>
+                            <option value="high">High Fit (≥80)</option>
+                            <option value="medium">Medium Fit (60-79)</option>
+                            <option value="low">Low Fit (&lt;60)</option>
+                            <option value="not_reviewed">Not Reviewed</option>
                         </select>
 
                         {/* View Mode Toggle */}

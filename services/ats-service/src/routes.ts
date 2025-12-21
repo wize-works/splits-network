@@ -7,19 +7,24 @@ import { registerCandidateRoutes } from './routes/candidates/routes';
 import { registerPlacementRoutes } from './routes/placements/routes';
 import { registerStatsRoutes } from './routes/stats/routes';
 import { registerIntegrationRoutes } from './routes/integrations/routes';
+import { aiReviewRoutes } from './routes/ai-review';
 import { registerCandidateOwnershipRoutes } from './routes/candidates/ownership-routes';
 import { registerPlacementLifecycleRoutes } from './routes/placements/lifecycle-routes';
 import { registerPlacementCollaborationRoutes } from './routes/placements/collaboration-routes';
 import { CandidateOwnershipService } from './services/candidates/ownership-service';
 import { PlacementCollaborationService } from './services/placements/collaboration-service';
 import { PlacementLifecycleService } from './services/placements/lifecycle-service';
+import { AtsRepository } from './repository';
+import { EventPublisher } from './events';
 
 export function registerRoutes(
     app: FastifyInstance,
     service: AtsService,
     ownershipService: CandidateOwnershipService,
     collaborationService: PlacementCollaborationService,
-    lifecycleService: PlacementLifecycleService
+    lifecycleService: PlacementLifecycleService,
+    repository: AtsRepository,
+    eventPublisher: EventPublisher
 ) {
     // Register all domain-specific routes
     registerCompanyRoutes(app, service);
@@ -29,6 +34,9 @@ export function registerRoutes(
     registerPlacementRoutes(app, service);
     registerStatsRoutes(app, service);
     registerIntegrationRoutes(app);
+    
+    // Register AI review routes (Phase 1.5)
+    aiReviewRoutes(app, repository, eventPublisher);
     
     // Register Phase 2 routes
     registerCandidateOwnershipRoutes(app, ownershipService);

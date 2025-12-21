@@ -8,6 +8,8 @@ const getStatusColor = (stage: string) => {
     switch (stage) {
         case 'draft':
             return 'badge-ghost';
+        case 'ai_review':
+            return 'badge-warning';
         case 'screen':
         case 'submitted':
             return 'badge-info';
@@ -27,6 +29,8 @@ const formatStage = (stage: string) => {
     switch (stage) {
         case 'draft':
             return 'Draft';
+        case 'ai_review':
+            return 'AI Review';
         case 'screen':
             return 'Recruiter Review';
         case 'submitted':

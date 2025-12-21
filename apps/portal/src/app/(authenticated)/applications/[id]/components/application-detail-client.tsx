@@ -8,6 +8,7 @@ import { useAuth } from '@clerk/nextjs';
 import StageUpdateModal from './stage-update-modal';
 import AddNoteModal from './add-note-modal';
 import ApplicationTimeline from './application-timeline';
+import AIReviewPanel from '@/components/ai-review-panel';
 
 interface ApplicationDetailClientProps {
     application: any;
@@ -23,6 +24,7 @@ interface ApplicationDetailClientProps {
 
 const STAGE_LABELS: Record<string, string> = {
     draft: 'Draft',
+    ai_review: 'AI Review',
     screen: 'Screening',
     submitted: 'Submitted',
     interview: 'Interview',
@@ -33,6 +35,7 @@ const STAGE_LABELS: Record<string, string> = {
 
 const STAGE_COLORS: Record<string, string> = {
     draft: 'badge-neutral',
+    ai_review: 'badge-warning',
     screen: 'badge-info',
     submitted: 'badge-primary',
     interview: 'badge-warning',
@@ -57,6 +60,12 @@ export default function ApplicationDetailClient({
     const [showStageModal, setShowStageModal] = useState(false);
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [token, setToken] = useState<string | null>(null);
+
+    // Get token on mount for AI Review Panel
+    useState(() => {
+        getToken().then(t => setToken(t));
+    });
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -408,6 +417,16 @@ export default function ApplicationDetailClient({
                             </div>
                         </div>
                     </div>
+
+                    {/* AI Review Panel */}
+                    {token && (application.ai_reviewed || application.stage === 'ai_review' ||
+                        ['screen', 'submitted', 'interview', 'offer', 'hired'].includes(application.stage)) && (
+                            <AIReviewPanel
+                                applicationId={application.id}
+                                token={token}
+                                compact={true}
+                            />
+                        )}
 
                     {/* Documents Card */}
                     {documents && documents.length > 0 && (

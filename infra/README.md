@@ -73,6 +73,9 @@ infra/
    # Resend
    RESEND_API_KEY
    RESEND_API_KEY
+   
+   # OpenAI (for AI-assisted application screening)
+   OPENAI_API_KEY
    ```
 
 2. **Configure Azure Service Principal** (for GitHub Actions to access AKS):

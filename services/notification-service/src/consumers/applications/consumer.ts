@@ -601,4 +601,153 @@ export class ApplicationsEventConsumer {
             throw error;
         }
     }
+
+    // Phase 1.5 - AI Review event handlers
+
+    async handleAIReviewStarted(event: DomainEvent): Promise<void> {
+        try {
+            const { application_id } = event.payload;
+
+            this.logger.info({ application_id }, 'AI review started - no notification sent');
+            // We don't send notifications when AI review starts, only when it completes
+        } catch (error) {
+            this.logger.error(
+                { error, event_payload: event.payload },
+                'Failed to handle AI review started event'
+            );
+            throw error;
+        }
+    }
+
+    async handleAIReviewCompleted(event: DomainEvent): Promise<void> {
+        try {
+            const {
+                application_id,
+                ai_review_id,
+                fit_score,
+                recommendation,
+                processing_time_ms
+            } = event.payload;
+
+            this.logger.info(
+                { application_id, fit_score, recommendation },
+                'Fetching data for AI review completed notification'
+            );
+
+            // Fetch application details
+            const appResponse = await this.services.getAtsService().get<any>(`/applications/${application_id}`);
+            const application = appResponse.data || appResponse;
+
+            // Fetch job details
+            const jobResponse = await this.services.getAtsService().get<any>(`/jobs/${application.job_id}`);
+            const job = jobResponse.data || jobResponse;
+
+            // Fetch candidate details
+            const candidateResponse = await this.services.getAtsService().get<any>(`/candidates/${application.candidate_id}`);
+            const candidate = candidateResponse.data || candidateResponse;
+
+            // Fetch AI review details
+            const reviewResponse = await this.services.getAtsService().get<any>(`/applications/${application_id}/ai-review`);
+            const aiReview = reviewResponse.data || reviewResponse;
+
+            // Send email to candidate if they have an account
+            if (candidate.user_id) {
+                const userResponse = await this.services.getIdentityService().get<any>(`/users/${candidate.user_id}`);
+                const user = userResponse.data || userResponse;
+
+                await this.emailService.sendAIReviewCompletedToCandidate(user.email, {
+                    candidateName: candidate.full_name,
+                    jobTitle: job.title,
+                    fitScore: fit_score,
+                    recommendation,
+                    strengths: aiReview.strengths || [],
+                    concerns: aiReview.concerns || [],
+                    userId: candidate.user_id,
+                    applicationId: application_id,
+                });
+
+                this.logger.info(
+                    { application_id, recipient: user.email },
+                    'AI review completed notification sent to candidate'
+                );
+            }
+
+            // Send email to recruiter if application has one
+            if (application.recruiter_id) {
+                const recruiterResponse = await this.services.getNetworkService().get<any>(`/recruiters/${application.recruiter_id}`);
+                const recruiter = recruiterResponse.data || recruiterResponse;
+
+                const userResponse = await this.services.getIdentityService().get<any>(`/users/${recruiter.user_id}`);
+                const user = userResponse.data || userResponse;
+
+                await this.emailService.sendAIReviewCompletedToRecruiter(user.email, {
+                    recruiterName: recruiter.name,
+                    candidateName: candidate.full_name,
+                    jobTitle: job.title,
+                    fitScore: fit_score,
+                    recommendation,
+                    overallSummary: aiReview.overall_summary,
+                    strengths: aiReview.strengths || [],
+                    concerns: aiReview.concerns || [],
+                    matchedSkills: aiReview.matched_skills || [],
+                    missingSkills: aiReview.missing_skills || [],
+                    userId: recruiter.user_id,
+                    applicationId: application_id,
+                });
+
+                this.logger.info(
+                    { application_id, recipient: user.email },
+                    'AI review completed notification sent to recruiter'
+                );
+            }
+
+            this.logger.info({ application_id }, 'AI review completed notifications sent');
+        } catch (error) {
+            this.logger.error(
+                { error, event_payload: event.payload },
+                'Failed to send AI review completed notifications'
+            );
+            throw error;
+        }
+    }
+
+    async handleAIReviewFailed(event: DomainEvent): Promise<void> {
+        try {
+            const { application_id, error: errorMsg } = event.payload;
+
+            this.logger.warn(
+                { application_id, error: errorMsg },
+                'AI review failed - notifying admin team'
+            );
+
+            // In production, this should notify the admin team
+            // For now, just log it
+            this.logger.error({ application_id, error: errorMsg }, 'AI REVIEW FAILED - ADMIN ALERT');
+        } catch (error) {
+            this.logger.error(
+                { error, event_payload: event.payload },
+                'Failed to handle AI review failed event'
+            );
+            throw error;
+        }
+    }
+
+    async handleDraftCompleted(event: DomainEvent): Promise<void> {
+        try {
+            const { application_id, job_id, candidate_id } = event.payload;
+
+            this.logger.info(
+                { application_id },
+                'Application draft completed - AI review will be triggered automatically'
+            );
+
+            // No notification needed - AI review will handle notifications when complete
+        } catch (error) {
+            this.logger.error(
+                { error, event_payload: event.payload },
+                'Failed to handle draft completed event'
+            );
+            throw error;
+        }
+    }
 }

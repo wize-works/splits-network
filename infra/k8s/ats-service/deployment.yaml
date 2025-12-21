@@ -43,6 +43,11 @@ spec:
                   key: supabase-service-role-key
             - name: RABBITMQ_URL
               value: "amqp://splits:splits_production@rabbitmq:5672"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-secrets
+                  key: api-key
           resources:
             requests:
               cpu: 100m

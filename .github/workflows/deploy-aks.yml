@@ -188,6 +188,11 @@ jobs:
                     --namespace=splits-network \
                     --dry-run=client -o yaml | kubectl apply -f -
 
+                  kubectl create secret generic openai-secrets \
+                    --from-literal=api-key=${{ secrets.OPENAI_API_KEY }} \
+                    --namespace=splits-network \
+                    --dry-run=client -o yaml | kubectl apply -f -
+
             - name: Update image tags in manifests
               run: |
                   export IMAGE_TAG=${{ github.sha }}

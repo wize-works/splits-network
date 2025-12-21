@@ -111,6 +111,7 @@ export class ApplicationService {
             stage: 'submitted',
             notes: options.notes,
             accepted_by_company: false,
+            ai_reviewed: false,
         });
 
         // Log the submission
@@ -487,6 +488,7 @@ export class ApplicationService {
             stage: initialStage,
             notes: notes,
             accepted_by_company: false,
+            ai_reviewed: false,
         });
 
         // 7. Link documents to application (via documents table with entity pattern)
@@ -807,6 +809,112 @@ export class ApplicationService {
                 recruiter_id: application.recruiter_id,
                 reason: reason || 'Candidate withdrew application',
                 previous_stage: application.stage,
+            },
+            'ats-service'
+        );
+
+        return updated;
+    }
+
+    /**
+     * Complete application draft and trigger AI review
+     * This transitions: draft → ai_review
+     */
+    async completeApplicationDraft(
+        applicationId: string,
+        userId: string
+    ): Promise<Application> {
+        const application = await this.repository.findApplicationById(applicationId);
+        if (!application) {
+            throw new Error('Application not found');
+        }
+
+        if (application.stage !== 'draft') {
+            throw new Error(`Cannot complete draft - application is in ${application.stage} stage`);
+        }
+
+        // Transition to ai_review stage
+        const updated = await this.repository.updateApplication(applicationId, {
+            stage: 'ai_review'
+        });
+
+        // Log the transition
+        await this.repository.createAuditLog({
+            application_id: applicationId,
+            action: 'stage_changed',
+            performed_by_user_id: userId,
+            metadata: {
+                from_stage: 'draft',
+                to_stage: 'ai_review',
+                reason: 'Application draft completed'
+            }
+        });
+
+        // Publish event (notification-service will trigger AI review)
+        await this.eventPublisher.publish(
+            'application.draft_completed',
+            {
+                application_id: applicationId,
+                job_id: application.job_id,
+                candidate_id: application.candidate_id,
+                recruiter_id: application.recruiter_id,
+            },
+            'ats-service'
+        );
+
+        return updated;
+    }
+
+    /**
+     * Handle AI review completion and auto-transition to next stage
+     * This transitions: ai_review → screen (represented) or ai_review → submitted (direct)
+     */
+    async handleAIReviewCompleted(
+        applicationId: string,
+        fitScore: number
+    ): Promise<Application> {
+        const application = await this.repository.findApplicationById(applicationId);
+        if (!application) {
+            throw new Error('Application not found');
+        }
+
+        if (application.stage !== 'ai_review') {
+            // Already transitioned, ignore
+            return application;
+        }
+
+        // Determine next stage based on whether application has recruiter
+        const nextStage: ApplicationStage = application.recruiter_id ? 'screen' : 'submitted';
+
+        // Transition to next stage
+        const updated = await this.repository.updateApplication(applicationId, {
+            stage: nextStage
+        });
+
+        // Log the transition
+        await this.repository.createAuditLog({
+            application_id: applicationId,
+            action: 'stage_changed',
+            performed_by_user_id: 'system',
+            metadata: {
+                from_stage: 'ai_review',
+                to_stage: nextStage,
+                reason: 'AI review completed',
+                ai_fit_score: fitScore
+            }
+        });
+
+        // Publish stage change event
+        await this.eventPublisher.publish(
+            'application.stage_changed',
+            {
+                application_id: applicationId,
+                job_id: application.job_id,
+                candidate_id: application.candidate_id,
+                recruiter_id: application.recruiter_id,
+                from_stage: 'ai_review',
+                to_stage: nextStage,
+                ai_fit_score: fitScore
             },
             'ats-service'
         );

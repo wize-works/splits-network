@@ -1131,5 +1131,138 @@ export class AtsRepository {
             question_text: q.question
         }));
     }
+
+    // AI Review methods
+    async createAIReview(review: {
+        application_id: string;
+        fit_score: number;
+        recommendation: 'strong_fit' | 'good_fit' | 'fair_fit' | 'poor_fit';
+        overall_summary: string;
+        confidence_level: number;
+        strengths: string[];
+        concerns: string[];
+        matched_skills: string[];
+        missing_skills: string[];
+        skills_match_percentage: number;
+        required_years?: number;
+        candidate_years?: number;
+        meets_experience_requirement?: boolean;
+        location_compatibility: 'perfect' | 'good' | 'challenging' | 'mismatch';
+        model_version: string;
+        processing_time_ms: number;
+        analyzed_at: Date;
+    }): Promise<any> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('ai_reviews')
+            .insert({
+                ...review,
+                analyzed_at: review.analyzed_at.toISOString()
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async findAIReviewByApplicationId(applicationId: string): Promise<any | null> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('ai_reviews')
+            .select('*')
+            .eq('application_id', applicationId)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data;
+    }
+
+    async getAIReviewStatsByJobId(jobId: string): Promise<{
+        total_applications: number;
+        ai_reviewed_count: number;
+        average_fit_score: number;
+        recommendation_breakdown: {
+            strong_fit: number;
+            good_fit: number;
+            fair_fit: number;
+            poor_fit: number;
+        };
+        most_matched_skills: string[];
+        most_missing_skills: string[];
+    }> {
+        // Get all applications for this job with their AI reviews
+        const { data: applications, error } = await this.supabase
+            .schema('ats')
+            .from('applications')
+            .select(`
+                id,
+                ai_reviewed,
+                ai_reviews (
+                    fit_score,
+                    recommendation,
+                    matched_skills,
+                    missing_skills
+                )
+            `)
+            .eq('job_id', jobId);
+
+        if (error) throw error;
+
+        const total = applications?.length || 0;
+        const reviewed = applications?.filter(a => a.ai_reviewed) || [];
+        const reviews = reviewed.map(a => a.ai_reviews).filter(Boolean).flat();
+
+        // Calculate average fit score
+        const avgFitScore = reviews.length > 0
+            ? reviews.reduce((sum, r) => sum + r.fit_score, 0) / reviews.length
+            : 0;
+
+        // Count recommendations
+        const recommendations = {
+            strong_fit: reviews.filter(r => r.recommendation === 'strong_fit').length,
+            good_fit: reviews.filter(r => r.recommendation === 'good_fit').length,
+            fair_fit: reviews.filter(r => r.recommendation === 'fair_fit').length,
+            poor_fit: reviews.filter(r => r.recommendation === 'poor_fit').length,
+        };
+
+        // Count skill frequencies
+        const skillCounts = new Map<string, number>();
+        reviews.forEach(r => {
+            r.matched_skills?.forEach((skill: string) => {
+                skillCounts.set(skill, (skillCounts.get(skill) || 0) + 1);
+            });
+        });
+
+        const missingSkillCounts = new Map<string, number>();
+        reviews.forEach(r => {
+            r.missing_skills?.forEach((skill: string) => {
+                missingSkillCounts.set(skill, (missingSkillCounts.get(skill) || 0) + 1);
+            });
+        });
+
+        // Get top 5 matched and missing skills
+        const topMatched = Array.from(skillCounts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([skill]) => skill);
+
+        const topMissing = Array.from(missingSkillCounts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([skill]) => skill);
+
+        return {
+            total_applications: total,
+            ai_reviewed_count: reviewed.length,
+            average_fit_score: Math.round(avgFitScore * 10) / 10,
+            recommendation_breakdown: recommendations,
+            most_matched_skills: topMatched,
+            most_missing_skills: topMissing,
+        };
+    }
 }
 

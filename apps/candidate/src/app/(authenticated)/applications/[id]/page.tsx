@@ -3,11 +3,14 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { formatDate } from '@/lib/utils';
 import WithdrawButton from '@/components/withdraw-button';
+import AIReviewPanel from '@/components/ai-review-panel';
 
 const getStatusColor = (stage: string) => {
     switch (stage) {
         case 'draft':
             return 'badge-ghost';
+        case 'ai_review':
+            return 'badge-warning';
         case 'screen':
         case 'submitted':
             return 'badge-info';
@@ -27,6 +30,8 @@ const formatStage = (stage: string) => {
     switch (stage) {
         case 'draft':
             return 'Draft';
+        case 'ai_review':
+            return 'AI Review';
         case 'screen':
             return 'Recruiter Review';
         case 'submitted':
@@ -189,6 +194,19 @@ export default async function ApplicationDetailPage({
                             </div>
                         </div>
                     </div>
+
+                    {/* AI Review Panel - Show if ai_review stage or later */}
+                    {(application.stage === 'ai_review' ||
+                        application.stage === 'screen' ||
+                        application.stage === 'submitted' ||
+                        application.stage === 'interviewing' ||
+                        application.stage === 'offer' ||
+                        application.ai_reviewed) && (
+                            <AIReviewPanel
+                                applicationId={application.id}
+                                token={token || ''}
+                            />
+                        )}
 
                     {/* Application Notes */}
                     {(application.notes || application.recruiter_notes) && (

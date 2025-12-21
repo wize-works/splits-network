@@ -100,8 +100,8 @@ async function main() {
     const collaborationService = new PlacementCollaborationService(repository, eventPublisher);
     const lifecycleService = new PlacementLifecycleService(repository, eventPublisher);
 
-    // Register all routes (Phase 1 and Phase 2)
-    registerRoutes(app, service, ownershipService, collaborationService, lifecycleService);
+    // Register all routes (Phase 1, Phase 1.5, and Phase 2)
+    registerRoutes(app, service, ownershipService, collaborationService, lifecycleService, repository, eventPublisher);
 
     // Health check endpoint
     app.get('/health', async (request, reply) => {

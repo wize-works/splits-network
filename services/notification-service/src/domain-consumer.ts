@@ -84,6 +84,12 @@ export class DomainEventConsumer {
             await this.channel.bindQueue(this.queue, this.exchange, 'application.prescreen_requested');
             await this.channel.bindQueue(this.queue, this.exchange, 'placement.created');
             
+            // Phase 1.5 events - AI Review
+            await this.channel.bindQueue(this.queue, this.exchange, 'ai_review.started');
+            await this.channel.bindQueue(this.queue, this.exchange, 'ai_review.completed');
+            await this.channel.bindQueue(this.queue, this.exchange, 'ai_review.failed');
+            await this.channel.bindQueue(this.queue, this.exchange, 'application.draft_completed');
+            
             // Phase 2 events - Ownership & Sourcing
             await this.channel.bindQueue(this.queue, this.exchange, 'candidate.sourced');
             await this.channel.bindQueue(this.queue, this.exchange, 'candidate.outreach_recorded');
@@ -176,6 +182,20 @@ export class DomainEventConsumer {
                 break;
             case 'application.prescreen_requested':
                 await this.applicationsConsumer.handlePreScreenRequested(event);
+                break;
+
+            // Phase 1.5 - AI Review events
+            case 'ai_review.started':
+                await this.applicationsConsumer.handleAIReviewStarted(event);
+                break;
+            case 'ai_review.completed':
+                await this.applicationsConsumer.handleAIReviewCompleted(event);
+                break;
+            case 'ai_review.failed':
+                await this.applicationsConsumer.handleAIReviewFailed(event);
+                break;
+            case 'application.draft_completed':
+                await this.applicationsConsumer.handleDraftCompleted(event);
                 break;
 
             // Placements domain
