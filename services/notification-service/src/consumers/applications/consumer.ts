@@ -408,12 +408,14 @@ export class ApplicationsEventConsumer {
 
     /**
      * Handle application withdrawal
+     * Note: Only candidates can withdraw their own applications (enforced in ATS service)
+     * So withdrawn_by is always 'Candidate'
      */
     async handleApplicationWithdrawn(event: DomainEvent): Promise<void> {
         try {
             const { application_id, job_id, candidate_id, recruiter_id, reason } = event.payload;
 
-            this.logger.info({ application_id }, 'Handling application withdrawal');
+            this.logger.info({ application_id }, 'Handling application withdrawal by candidate');
 
             // Fetch job details
             const jobResponse = await this.services.getAtsService().get<any>(`/jobs/${job_id}`);
@@ -426,6 +428,30 @@ export class ApplicationsEventConsumer {
             // Fetch company details
             const companyResponse = await this.services.getAtsService().get<any>(`/companies/${job.company_id}`);
             const company = companyResponse.data || companyResponse;
+
+            // Send confirmation email to candidate
+            try {
+                const candidateUserResponse = await this.services.getIdentityService().get<any>(
+                    `/users?email=${encodeURIComponent(candidate.email)}`
+                );
+                const candidateUsers = candidateUserResponse.data || candidateUserResponse;
+                
+                if (Array.isArray(candidateUsers) && candidateUsers.length > 0) {
+                    const candidateUser = candidateUsers[0];
+                    
+                    await this.emailService.sendApplicationWithdrawn(candidate.email, {
+                        candidateName: candidate.full_name,
+                        jobTitle: job.title,
+                        companyName: job.company?.name || company.name || 'Unknown Company',
+                        reason,
+                        withdrawnBy: 'Candidate',
+                        applicationId: application_id,
+                        userId: candidateUser.id,
+                    });
+                }
+            } catch (error) {
+                this.logger.warn({ candidate_id, error }, 'Failed to send withdrawal notification to candidate');
+            }
 
             // Notify recruiter if exists
             if (recruiter_id) {
@@ -440,33 +466,10 @@ export class ApplicationsEventConsumer {
                     jobTitle: job.title,
                     companyName: job.company?.name || company.name || 'Unknown Company',
                     reason,
-                    withdrawnBy: 'Recruiter',
+                    withdrawnBy: 'Candidate',
                     applicationId: application_id,
                     userId: recruiter.user_id,
                 });
-            }
-
-            // Notify company admins
-            if (company.identity_organization_id) {
-                const membershipsResponse = await this.services.getIdentityService().get<any>(
-                    `/organizations/${company.identity_organization_id}/memberships?role=admin`
-                );
-                const memberships = membershipsResponse.data || membershipsResponse;
-
-                for (const membership of Array.isArray(memberships) ? memberships : []) {
-                    const userResponse = await this.services.getIdentityService().get<any>(`/users/${membership.user_id}`);
-                    const user = userResponse.data || userResponse;
-
-                    await this.emailService.sendApplicationWithdrawn(user.email, {
-                        candidateName: candidate.full_name,
-                        jobTitle: job.title,
-                        companyName: company.name || 'Unknown Company',
-                        reason,
-                        withdrawnBy: 'Candidate',
-                        applicationId: application_id,
-                        userId: user.id,
-                    });
-                }
             }
 
             this.logger.info({ application_id }, 'Application withdrawal notifications sent');

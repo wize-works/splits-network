@@ -103,12 +103,12 @@ export function baseEmailTemplate({ preheader, content, source }: BaseEmailProps
             
             <!-- Header -->
             <tr>
-              <td style="background-color: #233876; padding: 32px 24px; text-align: center;">
+              <td style="background-color: #ffffff; padding: 32px 24px; text-align: center; border-bottom: 3px solid #233876;">
                 <table cellpadding="0" cellspacing="0" role="presentation" style="width: 100%;">
                   <tr>
                     <td style="text-align: center;">
                       <img src="${logoUrl}" alt="Splits Network" width="180" height="48" style="height: 48px; width: auto; max-width: 180px; margin: 0 auto 16px; display: block; border: 0; outline: none;" />
-                      <p style="margin: 8px 0 0; font-size: 14px; color: #e5e7eb;">
+                      <p style="margin: 8px 0 0; font-size: 14px; color: #6b7280;">
                         ${tagline}
                       </p>
                     </td>
@@ -131,7 +131,10 @@ export function baseEmailTemplate({ preheader, content, source }: BaseEmailProps
                   <tr>
                     <td style="text-align: center; padding-bottom: 16px;">
                       <a href="https://splits.network" style="color: #60a5fa; text-decoration: none; font-size: 14px; font-weight: 600;">
-                        Visit Splits Network
+                        Splits Network
+                      </a>
+                      <a href="https://applicant.network" style="color: #60a5fa; text-decoration: none; font-size: 14px; font-weight: 600; margin-left: 16px;">
+                        Applicant Network
                       </a>
                       <span style="color: #9ca3af; margin: 0 12px;">•</span>
                       <a href="https://splits.network/help" style="color: #60a5fa; text-decoration: none; font-size: 14px; font-weight: 600;">
@@ -141,7 +144,7 @@ export function baseEmailTemplate({ preheader, content, source }: BaseEmailProps
                   </tr>
                   <tr>
                     <td style="text-align: center; color: #9ca3af; font-size: 13px; line-height: 20px;">
-                      © ${new Date().getFullYear()} Splits Network. All rights reserved.
+                      © ${new Date().getFullYear()} Employment Networks, Inc. All rights reserved.
                       <br>
                       <a href="https://splits.network/privacy" style="color: #9ca3af; text-decoration: underline;">Privacy Policy</a>
                       <span style="margin: 0 8px;">•</span>
