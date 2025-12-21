@@ -170,7 +170,7 @@ export interface ApplicationRejectedData {
 
 export function applicationRejectedEmail(data: ApplicationRejectedData): string {
     const content = `
-${heading({ level: 1, text: 'Application Update', icon: '📋' })}
+${heading({ level: 1, text: 'Application Update' })}
 
 ${alert({
     type: 'warning',
@@ -221,7 +221,7 @@ export interface ApplicationWithdrawnData {
 
 export function applicationWithdrawnEmail(data: ApplicationWithdrawnData): string {
     const content = `
-${heading({ level: 1, text: 'Application Withdrawn', icon: '🔙' })}
+${heading({ level: 1, text: 'Application Withdrawn' })}
 
 ${alert({
     type: 'info',
@@ -390,7 +390,7 @@ export interface PreScreenRequestedData {
 
 export function preScreenRequestedEmail(data: PreScreenRequestedData): string {
     const content = `
-${heading({ level: 1, text: 'Pre-Screen Request', icon: '🔍' })}
+${heading({ level: 1, text: 'Pre-Screen Request' })}
 
 ${paragraph(
     `<strong>${data.requestedBy}</strong> from <strong>${data.companyName}</strong> has requested your help reviewing a candidate application.`

@@ -17,7 +17,7 @@ export interface TeamInvitationData {
 
 export function teamInvitationEmail(data: TeamInvitationData): string {
     const content = `
-${heading({ level: 1, text: "You're Invited!", icon: '🎉' })}
+${heading({ level: 1, text: "You're Invited" })}
 
 ${paragraph(
     `<strong>${data.invitedByName}</strong> has invited you to join <strong>${data.organizationName}</strong> on Splits Network as a <strong>${data.role}</strong>.`
@@ -63,7 +63,7 @@ export interface InvitationRevokedData {
 
 export function invitationRevokedEmail(data: InvitationRevokedData): string {
     const content = `
-${heading({ level: 1, text: 'Invitation Withdrawn', icon: '🔔' })}
+${heading({ level: 1, text: 'Invitation Withdrawn' })}
 
 ${alert({
     type: 'warning',

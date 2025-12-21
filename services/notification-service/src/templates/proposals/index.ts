@@ -67,7 +67,7 @@ export interface ProposalDeclinedData {
 
 export function proposalDeclinedEmail(data: ProposalDeclinedData): string {
     const content = `
-${heading({ level: 1, text: 'Proposal Not Accepted', icon: '📋' })}
+${heading({ level: 1, text: 'Proposal Not Accepted' })}
 
 ${alert({
     type: 'warning',

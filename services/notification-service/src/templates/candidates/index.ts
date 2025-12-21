@@ -165,7 +165,7 @@ export interface CollaboratorAddedData {
 
 export function collaboratorAddedEmail(data: CollaboratorAddedData): string {
     const content = `
-${heading({ level: 1, text: "You've Been Added as a Collaborator!", icon: '🤝' })}
+${heading({ level: 1, text: "You've Been Added as a Collaborator" })}
 
 ${alert({
     type: 'success',

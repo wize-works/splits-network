@@ -18,7 +18,7 @@ export interface PlacementCreatedData {
 
 export function placementCreatedEmail(data: PlacementCreatedData): string {
     const content = `
-${heading({ level: 1, text: 'Placement Confirmed! 🎉', icon: '🏆' })}
+${heading({ level: 1, text: 'Placement Confirmed' })}
 
 ${alert({
     type: 'success',
@@ -78,7 +78,7 @@ export interface PlacementActivatedData {
 
 export function placementActivatedEmail(data: PlacementActivatedData): string {
     const content = `
-${heading({ level: 1, text: 'Placement Activated', icon: '🚀' })}
+${heading({ level: 1, text: 'Placement Activated' })}
 
 ${paragraph(
     `<strong>${data.candidateName}</strong> has started their new role at <strong>${data.companyName}</strong>. The guarantee period is now active.`
@@ -133,7 +133,7 @@ export interface PlacementCompletedData {
 
 export function placementCompletedEmail(data: PlacementCompletedData): string {
     const content = `
-${heading({ level: 1, text: 'Placement Completed Successfully! ✅', icon: '🎊' })}
+${heading({ level: 1, text: 'Placement Completed Successfully' })}
 
 ${alert({
     type: 'success',
@@ -192,7 +192,7 @@ export interface PlacementFailedData {
 
 export function placementFailedEmail(data: PlacementFailedData): string {
     const content = `
-${heading({ level: 1, text: 'Placement Status Update', icon: '📋' })}
+${heading({ level: 1, text: 'Placement Status Update' })}
 
 ${alert({
     type: 'warning',

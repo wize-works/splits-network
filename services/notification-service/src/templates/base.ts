@@ -107,11 +107,9 @@ export function baseEmailTemplate({ preheader, content, source }: BaseEmailProps
                 <table cellpadding="0" cellspacing="0" role="presentation" style="width: 100%;">
                   <tr>
                     <td style="text-align: center;">
-                      <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
-                        Splits Network
-                      </h1>
+                      <img src="${logoUrl}" alt="Splits Network" style="height: 48px; width: auto; margin: 0 auto 16px; display: block;" />
                       <p style="margin: 8px 0 0; font-size: 14px; color: #e5e7eb;">
-                        Split-Fee Recruiting Marketplace
+                        ${tagline}
                       </p>
                     </td>
                   </tr>
