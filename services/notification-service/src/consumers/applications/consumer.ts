@@ -330,7 +330,14 @@ export class ApplicationsEventConsumer {
      */
     async handleRecruiterSubmittedToCompany(event: DomainEvent): Promise<void> {
         try {
-            const { application_id, job_id, candidate_id, recruiter_id, company_id } = event.payload;
+            const { application_id, job_id, candidate_id, candidate_user_id, recruiter_id, company_id } = event.payload;
+
+            console.log('[NOTIFICATION-SERVICE] 🎯 Handling recruiter submission to company:', {
+                application_id,
+                candidate_id,
+                candidate_user_id,
+                has_candidate_user_id: !!candidate_user_id,
+            });
 
             this.logger.info({ application_id }, 'Handling recruiter submission to company');
 
@@ -376,19 +383,38 @@ export class ApplicationsEventConsumer {
                 }
             }
 
-            // Also send confirmation to candidate
-            const candidateUserResponse = await this.services.getIdentityService().get<any>(`/users/by-email/${candidate.email}`);
-            const candidateUser = candidateUserResponse.data || candidateUserResponse;
+            // Send confirmation to candidate (only if they have a user account)
+            if (candidate_user_id) {
+                console.log('[NOTIFICATION-SERVICE] 📧 Fetching candidate user for email:', { candidate_user_id });
+                
+                try {
+                    const candidateUserResponse = await this.services.getIdentityService().get<any>(`/users/${candidate_user_id}`);
+                    const candidateUser = candidateUserResponse.data || candidateUserResponse;
 
-            await this.emailService.sendCandidateApplicationSubmitted(candidate.email, {
-                candidateName: candidate.full_name,
-                jobTitle: job.title,
-                companyName: job.company?.name || 'Unknown Company',
-                hasRecruiter: true,
-                nextSteps: 'Your recruiter has reviewed and submitted your application to the company. They will be in touch if there is interest.',
-                applicationId: application_id,
-                userId: candidateUser?.id,
-            });
+                    if (candidateUser) {
+                        console.log('[NOTIFICATION-SERVICE] ✅ Candidate user found, sending email');
+                        
+                        await this.emailService.sendCandidateApplicationSubmitted(candidate.email, {
+                            candidateName: candidate.full_name,
+                            jobTitle: job.title,
+                            companyName: job.company?.name || 'Unknown Company',
+                            hasRecruiter: true,
+                            nextSteps: 'Your recruiter has reviewed and submitted your application to the company. They will be in touch if there is interest.',
+                            applicationId: application_id,
+                            userId: candidateUser.id,
+                        });
+
+                        console.log('[NOTIFICATION-SERVICE] ✅ Candidate email sent successfully');
+                    } else {
+                        console.log('[NOTIFICATION-SERVICE] ⚠️ Candidate user lookup returned null/undefined');
+                    }
+                } catch (error) {
+                    console.log('[NOTIFICATION-SERVICE] ⚠️ Failed to fetch candidate user or send email:', error);
+                    this.logger.warn({ candidate_user_id, error }, 'Failed to send candidate email for recruiter submission');
+                }
+            } else {
+                console.log('[NOTIFICATION-SERVICE] ℹ️ No candidate_user_id - candidate is recruiter-managed (no email sent)');
+            }
 
             this.logger.info({ application_id }, 'Recruiter submission to company notifications sent');
         } catch (error) {

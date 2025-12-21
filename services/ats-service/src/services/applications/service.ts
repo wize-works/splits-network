@@ -606,6 +606,9 @@ export class ApplicationService {
         // Get job for audit log
         const job = await this.repository.findJobById(application.job_id);
 
+        // Get candidate to include user_id in event
+        const candidate = await this.repository.findCandidateById(application.candidate_id);
+
         // Create audit log
         await this.repository.createAuditLog({
             application_id: applicationId,
@@ -628,6 +631,7 @@ export class ApplicationService {
                 application_id: applicationId,
                 job_id: application.job_id,
                 candidate_id: application.candidate_id,
+                candidate_user_id: candidate?.user_id, // identity.users.id - can be undefined if recruiter-managed candidate
                 recruiter_id: recruiterId,
                 company_id: job?.company_id,
             },
