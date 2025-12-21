@@ -75,6 +75,7 @@ services:
       RABBITMQ_URL: amqp://splits:splits_local_dev@rabbitmq:5672
       ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:-default-encryption-secret-change-me}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-3.5-turbo}
     volumes:
       - ./services/ats-service/src:/app/services/ats-service/src
       - ./packages:/app/packages

@@ -33,7 +33,7 @@ export interface AIReviewResult {
 
 export class AIReviewService {
     private openaiApiKey: string;
-    private modelVersion: string = 'gpt-4-turbo-2024-04-09';
+    private modelVersion: string;
 
     constructor(
         private repository: AtsRepository,
@@ -41,9 +41,13 @@ export class AIReviewService {
         openaiApiKey?: string
     ) {
         this.openaiApiKey = openaiApiKey || process.env.OPENAI_API_KEY || '';
+        // Use gpt-3.5-turbo for testing (much cheaper), gpt-4-turbo for production
+        // Override with OPENAI_MODEL environment variable
+        this.modelVersion = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
         if (!this.openaiApiKey) {
             console.warn('⚠️ OPENAI_API_KEY not set. AI review service will not function.');
         }
+        console.log(`🤖 AI Review Service initialized with model: ${this.modelVersion}`);
     }
 
     /**

@@ -565,7 +565,12 @@ export class ApplicationService {
         
         console.log('[ATS-SERVICE] ✅ Event published successfully');
 
-        // 11. Return result with next steps
+        // 11. Trigger AI review in background (fire and forget)
+        this.triggerAIReviewBackground(application.id, job, candidate).catch(err => {
+            console.error('[ATS-SERVICE] AI review failed:', err);
+        });
+
+        // 12. Return result with next steps
         const nextSteps = hasRecruiter
             ? 'Your application has been sent to your recruiter for review. They will enhance and submit it to the company.'
             : 'Your application has been submitted directly to the company. They will review and contact you if interested.';
@@ -575,6 +580,74 @@ export class ApplicationService {
             hasRecruiter,
             nextSteps,
         };
+    }
+
+    /**
+     * Trigger AI review in background (non-blocking)
+     */
+    private async triggerAIReviewBackground(applicationId: string, job: any, candidate: any): Promise<void> {
+        try {
+            // Dynamically import AI review service to avoid circular dependencies
+            const { AIReviewService } = await import('../ai-review/service');
+            const aiReviewService = new AIReviewService(this.repository, this.eventPublisher);
+
+            const requirements = job.requirements || [];
+            const mandatorySkills = requirements
+                .filter((r: any) => r.requirement_type === 'mandatory')
+                .map((r: any) => r.description);
+            const preferredSkills = requirements
+                .filter((r: any) => r.requirement_type === 'preferred')
+                .map((r: any) => r.description);
+
+            const resumeContent = [
+                candidate.full_name,
+                candidate.current_title ? `Current: ${candidate.current_title}` : '',
+                candidate.current_company ? `at ${candidate.current_company}` : '',
+                candidate.location ? `Location: ${candidate.location}` : '',
+                candidate.bio || '',
+                candidate.skills ? `Skills: ${candidate.skills}` : '',
+            ].filter(Boolean).join('\n');
+
+            console.log(`[ATS-SERVICE] 🤖 Triggering AI review for application ${applicationId}`);
+
+            // Trigger AI review
+            const review = await aiReviewService.reviewApplication({
+                application_id: applicationId,
+                resume_text: resumeContent,
+                job_description: job.recruiter_description || job.description || '',
+                job_title: job.title,
+                required_skills: mandatorySkills,
+                preferred_skills: preferredSkills,
+                candidate_location: candidate.location,
+                job_location: job.location,
+                auto_transition: false, // Don't auto-transition for recruiter review
+            });
+
+            console.log(`[ATS-SERVICE] ✅ AI review completed for application ${applicationId}, fit_score: ${review.fit_score}`);
+
+            // Create audit log for AI review
+            await this.repository.createAuditLog({
+                application_id: applicationId,
+                action: 'ai_review_completed',
+                performed_by_user_id: 'system',
+                performed_by_role: 'system',
+                company_id: job.company_id,
+                new_value: {
+                    ai_reviewed: true,
+                    fit_score: review.fit_score,
+                    recommendation: review.recommendation,
+                },
+                metadata: {
+                    ai_review_id: review.id,
+                    model_version: review.model_version,
+                    processing_time_ms: review.processing_time_ms,
+                    confidence_level: review.confidence_level,
+                },
+            });
+        } catch (error) {
+            console.error(`[ATS-SERVICE] ❌ AI review failed for application ${applicationId}:`, error);
+            // Don't throw - this is background processing
+        }
     }
 
     /**

@@ -48,6 +48,8 @@ spec:
                 secretKeyRef:
                   name: openai-secrets
                   key: api-key
+            - name: OPENAI_MODEL
+              value: "gpt-3.5-turbo"  # Change to gpt-4-turbo for production
           resources:
             requests:
               cpu: 100m
