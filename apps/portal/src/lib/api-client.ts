@@ -27,13 +27,6 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Debug: Log the actual base URL being used
-if (typeof window !== 'undefined') {
-    console.log('API_BASE_URL (client):', API_BASE_URL);
-} else {
-    console.log('API_BASE_URL (server):', API_BASE_URL);
-}
-
 export class ApiClient {
     private baseUrl: string;
     private token?: string;

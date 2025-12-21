@@ -125,10 +125,6 @@ export default function ApplicationsListClient() {
 
             const response = await client.get(`/applications/paginated?${params.toString()}`);
 
-            // Debug: Check if company data is present
-            console.log('[Applications Debug] First application:', response.data?.[0]);
-            console.log('[Applications Debug] Company in first app:', response.data?.[0]?.company);
-
             setApplications(response.data || []);
             setPagination(response.pagination || pagination);
 

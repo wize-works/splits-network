@@ -73,24 +73,40 @@ The Splits Network supports **two types of candidates** based on their represent
 ```
 1. Candidate browses jobs (candidate portal)
 2. Candidate clicks "Apply"
-3. Candidate fills out application form
-4. Candidate submits directly to company
-5. Company reviews application
-6. Company decides to interview/reject
+3. Candidate fills out application form (draft stage)
+4. Candidate submits application
    ↓
-7. If hired: No placement fee
+5. AI Review (automatic, < 30 seconds)
+   - AI analyzes resume vs job description
+   - Generates fit score (0-100)
+   - Identifies strengths and concerns
+   - Provides recommendation
+   - Candidate notified with AI insights
+   ↓
+6. Application submitted to company (submitted stage)
+7. Company reviews application + AI insights
+8. Company conducts interviews (interview stage)
+9. Company makes offer (offer stage)
+   ↓
+10. If hired: No placement fee to recruiter
 ```
+
+**Application Stages:**
+- `draft` → `ai_review` → `submitted` → `interview` → `offer` → `hired`/`rejected`/`withdrawn`
 
 **Key Points:**
 - Candidate has full control
 - No recruiter intermediary
 - No representation agreement needed
-- Company receives application directly
+- **AI provides immediate fit assessment** (advisory, non-blocking)
+- Company receives application with AI insights
 - Platform may charge small platform fee to candidate or company
 
 **Portal:** `apps/candidate` (Candidate Portal)
 
 **API Endpoint:** `POST /api/applications` (with `application_source: 'direct'`)
+
+**See Implementation:** `docs/implementation-plans/ai-assisted-application-flow.md`
 
 ---
 
@@ -99,26 +115,107 @@ The Splits Network supports **two types of candidates** based on their represent
 ```
 1. Recruiter has candidate in their network (active relationship)
 2. Recruiter finds suitable job
-3. Recruiter reviews candidate fit
-4. Recruiter creates draft application (recruiter portal)
-5. Recruiter adds insights/notes about candidate
-6. Recruiter submits application on behalf of candidate
-7. Company reviews application + recruiter insights
-8. Company decides to interview/reject
+3. Recruiter creates draft application (recruiter portal)
+4. Recruiter adds insights/notes about candidate
+5. Recruiter submits draft for AI review
    ↓
-9. If hired: Placement fee paid to recruiter
+6. AI Review (automatic, < 30 seconds)
+   - AI analyzes candidate fit for role
+   - Generates fit score and insights
+   - Both recruiter and candidate notified
+   ↓
+7. Recruiter conducts phone screen (screen stage)
+   - Reviews AI insights before screen
+   - Validates candidate interest
+   - Assesses communication and fit
+   - Makes decision: Submit to company or decline
+   ↓
+8a. Recruiter approves → Application submitted to company (submitted stage)
+    - Company reviews application + recruiter insights + AI analysis
+    - Company conducts interviews (interview stage)
+    - Company makes offer (offer stage)
+    ↓
+    If hired: Placement fee paid to recruiter
+
+8b. Recruiter declines → Application rejected
+    - Candidate notified with feedback
+    - Application not submitted to company
 ```
 
+**Application Stages:**
+- `draft` → `ai_review` → `screen` → `submitted` → `interview` → `offer` → `hired`/`rejected`/`withdrawn`
+
 **Key Points:**
-- Recruiter acts as advocate
-- Professional vetting and presentation
-- Recruiter insights add value for companies
+- Recruiter acts as advocate with AI-powered insights
+- **AI review happens BEFORE recruiter screen** to inform decision
+- Professional vetting enhanced by AI analysis
+- Recruiter makes final decision on whether to submit
+- Recruiter insights + AI insights add value for companies
 - Placement fee justified by recruiter's work
 - Candidate must have given explicit consent
 
 **Portal:** `apps/portal` (Recruiter Portal)
 
 **API Endpoint:** `POST /api/applications` (with `application_source: 'recruiter'`)
+
+**See Implementation:** `docs/implementation-plans/ai-assisted-application-flow.md`
+
+---
+
+## AI-Assisted Application Screening
+
+**Introduced:** Phase 1.5 (Q1 2026)  
+**Mode:** Advisory (non-blocking)  
+**Purpose:** Evaluate candidate-job fit automatically to assist recruiters and companies
+
+### How AI Review Works
+
+When an application is submitted (either by candidate or recruiter), it automatically enters the `ai_review` stage where:
+
+1. **AI analyzes:**
+   - Resume/CV content vs job description
+   - Skills match (required and preferred)
+   - Experience level alignment
+   - Location compatibility
+   - Overall candidate-job fit
+
+2. **AI generates:**
+   - Fit Grade (A-F)
+   - Fit score (0-100)
+   - Recommendation (strong/good/fair/poor fit)
+   - Strengths (3-5 key matching points)
+   - Concerns (0-3 potential issues)
+   - Skills match breakdown (matched vs missing)
+
+3. **AI notifies:**
+   - Candidate: Basic fit feedback and confirmation
+   - Recruiter (if represented): Detailed insights before screen
+   - Company (when submitted): Full analysis with application
+
+### Advisory Mode (Default)
+
+**Current implementation:**
+- AI provides insights but does NOT block applications
+- All applications proceed to next stage regardless of score
+- Human decision-makers (recruiters/companies) have final say
+- Transparent scoring visible to all parties
+
+**Why advisory?**
+- Avoids AI false negatives blocking good candidates
+- Maintains human oversight and judgment
+- Builds trust in AI system before introducing gatekeeping
+- Complies with fair hiring practices
+
+### Future: Gatekeeper Mode (Paid Feature)
+
+**Planned for Phase 3 (Q3 2026):**
+- Companies can opt-in to auto-reject applications below threshold
+- Requires paid feature upgrade per job posting
+- Minimum score set by company (e.g., 60/100)
+- Rejected candidates notified with basic feedback
+- Companies can review auto-rejected candidates if desired
+
+**See full details:** `docs/implementation-plans/ai-assisted-application-flow.md`
 
 ---
 
@@ -303,7 +400,7 @@ recruiter_id UUID NULL  -- NULL for direct, populated for represented
 application_source VARCHAR(50) -- 'direct' or 'recruiter'
 candidate_id UUID NOT NULL
 job_id UUID NOT NULL
-stage VARCHAR(50) -- draft, screen, submitted, etc.
+stage VARCHAR(50) -- draft, ai_review, screen, submitted, interview, offer, hired, rejected, withdrawn
 recruiter_notes TEXT -- Only for represented applications
 ```
 
