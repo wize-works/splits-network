@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { createAuthenticatedClient } from '@/lib/api-client';
 import { useViewMode } from '@/hooks/use-view-mode';
@@ -127,19 +127,11 @@ export default function ApplicationsListClient() {
         const timer = setTimeout(() => {
             // Reset to page 1 when search/filter changes
             setPagination(prev => ({ ...prev, page: 1 }));
-            loadApplications();
         }, 300);
         return () => clearTimeout(timer);
     }, [searchQuery, stageFilter]);
 
-    // Load when pagination changes
-    useEffect(() => {
-        if (pagination.page > 0) {
-            loadApplications();
-        }
-    }, [pagination.page]);
-
-    const loadApplications = async () => {
+    const loadApplications = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -199,7 +191,14 @@ export default function ApplicationsListClient() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [getToken, searchQuery, stageFilter, pagination.page, pagination.limit, sanitizeSearchQuery]);
+
+    // Load when pagination changes
+    useEffect(() => {
+        if (pagination.page > 0) {
+            loadApplications();
+        }
+    }, [pagination.page, loadApplications]);
 
     const handleAcceptApplication = async (applicationId: string) => {
         try {
