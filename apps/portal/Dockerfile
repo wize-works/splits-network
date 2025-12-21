@@ -1,4 +1,5 @@
 # Base stage with Node.js and pnpm
+# Force rebuild: 2025-12-21-001
 FROM node:20-alpine AS base
 RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
 WORKDIR /app
