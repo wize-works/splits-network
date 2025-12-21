@@ -136,8 +136,7 @@ export class IdentityRepository {
                 users:user_id (
                     id,
                     email,
-                    first_name,
-                    last_name
+                    name
                 )
             `)
             .eq('organization_id', orgId)
