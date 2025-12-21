@@ -123,18 +123,19 @@ jobs:
               run: |
                   VERSION=$(cat VERSION)
                   RELEASE="${{ matrix.service.name }}@v${VERSION}"
+                  PROJECT_SLUG="${{ matrix.service.name }}"
 
                   # Install Sentry CLI
                   curl -sL https://sentry.io/get-cli/ | bash
 
                   # Create release
-                  sentry-cli releases new $RELEASE --finalize
+                  sentry-cli releases new $RELEASE --project $PROJECT_SLUG --finalize
 
                   # Associate commits
-                  sentry-cli releases set-commits $RELEASE --auto
+                  sentry-cli releases set-commits $RELEASE --project $PROJECT_SLUG --auto
 
                   # Deploy to production
-                  sentry-cli releases deploys $RELEASE new -e production
+                  sentry-cli releases deploys $RELEASE --project $PROJECT_SLUG new -e production
 
     deploy:
         name: Deploy to AKS
