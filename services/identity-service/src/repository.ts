@@ -133,7 +133,7 @@ export class IdentityRepository {
                 role,
                 created_at,
                 user_id,
-                users:user_id (
+                user:user_id (
                     id,
                     email,
                     name

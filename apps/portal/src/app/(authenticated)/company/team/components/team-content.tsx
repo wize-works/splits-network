@@ -12,9 +12,8 @@ interface TeamMember {
     role: string;
     user?: {
         id: string;
-        full_name?: string;
+        name?: string;
         email: string;
-        clerk_user_id: string;
     };
     created_at: string;
 }
@@ -100,7 +99,7 @@ export default function TeamManagementContent({ organizationId }: TeamManagement
             }
 
             const client = createAuthenticatedClient(token);
-            
+
             // Create invitation in our system
             await client.post('/invitations', {
                 email: inviteEmail.toLowerCase(),
@@ -112,7 +111,7 @@ export default function TeamManagementContent({ organizationId }: TeamManagement
             setSuccess(`Invitation sent to ${inviteEmail}. They will receive an email with instructions to join.`);
             setInviteEmail('');
             setInviteRole('hiring_manager');
-            
+
             // Refresh invitations list
             fetchInvitations();
         } catch (error: any) {
@@ -134,7 +133,7 @@ export default function TeamManagementContent({ organizationId }: TeamManagement
 
             const client = createAuthenticatedClient(token);
             await client.delete(`/invitations/${invitationId}`);
-            
+
             setSuccess(`Revoked invitation for ${email}`);
             fetchInvitations();
         } catch (error: any) {
@@ -154,7 +153,7 @@ export default function TeamManagementContent({ organizationId }: TeamManagement
 
             const client = createAuthenticatedClient(token);
             await client.delete(`/memberships/${membershipId}`);
-            
+
             setSuccess(`Removed ${memberName} from team`);
             fetchTeamMembers();
         } catch (error: any) {
@@ -358,10 +357,10 @@ export default function TeamManagementContent({ organizationId }: TeamManagement
                                         <tr key={member.id}>
                                             <td>
                                                 <div className="flex items-center gap-3">
-                                                    <div className="avatar placeholder">
+                                                    <div className="avatar avatar-placeholder">
                                                         <div className="bg-neutral text-neutral-content rounded-full w-10">
                                                             <span className="text-xs">
-                                                                {(member.user?.full_name || member.user?.email || 'U')
+                                                                {(member.user?.name || member.user?.email || 'U')
                                                                     .substring(0, 2)
                                                                     .toUpperCase()}
                                                             </span>
@@ -369,7 +368,7 @@ export default function TeamManagementContent({ organizationId }: TeamManagement
                                                     </div>
                                                     <div>
                                                         <div className="font-medium">
-                                                            {member.user?.full_name || 'Unknown'}
+                                                            {member.user?.name || 'Unknown'}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -388,7 +387,7 @@ export default function TeamManagementContent({ organizationId }: TeamManagement
                                                         onClick={() =>
                                                             handleRemoveMember(
                                                                 member.id,
-                                                                member.user?.full_name || member.user?.email || 'user'
+                                                                member.user?.name || member.user?.email || 'user'
                                                             )
                                                         }
                                                     >

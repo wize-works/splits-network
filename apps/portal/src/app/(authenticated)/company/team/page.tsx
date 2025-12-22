@@ -44,7 +44,7 @@ export default async function CompanyTeamPage() {
         redirect('/dashboard');
     }
 
-    const organizationId = companyMembership.organization?.id;
+    const organizationId = companyMembership.organization_id;
 
     return (
         <div className="container mx-auto py-6 px-4 max-w-6xl">

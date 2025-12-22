@@ -7,24 +7,17 @@ import { useEffect, useState } from 'react';
 import { createAuthenticatedClient } from '@/lib/api-client';
 
 const navItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: 'fa-house' },
-    { href: '/roles', label: 'Roles', icon: 'fa-briefcase' },
-    { href: '/candidates', label: 'Candidates', icon: 'fa-users' },
-    { href: '/invitations', label: 'Invitations', icon: 'fa-envelope' },
+    { href: '/dashboard', label: 'Dashboard', icon: 'fa-house', roles: ['all'] },
+    { href: '/roles', label: 'Roles', icon: 'fa-briefcase', roles: ['all'] },
+    { href: '/invitations', label: 'Invitations', icon: 'fa-envelope', roles: ['recruiter'] },
+    { href: '/candidates', label: 'Candidates', icon: 'fa-users', roles: ['recruiter', 'platform_admin'] },
     // { href: '/proposals', label: 'Proposals', icon: 'fa-handshake', badge: true }, // commented out for future use
-    { href: '/placements', label: 'Placements', icon: 'fa-trophy' },
-];
-
-const recruiterNavItems = [
-    { href: '/applications', label: 'Applications', icon: 'fa-file-lines' },
-    { href: '/profile', label: 'Profile', icon: 'fa-user' },
-    { href: '/billing', label: 'Billing', icon: 'fa-credit-card' },
-];
-
-const companyNavItems = [
-    { href: '/company/settings', label: 'Company Settings', icon: 'fa-building' },
-    { href: '/company/team', label: 'Team', icon: 'fa-user-group' },
-    { href: '/billing', label: 'Billing', icon: 'fa-credit-card' },
+    { href: '/applications', label: 'Applications', icon: 'fa-file-lines', roles: ['company_admin', 'hiring_manager'] },
+    { href: '/placements', label: 'Placements', icon: 'fa-trophy', roles: ['recruiter', 'platform_admin'] },
+    { href: '/profile', label: 'Profile', icon: 'fa-user', roles: ['recruiter'] },
+    { href: '/billing', label: 'Billing', icon: 'fa-credit-card', roles: ['all'] },
+    { href: '/company/settings', label: 'Company Settings', icon: 'fa-building', roles: ['company_admin', 'hiring_manager'] },
+    { href: '/company/team', label: 'Team', icon: 'fa-user-group', roles: ['company_admin', 'hiring_manager'] },
 ];
 
 const adminNavItems = [
@@ -84,74 +77,30 @@ export function Sidebar() {
 
                 {/* Navigation */}
                 <nav className="flex-1 px-3 py-2">
-                    {navItems.map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors mb-1 ${isActive
-                                    ? 'bg-primary text-primary-content font-medium'
-                                    : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
-                                    }`}
-                            >
-                                <i className={`fa-solid ${item.icon} w-4 text-center`}></i>
-                                {item.label}
-                            </Link>
-                        );
-                    })}
-
-                    {/* Recruiter Section */}
-                    {isRecruiter && recruiterNavItems.length > 0 && (
-                        <>
-                            <div className="divider my-2"></div>
-                            <div className="px-3 py-1 text-xs font-semibold text-base-content/50 uppercase tracking-wider">
-                                Recruiter
-                            </div>
-                            {recruiterNavItems.map((item) => {
-                                const isActive = pathname === item.href;
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors mb-1 ${isActive
-                                            ? 'bg-primary text-primary-content font-medium'
-                                            : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
-                                            }`}
-                                    >
-                                        <i className={`fa-solid ${item.icon} w-4 text-center`}></i>
-                                        {item.label}
-                                    </Link>
-                                );
-                            })}
-                        </>
-                    )}
-
-                    {/* Company Management Section */}
-                    {isCompanyUser && (
-                        <>
-                            <div className="divider my-2"></div>
-                            <div className="px-3 py-1 text-xs font-semibold text-base-content/50 uppercase tracking-wider">
-                                Company
-                            </div>
-                            {companyNavItems.map((item) => {
-                                const isActive = pathname === item.href;
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors mb-1 ${isActive
-                                            ? 'bg-primary text-primary-content font-medium'
-                                            : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
-                                            }`}
-                                    >
-                                        <i className={`fa-solid ${item.icon} w-4 text-center`}></i>
-                                        {item.label}
-                                    </Link>
-                                );
-                            })}
-                        </>
-                    )}
+                    {navItems
+                        .filter((item) => {
+                            if (item.roles.includes('all')) return true;
+                            if (isAdmin) return true; // Admins see everything
+                            if (isRecruiter && item.roles.includes('recruiter')) return true;
+                            if (isCompanyUser && (item.roles.includes('company_admin') || item.roles.includes('hiring_manager'))) return true;
+                            return false;
+                        })
+                        .map((item) => {
+                            const isActive = pathname === item.href;
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors mb-1 ${isActive
+                                        ? 'bg-primary text-primary-content font-medium'
+                                        : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
+                                        }`}
+                                >
+                                    <i className={`fa-solid ${item.icon} w-4 text-center`}></i>
+                                    {item.label}
+                                </Link>
+                            );
+                        })}
 
                     {/* Admin Section */}
                     {isAdmin && adminNavItems.length > 0 && (

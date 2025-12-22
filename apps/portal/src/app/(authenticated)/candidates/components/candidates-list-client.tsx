@@ -21,31 +21,24 @@ export default function CandidatesListClient() {
             try {
                 setLoading(true);
                 setError(null);
-                
+
                 const token = await getToken();
                 if (!token) {
                     setError('Not authenticated');
                     return;
                 }
-                
+
                 const client = createAuthenticatedClient(token);
-                
+
                 // Get user profile to check role
                 const profileRes = await client.get('/me');
                 const profile = profileRes.data;
-                
+
                 // Determine user role
                 const membership = profile?.memberships?.[0];
                 const role = membership?.role;
                 setUserRole(role);
-                
-                // Company users should only see their submitted candidates via applications
-                if (role === 'company_admin' || role === 'hiring_manager') {
-                    // Redirect to applications page instead
-                    window.location.href = '/applications';
-                    return;
-                }
-                
+
                 // Fetch candidates (API Gateway filters based on role automatically)
                 // - Recruiters see: Candidates they sourced OR have active relationships with
                 // - Admins see: All candidates
@@ -156,14 +149,14 @@ export default function CandidatesListClient() {
                             />
                         </div>
                         <div className="join">
-                            <button 
+                            <button
                                 className={`btn join-item ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
                                 onClick={() => setViewMode('grid')}
                                 title="Grid View"
                             >
                                 <i className="fa-solid fa-grip"></i>
                             </button>
-                            <button 
+                            <button
                                 className={`btn join-item ${viewMode === 'table' ? 'btn-primary' : 'btn-ghost'}`}
                                 onClick={() => setViewMode('table')}
                                 title="Table View"
