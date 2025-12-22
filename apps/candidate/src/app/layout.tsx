@@ -49,7 +49,7 @@ export default function RootLayout({
                         referrerPolicy="no-referrer"
                     />
                 </head>
-                <body className="flex flex-col min-h-screen">
+                <body className="flex flex-col min-h-screen bg-base-200">
                     <Header />
                     <main className="flex-1">
                         {children}

@@ -220,8 +220,8 @@ async function main() {
             return;
         }
         
-        // Skip auth for public API endpoints (candidate website, etc.)
-        if (request.url.startsWith('/api/public/')) {
+        // Skip auth for public API endpoints (candidate website, marketplace browsing, etc.)
+        if (request.url.startsWith('/api/public/') || request.url.startsWith('/api/marketplace/')) {
             return;
         }
         

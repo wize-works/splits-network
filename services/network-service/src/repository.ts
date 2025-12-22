@@ -604,6 +604,40 @@ export class NetworkRepository {
 
         if (error) throw error;
 
+        // Enrich with user data (name, email) from identity.users
+        if (data && data.length > 0) {
+            const userIds = data.map(r => r.user_id);
+            console.log('[MARKETPLACE] Enriching data for user IDs:', userIds);
+            
+            const { data: users, error: userError } = await this.supabase
+                .schema('identity')
+                .from('users')
+                .select('id, name, email')
+                .in('id', userIds);
+
+            console.log('[MARKETPLACE] Users fetched:', users);
+            console.log('[MARKETPLACE] User fetch error:', userError);
+
+            if (!userError && users) {
+                const userMap = new Map(users.map(u => [u.id, u]));
+                const enrichedData = data.map(recruiter => {
+                    const user = userMap.get(recruiter.user_id);
+                    return {
+                        ...recruiter,
+                        user_name: user?.name,
+                        user_email: user?.email,
+                    };
+                });
+
+                console.log('[MARKETPLACE] Enriched data:', JSON.stringify(enrichedData, null, 2));
+
+                return {
+                    data: enrichedData,
+                    total: count || 0,
+                };
+            }
+        }
+
         return {
             data: data || [],
             total: count || 0,
@@ -626,6 +660,25 @@ export class NetworkRepository {
             if (error.code === 'PGRST116') return null;
             throw error;
         }
+
+        // Enrich with user data
+        if (data) {
+            const { data: user, error: userError } = await this.supabase
+                .schema('identity')
+                .from('users')
+                .select('id, name, email')
+                .eq('id', data.user_id)
+                .single();
+
+            if (!userError && user) {
+                return {
+                    ...data,
+                    user_name: user.name,
+                    user_email: user.email,
+                };
+            }
+        }
+
         return data;
     }
 

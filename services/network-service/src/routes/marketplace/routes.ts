@@ -75,6 +75,8 @@ export function registerMarketplaceRoutes(app: FastifyInstance, service: Network
             const recruiterData: any = {
                 id: recruiter.id,
                 user_id: recruiter.user_id,
+                user_name: recruiter.user_name,
+                user_email: recruiter.user_email,
                 marketplace_tagline: recruiter.marketplace_tagline,
                 marketplace_industries: recruiter.marketplace_industries,
                 marketplace_specialties: recruiter.marketplace_specialties,
@@ -130,6 +132,8 @@ export function registerMarketplaceRoutes(app: FastifyInstance, service: Network
         const recruiterData: any = {
             id: recruiter.id,
             user_id: recruiter.user_id,
+            user_name: recruiter.user_name,
+            user_email: recruiter.user_email,
             marketplace_tagline: recruiter.marketplace_tagline,
             marketplace_industries: recruiter.marketplace_industries,
             marketplace_specialties: recruiter.marketplace_specialties,
