@@ -11,7 +11,17 @@ import { MarketplaceSettings } from './components/marketplace-settings';
 export default function SettingsPage() {
     const router = useRouter();
     const { getToken, isLoaded } = useAuth();
-    const [isRecruiter, setIsRecruiter] = useState(false);
+    const [userRoles, setUserRoles] = useState<{
+        isRecruiter: boolean;
+        isCompanyAdmin: boolean;
+        isHiringManager: boolean;
+        isPlatformAdmin: boolean;
+    }>({
+        isRecruiter: false,
+        isCompanyAdmin: false,
+        isHiringManager: false,
+        isPlatformAdmin: false,
+    });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -29,11 +39,12 @@ export default function SettingsPage() {
                 const profile: any = await apiClient.get('/me');
                 const memberships = profile.data?.memberships || [];
 
-                const hasRecruiterRole = memberships.some(
-                    (m: any) => m.role === 'recruiter'
-                );
-
-                setIsRecruiter(hasRecruiterRole);
+                setUserRoles({
+                    isRecruiter: memberships.some((m: any) => m.role === 'recruiter'),
+                    isCompanyAdmin: memberships.some((m: any) => m.role === 'company_admin'),
+                    isHiringManager: memberships.some((m: any) => m.role === 'hiring_manager'),
+                    isPlatformAdmin: memberships.some((m: any) => m.role === 'platform_admin'),
+                });
                 setLoading(false);
             } catch (error) {
                 console.error('Failed to check user role:', error);
@@ -57,16 +68,48 @@ export default function SettingsPage() {
             <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
 
             <div className="space-y-4">
-                {/* Profile & Account Card */}
+                {/* Profile & Account Card - Available to ALL users */}
                 <UserProfileSettings />
 
                 {/* Recruiter Profile (Recruiters Only) */}
-                {isRecruiter && <ProfileSettings />}
+                {userRoles.isRecruiter && <ProfileSettings />}
 
                 {/* Marketplace Settings (Recruiters Only) */}
-                {isRecruiter && <MarketplaceSettings />}
+                {userRoles.isRecruiter && <MarketplaceSettings />}
 
-                {/* Notifications Card (Future) */}
+                {/* Company Settings - Future (Company Admins & Hiring Managers) */}
+                {(userRoles.isCompanyAdmin || userRoles.isHiringManager) && (
+                    <div className="card bg-base-100 shadow-sm opacity-60">
+                        <div className="card-body">
+                            <h2 className="card-title">
+                                <i className="fa-solid fa-building"></i>
+                                Company Settings
+                                <div className="badge badge-sm">Coming Soon</div>
+                            </h2>
+                            <p className="text-sm text-base-content/70">
+                                Manage company profile, branding, and hiring preferences
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Platform Administration (Platform Admins Only) */}
+                {userRoles.isPlatformAdmin && (
+                    <div className="card bg-base-100 shadow-sm opacity-60">
+                        <div className="card-body">
+                            <h2 className="card-title">
+                                <i className="fa-solid fa-shield-halved"></i>
+                                Platform Administration
+                                <div className="badge badge-sm">Coming Soon</div>
+                            </h2>
+                            <p className="text-sm text-base-content/70">
+                                Platform-wide settings, user management, and analytics
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Notifications Card (Future - All users) */}
                 <div className="card bg-base-100 shadow-sm opacity-60">
                     <div className="card-body">
                         <h2 className="card-title">
@@ -80,19 +123,21 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                {/* Integrations Card (Future) */}
-                <div className="card bg-base-100 shadow-sm opacity-60">
-                    <div className="card-body">
-                        <h2 className="card-title">
-                            <i className="fa-solid fa-plug"></i>
-                            Integrations
-                            <div className="badge badge-sm">Coming Soon</div>
-                        </h2>
-                        <p className="text-sm text-base-content/70">
-                            Connect to external services and ATS platforms
-                        </p>
+                {/* Integrations Card (Future - Available based on role) */}
+                {(userRoles.isRecruiter || userRoles.isCompanyAdmin || userRoles.isPlatformAdmin) && (
+                    <div className="card bg-base-100 shadow-sm opacity-60">
+                        <div className="card-body">
+                            <h2 className="card-title">
+                                <i className="fa-solid fa-plug"></i>
+                                Integrations
+                                <div className="badge badge-sm">Coming Soon</div>
+                            </h2>
+                            <p className="text-sm text-base-content/70">
+                                Connect to external services and ATS platforms
+                            </p>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
