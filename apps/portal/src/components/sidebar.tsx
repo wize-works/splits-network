@@ -18,11 +18,13 @@ const navItems = [
 const recruiterNavItems = [
     { href: '/applications', label: 'Applications', icon: 'fa-file-lines' },
     { href: '/profile', label: 'Profile', icon: 'fa-user' },
+    { href: '/billing', label: 'Billing', icon: 'fa-credit-card' },
 ];
 
 const companyNavItems = [
     { href: '/company/settings', label: 'Company Settings', icon: 'fa-building' },
     { href: '/company/team', label: 'Team', icon: 'fa-user-group' },
+    { href: '/billing', label: 'Billing', icon: 'fa-credit-card' },
 ];
 
 const adminNavItems = [
