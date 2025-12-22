@@ -142,6 +142,109 @@ export class UsersService {
             email: user.email,
             name: user.name,
             memberships: membershipDTOs,
+            onboarding_status: user.onboarding_status,
+            onboarding_step: user.onboarding_step,
+            onboarding_completed_at: user.onboarding_completed_at,
         };
+    }
+
+    /**
+     * Update onboarding progress for a user
+     */
+    async updateOnboardingProgress(
+        userId: string,
+        step: number,
+        status?: 'pending' | 'in_progress' | 'completed' | 'skipped'
+    ): Promise<User> {
+        const user = await this.repository.findUserById(userId);
+        if (!user) {
+            throw new Error(`User ${userId} not found`);
+        }
+
+        const updates: any = { onboarding_step: step };
+        if (status) {
+            updates.onboarding_status = status;
+        }
+
+        return await this.repository.updateUser(userId, updates);
+    }
+
+    /**
+     * Complete onboarding and create associated entities
+     * This is called after the user completes the onboarding wizard
+     */
+    async completeOnboarding(
+        userId: string,
+        role: 'recruiter' | 'company_admin',
+        data: {
+            recruiter?: {
+                bio?: string;
+                phone?: string;
+                industries?: string[];
+                specialties?: string[];
+            };
+            company?: {
+                name: string;
+                website?: string;
+                industry?: string;
+                size?: string;
+            };
+        }
+    ): Promise<{ user: User; organizationId: string }> {
+        const user = await this.repository.findUserById(userId);
+        if (!user) {
+            throw new Error(`User ${userId} not found`);
+        }
+
+        // Mark onboarding as completed
+        const updatedUser = await this.repository.updateUser(userId, {
+            onboarding_status: 'completed',
+            onboarding_completed_at: new Date(),
+        });
+
+        // Create organization and membership based on role
+        let organizationId: string;
+        
+        if (role === 'recruiter') {
+            // Create personal recruiter organization
+            const org = await this.repository.createOrganization({
+                name: `${user.name}'s Organization`,
+                type: 'recruiter',
+            });
+            organizationId = org.id;
+
+            // Create membership
+            await this.repository.createMembership({
+                user_id: userId,
+                organization_id: org.id,
+                role: 'recruiter',
+            });
+
+            // Note: Recruiter profile creation will be handled by network-service
+            // via API call from API gateway
+        } else {
+            // Create company organization
+            if (!data.company?.name) {
+                throw new Error('Company name is required');
+            }
+
+            const org = await this.repository.createOrganization({
+                name: data.company.name,
+                type: 'company',
+            });
+            organizationId = org.id;
+
+            // Create membership
+            await this.repository.createMembership({
+                user_id: userId,
+                organization_id: org.id,
+                role: 'company_admin',
+            });
+
+            // Note: Company record creation will be handled by ats-service
+            // via API call from API gateway
+        }
+
+        return { user: updatedUser, organizationId };
     }
 }

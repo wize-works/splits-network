@@ -40,6 +40,14 @@ const userContextCache = new Map<string, CachedUserContext>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
+ * Clear user context cache for a specific Clerk user ID
+ * Call this after operations that change user memberships (onboarding, role changes, etc.)
+ */
+export function clearUserContextCache(clerkUserId: string): void {
+    userContextCache.delete(clerkUserId);
+}
+
+/**
  * Helper to resolve internal user ID and memberships from Clerk ID
  * Uses in-memory cache to avoid hitting identity service on every request
  */

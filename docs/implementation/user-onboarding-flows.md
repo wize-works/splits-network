@@ -1,21 +1,31 @@
 # User Onboarding Flows - Complete Implementation Guide
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Created:** December 21, 2025  
+**Updated:** December 22, 2025  
 **Status:** Implementation Ready
 
 ## 1. Overview
 
-This document outlines the complete implementation of role-based user onboarding for Splits Network. The onboarding flow is seamless, happening entirely within the sign-up page, and supports both self-signup and invitation-based paths.
+This document outlines the complete implementation of role-based user onboarding for Splits Network. The onboarding flow uses a two-phase approach:
+
+1. **Phase 1: Account Creation** - Users complete basic sign-up and email verification via Clerk
+2. **Phase 2: Onboarding Wizard** - After entering the dashboard, users complete a mandatory modal wizard to select their role, subscription plan, and provide required profile information
+
+This approach provides lower friction for initial sign-up while ensuring all users complete the necessary onboarding steps before using the platform.
 
 ### 1.1 Core Requirements
 
 - **Clerk Integration**: User authentication and email verification
-- **Role Selection**: User chooses their role during sign-up
+- **Dashboard Entry**: Users enter the platform after email verification
+- **Mandatory Onboarding Wizard**: Modal wizard that appears on dashboard until completed
+- **Progress Tracking**: Database fields track onboarding status and current step
+- **Role Selection**: User chooses their role in the wizard (Recruiter or Company Admin)
+- **Subscription Plan Selection**: Placeholder step for future Stripe integration
 - **Role-Specific Data Collection**: Collect minimum required data for each role
 - **Organization & Entity Creation**: Automatic creation of organizations, companies, teams, etc.
-- **Invitation Support**: Users can sign up via invitation links
-- **Progress Persistence**: Save onboarding state to allow users to resume
+- **Invitation Support**: Users can sign up via invitation links (skips role selection)
+- **Progress Persistence**: Users can resume incomplete onboarding across sessions
 - **Seamless UX**: Multi-step wizard with clear progress indicators
 
 ### 1.2 Supported Roles
@@ -24,6 +34,28 @@ This document outlines the complete implementation of role-based user onboarding
 2. **Company Admin** (self-signup only)
 3. **Hiring Manager** (invitation-only)
 4. **Platform Admin** (manual provisioning only - not covered in this flow)
+
+### 1.3 Database Schema for Onboarding Tracking
+
+The `identity.users` table tracks onboarding progress:
+
+```sql
+ALTER TABLE identity.users 
+  ADD COLUMN IF NOT EXISTS onboarding_status VARCHAR(50) DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS onboarding_step INTEGER DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP;
+
+-- Possible values for onboarding_status:
+-- 'pending' - User has signed up but not started onboarding wizard
+-- 'in_progress' - User has started wizard but not completed
+-- 'completed' - User has completed all onboarding steps
+-- 'skipped' - User was invited and skipped wizard (role predetermined)
+```
+
+**Fields:**
+- `onboarding_status`: Current state of onboarding
+- `onboarding_step`: Current step number (1-4) for resuming
+- `onboarding_completed_at`: Timestamp when onboarding was completed
 
 ---
 
@@ -43,66 +75,86 @@ This document outlines the complete implementation of role-based user onboarding
 ### 3.1 Self-Signup Flow: Recruiter
 
 **User Journey:**
+
+**Phase 1: Account Creation**
 1. User lands on `/sign-up`
 2. Completes Clerk sign-up (email + password)
 3. Verifies email via Clerk
-4. Selects "Recruiter" role
-5. Enters recruiter profile data
-6. (Optional) Enters team invite code to join existing team
-7. System creates:
-   - User in `identity.users` (synced from Clerk)
-   - Personal organization in `identity.organizations`
-   - Membership in `identity.memberships` (role: `recruiter`)
-   - Recruiter profile in `network.recruiters` (status: `pending`)
-   - (Optional) Team membership in `network.team_members`
-8. Redirects to recruiter dashboard
+4. System creates minimal user record in `identity.users` with:
+   - `clerk_user_id`, `email`, `name`
+   - `onboarding_status: 'pending'`
+   - `onboarding_step: 1`
+5. **Redirects to `/dashboard`**
+
+**Phase 2: Onboarding Wizard (Modal)**
+6. Dashboard detects `onboarding_status: 'pending'`
+7. **Shows mandatory modal wizard** (cannot be dismissed)
+8. **Step 1: Role Selection** - User selects "Recruiter"
+   - Updates `onboarding_step: 2`, `onboarding_status: 'in_progress'`
+9. **Step 2: Subscription Plan** - Placeholder step with "Continue" button
+   - Updates `onboarding_step: 3`
+   - *(Future: Will integrate Stripe subscription selection)*
+10. **Step 3: Recruiter Profile** - User enters profile data
+    - Bio/tagline (optional)
+    - Phone number (optional)
+    - Industries (optional)
+    - Team invite code (optional)
+11. **Step 4: Complete** - System creates all entities:
+    - Personal organization in `identity.organizations`
+    - Membership in `identity.memberships` (role: `recruiter`)
+    - Recruiter profile in `network.recruiters` (status: `pending`)
+    - (Optional) Team membership via invite code
+    - Updates `onboarding_status: 'completed'`, `onboarding_completed_at: NOW()`
+12. Modal closes, user can now use the dashboard
 
 **Required Data:**
 - ✅ Name (from Clerk)
 - ✅ Email (from Clerk)
-- ⚠️ Phone number (optional, recommended)
-- ⚠️ Bio/tagline (optional, can complete later)
-- ⚠️ Industries/specialties (optional, can complete later)
-- ⚠️ Team invite code (optional)
+- ✅ Role selection (in wizard)
+- ⚠️ Phone number (optional, in wizard)
+- ⚠️ Bio/tagline (optional, in wizard)
+- ⚠️ Industries/specialties (optional, in wizard)
+- ⚠️ Team invite code (optional, in wizard)
 
 **API Calls:**
 ```typescript
-// Step 1: Sync user from Clerk
+// Phase 1: Initial account creation (auto-triggered after Clerk verification)
 POST /api/identity/users/sync
 {
   clerk_user_id: string;
   email: string;
   name: string;
+  // User record created with onboarding_status: 'pending', onboarding_step: 1
 }
 
-// Step 2: Create personal organization
-POST /api/identity/organizations
+// Phase 2: Wizard Step 1 - Update role selection
+PATCH /api/identity/users/me/onboarding
 {
-  name: string; // e.g., "John Smith's Organization"
-  type: "recruiter";
+  step: 2;
+  status: 'in_progress';
+  selected_role: 'recruiter';
 }
 
-// Step 3: Create membership
-POST /api/identity/memberships
+// Wizard Step 2 - Subscription plan (no-op for now, just update step)
+PATCH /api/identity/users/me/onboarding
 {
-  user_id: string;
-  organization_id: string;
-  role: "recruiter";
+  step: 3;
 }
 
-// Step 4: Create recruiter profile
-POST /api/recruiters
+// Wizard Step 3 - Complete profile and create entities
+POST /api/identity/users/me/complete-onboarding
 {
-  user_id: string;
-  bio?: string;
-  phone?: string;
+  role: 'recruiter';
+  profile: {
+    bio?: string;
+    phone?: string;
+    industries?: string[];
+    specialties?: string[];
+  };
+  teamInviteCode?: string;
 }
-
-// Step 5 (Optional): Join team via invite
-POST /api/teams/invitations/{token}/accept
-{
-  recruiter_id: string;
-}
+// Response creates: organization, membership, recruiter profile, optional team join
+// Updates: onboarding_status: 'completed', onboarding_completed_at: NOW()
 ```
 
 ---
@@ -110,30 +162,44 @@ POST /api/teams/invitations/{token}/accept
 ### 3.2 Self-Signup Flow: Company Admin
 
 **User Journey:**
+
+**Phase 1: Account Creation**
 1. User lands on `/sign-up`
 2. Completes Clerk sign-up (email + password)
 3. Verifies email via Clerk
-4. Selects "Company Admin" role
-5. Enters company information
-6. System creates:
-   - User in `identity.users` (synced from Clerk)
-   - Company organization in `identity.organizations` (type: `company`)
-   - Membership in `identity.memberships` (role: `company_admin`)
-   - Company in `ats.companies` (linked to organization)
-7. Redirects to company dashboard
+4. System creates minimal user record in `identity.users`
+5. **Redirects to `/dashboard`**
+
+**Phase 2: Onboarding Wizard (Modal)**
+6. Dashboard detects `onboarding_status: 'pending'`
+7. **Shows mandatory modal wizard**
+8. **Step 1: Role Selection** - User selects "Company Admin"
+9. **Step 2: Subscription Plan** - Placeholder step with "Continue" button
+10. **Step 3: Company Information** - User enters company data
+    - Company name (required)
+    - Website (optional)
+    - Industry (optional)
+    - Company size (optional)
+11. **Step 4: Complete** - System creates all entities:
+    - Company organization in `identity.organizations` (type: `company`)
+    - Membership in `identity.memberships` (role: `company_admin`)
+    - Company in `ats.companies` (linked to organization)
+    - Updates `onboarding_status: 'completed'`, `onboarding_completed_at: NOW()`
+12. Modal closes, user can now use the dashboard
 
 **Required Data:**
 - ✅ Name (from Clerk)
 - ✅ Email (from Clerk)
-- ✅ Company name
-- ⚠️ Company website (optional)
-- ⚠️ Company industry (optional)
-- ⚠️ Company size (optional)
+- ✅ Role selection (in wizard)
+- ✅ Company name (in wizard)
+- ⚠️ Company website (optional, in wizard)
+- ⚠️ Company industry (optional, in wizard)
+- ⚠️ Company size (optional, in wizard)
 - ⚠️ Company logo (optional, can upload later)
 
 **API Calls:**
 ```typescript
-// Step 1: Sync user from Clerk
+// Phase 1: Initial account creation
 POST /api/identity/users/sync
 {
   clerk_user_id: string;
@@ -141,30 +207,25 @@ POST /api/identity/users/sync
   name: string;
 }
 
-// Step 2: Create company organization
-POST /api/identity/organizations
-{
-  name: string; // Company name
-  type: "company";
-}
+// Phase 2: Wizard steps
+PATCH /api/identity/users/me/onboarding  // Step 1: Role selection
+{ step: 2, status: 'in_progress', selected_role: 'company_admin' }
 
-// Step 3: Create membership
-POST /api/identity/memberships
-{
-  user_id: string;
-  organization_id: string;
-  role: "company_admin";
-}
+PATCH /api/identity/users/me/onboarding  // Step 2: Subscription (placeholder)
+{ step: 3 }
 
-// Step 4: Create company (linked to organization)
-POST /api/companies
+POST /api/identity/users/me/complete-onboarding  // Step 3: Complete
 {
-  name: string;
-  identity_organization_id: string;
-  website?: string;
-  industry?: string;
-  size?: string;
+  role: 'company_admin';
+  company: {
+    name: string;
+    website?: string;
+    industry?: string;
+    size?: string;
+  };
 }
+// Response creates: company organization, membership, company record
+// Updates: onboarding_status: 'completed', onboarding_completed_at: NOW()
 ```
 
 ---
@@ -172,18 +233,28 @@ POST /api/companies
 ### 3.3 Invitation Flow: Hiring Manager
 
 **User Journey:**
+
+**Phase 1: Account Creation**
 1. Company admin sends invitation from their dashboard
 2. User receives email with invitation link (e.g., `/sign-up?invite={token}`)
 3. User clicks link, lands on `/sign-up` with pre-filled invitation
 4. Completes Clerk sign-up (email + password)
 5. Verifies email via Clerk
-6. Sees "You've been invited to join [Company Name] as a Hiring Manager"
-7. Confirms acceptance
-8. System creates:
-   - User in `identity.users` (synced from Clerk)
-   - Membership in `identity.memberships` (role: `hiring_manager`, linked to company org)
-   - Updates invitation status to `accepted`
-9. Redirects to company dashboard
+6. System creates user record with `onboarding_status: 'pending'`
+7. **Redirects to `/dashboard`**
+
+**Phase 2: Invitation Acceptance (Modal)**
+8. Dashboard detects invitation token and `onboarding_status: 'pending'`
+9. **Shows invitation acceptance modal** (different from role selection wizard)
+10. Displays: "You've been invited to join [Company Name] as a Hiring Manager"
+11. User confirms acceptance
+12. System creates:
+    - Membership in `identity.memberships` (role: `hiring_manager`, linked to company org)
+    - Updates invitation status to `accepted`
+    - Updates `onboarding_status: 'skipped'` (no full wizard needed)
+13. Modal closes, redirects to company dashboard
+
+**Note:** Invited users skip the role selection wizard since their role is predetermined by the invitation.
 
 **Required Data:**
 - ✅ Name (from Clerk)
@@ -224,40 +295,30 @@ POST /api/identity/invitations/{token}/accept
 ### 3.4 Invitation Flow: Recruiter Team Join
 
 **User Journey:**
+
+**For New Users:**
 1. Team owner sends team invitation from their dashboard
 2. User receives email with invitation link (e.g., `/sign-up?team_invite={token}`)
-3. User clicks link, can either:
-   - Sign up as new user (full recruiter onboarding + auto-join team)
-   - Sign in as existing recruiter (auto-join team)
-4. System creates:
-   - (If new user) User, organization, membership, recruiter profile
-   - Team membership in `network.team_members`
-   - Updates team invitation status to `accepted`
-5. Redirects to team dashboard
+3. User clicks link, completes Clerk sign-up
+4. **Redirects to `/dashboard`**
+5. Shows full recruiter onboarding wizard with team invite auto-filled
+6. After completing wizard, auto-joins team
+
+**For Existing Recruiters:**
+1. User clicks team invitation link
+2. Signs in with existing account
+3. Shows simple confirmation modal
+4. Accepts invitation, joins team immediately
 
 **Required Data:**
 - ✅ Name (from Clerk)
 - ✅ Email (from Clerk, must match invitation email)
-- ⚠️ Bio (optional, can complete later)
+- ⚠️ Bio (optional, in wizard for new users)
 
 **API Calls:**
 ```typescript
-// Step 1: Fetch team invitation details
-GET /api/teams/invitations/{token}
-{
-  data: {
-    team_id: string;
-    email: string;
-    role: "member" | "admin" | "collaborator";
-    invited_by: string;
-    status: "pending";
-  }
-}
-
-// Step 2: Complete recruiter onboarding (if new user)
-// ... same as 3.1 ...
-
-// Step 3: Accept team invitation
+// New users go through full recruiter onboarding (3.1) with team_invite_token
+// Existing users:
 POST /api/teams/invitations/{token}/accept
 {
   recruiter_id: string;
@@ -268,15 +329,57 @@ POST /api/teams/invitations/{token}/accept
 
 ## 4. Multi-Step Wizard Structure
 
-### 4.1 Step Definitions
+### 4.1 Modal Wizard Behavior
 
-**Step 1: Clerk Authentication**
-- Component: Clerk's `<SignUp />` component
-- Actions: Email + password entry, email verification
-- Next: Redirect to Step 2
+**Trigger Conditions:**
+- User lands on `/dashboard`
+- Check `identity.users.onboarding_status`
+- If `'pending'` or `'in_progress'` → Show modal wizard
+- Modal is **mandatory** and cannot be dismissed
+- User cannot access dashboard features until wizard is completed
 
-**Step 2: Role Selection** (only for self-signup, skipped for invitations)
+**Invitation Handling:**
+- If invitation token present (hiring manager or team invite)
+- Show invitation acceptance modal instead of role selection wizard
+- Role is predetermined, skip to acceptance confirmation
+
+### 4.2 Step Definitions (Self-Signup Flow)
+
+**Step 1: Role Selection**
 - UI: Card-based selection (Recruiter, Company Admin)
+- State: `selectedRole: 'recruiter' | 'company_admin' | null`
+- API Call: `PATCH /api/identity/users/me/onboarding` (update step to 2)
+- Next: Step 2
+
+**Step 2: Subscription Plan Selection** ⚠️ PLACEHOLDER
+- UI: Message explaining subscription plans (future feature)
+- Text: "Choose your subscription plan - we'll set this up in the next release!"
+- Button: "Continue" (no selection required)
+- State: No state changes, just progression
+- API Call: `PATCH /api/identity/users/me/onboarding` (update step to 3)
+- Note: *Future Stripe integration will replace this placeholder with actual plan selection*
+- Next: Step 3
+
+**Step 3: Role-Specific Data Collection**
+- **Recruiter Form:**
+  - Bio/tagline (textarea, optional)
+  - Industries (multi-select, optional)
+  - Specialties (multi-select, optional)
+  - Phone (input, optional)
+  - Team invite code (text input, optional)
+- **Company Admin Form:**
+  - Company name (text input, **required**)
+  - Company website (URL input, optional)
+  - Company industry (select dropdown, optional)
+  - Company size (select dropdown, optional)
+- API Call: `POST /api/identity/users/me/complete-onboarding` (creates all entities)
+- Next: Step 4
+
+**Step 4: Completion**
+- Show success message: "Welcome to Splits Network!"
+- Display next steps based on role
+- Close modal automatically after 2 seconds
+- User can now access full dashboard
 - State: `selectedRole: 'recruiter' | 'company_admin' | null`
 - Next: Step 3 (role-specific form)
 
@@ -287,32 +390,26 @@ POST /api/teams/invitations/{token}/accept
   - Specialties (multi-select, optional)
   - Phone (optional)
   - Team invite code (text input, optional)
-- Company Admin Form:
-  - Company name (required)
-  - Company website (optional)
-  - Company industry (select, optional)
-  - Company size (select, optional)
-- Hiring Manager Invitation:
-  - Display invitation details
-  - Confirm acceptance button
+### 4.3 Progress Indicator
 
-**Step 4: Confirmation & Redirect**
-- Show success message
-- Display next steps
-- Redirect to appropriate dashboard
-
-### 4.2 Progress Indicator
-
+**Self-Signup Flow:**
 ```
-[ Clerk Sign-Up ] → [ Role Selection ] → [ Profile Setup ] → [ Complete ]
-       1                     2                   3                  4
+[ Role Selection ] → [ Subscription ] → [ Profile Setup ] → [ Complete ]
+         1                   2                  3                 4
 ```
 
-For invitation flows:
+**Invitation Flow:**
 ```
-[ Clerk Sign-Up ] → [ Review Invitation ] → [ Complete ]
-       1                     2                    3
+[ Review Invitation ] → [ Accept ] → [ Complete ]
+         1                   2             3
 ```
+
+**Visual Design:**
+- Stepper component at top of modal
+- Current step highlighted
+- Completed steps show checkmark
+- Future steps greyed out
+- Step titles: "Role", "Plan", "Profile", "Done"
 
 ---
 
@@ -322,7 +419,10 @@ For invitation flows:
 
 | Endpoint | Method | Purpose | Status |
 |----------|--------|---------|--------|
-| `/api/identity/users/sync` | POST | Sync user from Clerk | ✅ Exists |
+| `/api/identity/users/sync` | POST | Sync user from Clerk (Phase 1) | ✅ Exists |
+| `/api/identity/users/me` | GET | Get current user + onboarding status | ✅ Exists |
+| `/api/identity/users/me/onboarding` | PATCH | Update onboarding step/status | ⚠️ **Needs Implementation** |
+| `/api/identity/users/me/complete-onboarding` | POST | Complete onboarding + create entities | ⚠️ **Needs Implementation** |
 | `/api/identity/organizations` | POST | Create organization | ✅ Exists |
 | `/api/identity/memberships` | POST | Create membership | ✅ Exists |
 | `/api/identity/invitations` | POST | Create invitation | ✅ Exists (table exists) |
@@ -358,33 +458,49 @@ apps/portal/src/
 ├── app/
 │   ├── (auth)/
 │   │   └── sign-up/
-│   │       ├── [[...sign-up]]/
-│   │       │   └── page.tsx                  # Main sign-up page
-│   │       └── components/
-│   │           ├── onboarding-wizard.tsx      # Main wizard container
-│   │           ├── role-selection-step.tsx    # Step 2: Role selection
-│   │           ├── recruiter-form-step.tsx    # Step 3a: Recruiter form
-│   │           ├── company-admin-form-step.tsx # Step 3b: Company form
-│   │           ├── invitation-review-step.tsx  # Step 2 (invitation): Review
-│   │           └── completion-step.tsx         # Step 4: Success message
+│   │       └── [[...sign-up]]/
+│   │           └── page.tsx                   # Basic Clerk sign-up page
+│   ├── (authenticated)/
+│   │   └── dashboard/
+│   │       └── page.tsx                        # Dashboard with wizard trigger
 │   └── ...
+├── components/
+│   └── onboarding/
+│       ├── onboarding-wizard-modal.tsx         # Main modal container
+│       ├── onboarding-provider.tsx             # Context provider for wizard state
+│       ├── steps/
+│       │   ├── role-selection-step.tsx         # Step 1: Role selection
+│       │   ├── subscription-plan-step.tsx      # Step 2: Subscription (placeholder)
+│       │   ├── recruiter-profile-step.tsx      # Step 3a: Recruiter form
+│       │   ├── company-info-step.tsx           # Step 3b: Company form
+│       │   └── completion-step.tsx             # Step 4: Success message
+│       └── invitation-modal.tsx                # Separate modal for invitations
 └── lib/
-    ├── api-client.ts                          # Enhanced with onboarding methods
-    └── onboarding-state.ts                    # State management for wizard
+    ├── api-client.ts                           # Enhanced with onboarding methods
+    └── hooks/
+        └── use-onboarding.ts                   # Hook to check onboarding status
 ```
 
 ### 6.2 State Management
 
-Use React Context + `useReducer` for wizard state:
+Use React Context + `useState` for wizard state:
 
 ```typescript
 interface OnboardingState {
-  step: number;
-  maxStep: number;
-  flow: 'self-signup' | 'company-invitation' | 'team-invitation';
+  // From database
+  currentStep: number;  // 1-4
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  
+  // Wizard state
+  isModalOpen: boolean;
   selectedRole: 'recruiter' | 'company_admin' | null;
+  
+  // Invitation handling
+  invitationType: 'none' | 'company' | 'team';
   invitationToken: string | null;
   invitationData: Invitation | TeamInvitation | null;
+  
+  // Form data (step 3)
   formData: {
     recruiter?: {
       bio?: string;
@@ -400,8 +516,46 @@ interface OnboardingState {
       size?: string;
     };
   };
+  
+  // UI state
   submitting: boolean;
   error: string | null;
+}
+
+// Context provider wraps dashboard to manage wizard state
+export const OnboardingProvider = ({ children }) => {
+  const [state, setState] = useState<OnboardingState>(/* ... */);
+  // Fetch user's onboarding status on mount
+  // Show modal if status is 'pending' or 'in_progress'
+  return (
+    <OnboardingContext.Provider value={{ state, setState }}>
+      {children}
+      {state.isModalOpen && <OnboardingWizardModal />}
+    </OnboardingContext.Provider>
+  );
+};
+```
+
+### 6.3 Dashboard Integration
+
+The dashboard page checks onboarding status and triggers the modal:
+
+```typescript
+// app/(authenticated)/dashboard/page.tsx
+'use client';
+
+import { OnboardingProvider } from '@/components/onboarding/onboarding-provider';
+import { useUser } from '@clerk/nextjs';
+import { useEffect } from 'react';
+
+export default function DashboardPage() {
+  return (
+    <OnboardingProvider>
+      <div className="dashboard-content">
+        {/* Dashboard UI */}
+      </div>
+    </OnboardingProvider>
+  );
 }
 ```
 
@@ -409,15 +563,46 @@ interface OnboardingState {
 
 ## 7. Clerk Integration Details
 
-### 7.1 Clerk User Metadata
+### 7.1 User Sync After Verification
 
-Store onboarding state in Clerk's user metadata to enable resume:
+After Clerk email verification, the frontend calls the sync endpoint:
 
 ```typescript
-// Public metadata (readable by frontend)
+// This happens in a Clerk webhook or in the app after sign-in
+POST /api/identity/users/sync
 {
-  onboarding_completed: boolean;
-  selected_role?: 'recruiter' | 'company_admin';
+  clerk_user_id: string;
+  email: string;
+  name: string;
+}
+// Creates user with onboarding_status: 'pending'
+```
+
+### 7.2 Checking Onboarding Status
+
+When the dashboard loads, check the user's onboarding status:
+
+```typescript
+// lib/hooks/use-onboarding.ts
+export function useOnboarding() {
+  const { user } = useUser();
+  const [status, setStatus] = useState<OnboardingStatus | null>(null);
+  
+  useEffect(() => {
+    if (user) {
+      fetch('/api/identity/users/me')
+        .then(res => res.json())
+        .then(data => {
+          setStatus({
+            status: data.data.onboarding_status,
+            step: data.data.onboarding_step,
+          });
+        });
+    }
+  }, [user]);
+  
+  return { status };
+}
   onboarding_step?: number;
 }
 

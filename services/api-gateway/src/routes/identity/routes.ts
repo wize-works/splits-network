@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { ServiceRegistry } from '../../clients';
 import { requireRoles } from '../../rbac';
+import { clearUserContextCache } from '../../routes';
 
 /**
  * Identity Routes
@@ -44,6 +45,51 @@ export function registerIdentityRoutes(app: FastifyInstance, services: ServiceRe
 
         const updatedProfile = await identityService.patch(`/users/${req.auth.userId}`, request.body, correlationId);
         return reply.send(updatedProfile);
+    });
+
+    /**
+     * Update user onboarding step
+     */
+    app.patch('/api/users/:id/onboarding', {
+        schema: {
+            description: 'Update user onboarding progress',
+            tags: ['identity', 'onboarding'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as any;
+        const { id } = request.params as { id: string };
+        const identityService = services.get('identity');
+        const correlationId = (request as any).correlationId;
+
+        const result = await identityService.patch(`/users/${id}/onboarding`, request.body, correlationId);
+        return reply.send(result);
+    });
+
+    /**
+     * Complete user onboarding
+     */
+    app.post('/api/users/:id/complete-onboarding', {
+        schema: {
+            description: 'Complete user onboarding wizard',
+            tags: ['identity', 'onboarding'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as any;
+        const { id } = request.params as { id: string };
+        const identityService = services.get('identity');
+        const correlationId = (request as any).correlationId;
+
+        const result = await identityService.post(`/users/${id}/complete-onboarding`, request.body, correlationId);
+        
+        // Clear user context cache so new membership is immediately available
+        // This ensures the user can access role-specific endpoints right away
+        if (req.auth?.clerkUserId) {
+            clearUserContextCache(req.auth.clerkUserId);
+        }
+        
+        return reply.send(result);
     });
 
     /**

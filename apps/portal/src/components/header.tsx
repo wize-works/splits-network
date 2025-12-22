@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { UserDropdown } from './user-dropdown';
-import NotificationBell from './NotificationBell';
+import NotificationBell from './notification-bell';
 
 export function Header() {
     const pathname = usePathname();
