@@ -86,6 +86,13 @@ export class AtsService {
     async getPendingApplicationsForRecruiter(recruiterId: string) { return this.applications.getPendingApplicationsForRecruiter(recruiterId); }
     async requestPreScreen(applicationId: string, companyId: string, requestedByUserId: string, options?: { recruiter_id?: string; message?: string }) { return this.applications.requestPreScreen(applicationId, companyId, requestedByUserId, options); }
     
+    // Recruiter submission flow methods
+    async recruiterProposeJob(params: { recruiterId: string; recruiterUserId: string; candidateId: string; jobId: string; pitch?: string }) { return this.applications.recruiterProposeJob(params); }
+    async candidateApproveOpportunity(params: { applicationId: string; candidateId: string; candidateUserId: string }) { return this.applications.candidateApproveOpportunity(params); }
+    async candidateDeclineOpportunity(params: { applicationId: string; candidateId: string; candidateUserId: string; reason?: string; notes?: string }) { return this.applications.candidateDeclineOpportunity(params); }
+    async getPendingOpportunitiesForCandidate(candidateId: string) { return this.applications.getPendingOpportunitiesForCandidate(candidateId); }
+    async getProposedJobsForRecruiter(recruiterId: string) { return this.applications.getProposedJobsForRecruiter(recruiterId); }
+    
     // Pre-screen methods
     async getPreScreenQuestionsForJob(jobId: string) { return this.repository.getPreScreenQuestionsForJob(jobId); }
     async getPreScreenAnswersForApplication(applicationId: string) { return this.repository.getPreScreenAnswersForApplication(applicationId); }

@@ -101,7 +101,14 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
             }
         }
         
-        // Platform admins see all candidates
+        // Platform admins see all candidates; everyone else is blocked from the global list
+        const isPlatformAdmin = req.auth?.memberships?.some(m => m.role === 'platform_admin');
+        if (!isPlatformAdmin) {
+            return reply.status(403).send({
+                error: { code: 'FORBIDDEN', message: 'Only platform_admin can list all candidates' },
+            });
+        }
+
         const queryString = new URLSearchParams(request.query as any).toString();
         const path = queryString ? `/candidates?${queryString}` : '/candidates';
         const data = await atsService().get(path);

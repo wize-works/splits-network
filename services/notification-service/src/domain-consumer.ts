@@ -9,6 +9,7 @@ import { ProposalsEventConsumer } from './consumers/proposals/consumer';
 import { CandidatesEventConsumer } from './consumers/candidates/consumer';
 import { CollaborationEventConsumer } from './consumers/collaboration/consumer';
 import { InvitationsConsumer } from './consumers/invitations/consumer';
+import { RecruiterSubmissionEventConsumer } from './consumers/recruiter-submission/consumer';
 
 export class DomainEventConsumer {
     private connection: Connection | null = null;
@@ -22,6 +23,7 @@ export class DomainEventConsumer {
     private candidatesConsumer: CandidatesEventConsumer;
     private collaborationConsumer: CollaborationEventConsumer;
     private invitationsConsumer: InvitationsConsumer;
+    private recruiterSubmissionConsumer: RecruiterSubmissionEventConsumer;
 
     constructor(
         private rabbitMqUrl: string,
@@ -61,6 +63,11 @@ export class DomainEventConsumer {
             services,
             logger,
             portalUrl
+        );
+        this.recruiterSubmissionConsumer = new RecruiterSubmissionEventConsumer(
+            notificationService.recruiterSubmission,
+            services,
+            logger
         );
     }
 
@@ -103,6 +110,12 @@ export class DomainEventConsumer {
             await this.channel.bindQueue(this.queue, this.exchange, 'proposal.accepted');
             await this.channel.bindQueue(this.queue, this.exchange, 'proposal.declined');
             await this.channel.bindQueue(this.queue, this.exchange, 'proposal.timeout');
+            
+            // Phase 2 events - Recruiter Submission (new opportunity proposals)
+            await this.channel.bindQueue(this.queue, this.exchange, 'application.recruiter_proposed');
+            await this.channel.bindQueue(this.queue, this.exchange, 'application.recruiter_approved');
+            await this.channel.bindQueue(this.queue, this.exchange, 'application.recruiter_declined');
+            await this.channel.bindQueue(this.queue, this.exchange, 'application.recruiter_opportunity_expired');
             
             // Phase 2 events - Placements
             await this.channel.bindQueue(this.queue, this.exchange, 'placement.activated');
@@ -227,6 +240,20 @@ export class DomainEventConsumer {
                 break;
             case 'proposal.timeout':
                 await this.proposalsConsumer.handleProposalTimeout(event);
+                break;
+
+            // Recruiter Submission domain (opportunity proposals)
+            case 'application.recruiter_proposed':
+                await this.recruiterSubmissionConsumer.handleRecruiterProposedJob(event);
+                break;
+            case 'application.recruiter_approved':
+                await this.recruiterSubmissionConsumer.handleCandidateApprovedOpportunity(event);
+                break;
+            case 'application.recruiter_declined':
+                await this.recruiterSubmissionConsumer.handleCandidateDeclinedOpportunity(event);
+                break;
+            case 'application.recruiter_opportunity_expired':
+                await this.recruiterSubmissionConsumer.handleOpportunityExpired(event);
                 break;
 
             // Candidates domain

@@ -67,7 +67,7 @@ export default function RoleHeader({ roleId }: RoleHeaderProps) {
             const client = createAuthenticatedClient(token);
             const response: any = await client.getCurrentUser();
             const profile: UserProfile = response.data;
-            
+
             // Get the first membership role (Phase 1: users have one membership)
             if (profile.memberships && profile.memberships.length > 0) {
                 setUserRole(profile.memberships[0].role);
@@ -110,7 +110,7 @@ export default function RoleHeader({ roleId }: RoleHeaderProps) {
 
             const client = createAuthenticatedClient(token);
             await client.patch(`/jobs/${roleId}`, { status: newStatus });
-            
+
             // Refresh the job data
             await fetchJob();
             alert('Status updated successfully!');
@@ -161,12 +161,11 @@ export default function RoleHeader({ roleId }: RoleHeaderProps) {
                             <div className="flex-1">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-3xl font-bold">{job.title}</h1>
-                                    <div className={`badge ${
-                                        job.status === 'active' ? 'badge-success' : 
-                                        job.status === 'paused' ? 'badge-warning' :
-                                        job.status === 'filled' ? 'badge-info' :
-                                        'badge-neutral'
-                                    }`}>
+                                    <div className={`badge ${job.status === 'active' ? 'badge-success' :
+                                            job.status === 'paused' ? 'badge-warning' :
+                                                job.status === 'filled' ? 'badge-info' :
+                                                    'badge-neutral'
+                                        }`}>
                                         {job.status}
                                     </div>
                                 </div>
@@ -190,8 +189,8 @@ export default function RoleHeader({ roleId }: RoleHeaderProps) {
                                     {job.employment_type && (
                                         <span className="flex items-center gap-2">
                                             <i className="fa-solid fa-clock"></i>
-                                            {job.employment_type === 'full_time' ? 'Full-Time' : 
-                                             job.employment_type === 'contract' ? 'Contract' : 'Temporary'}
+                                            {job.employment_type === 'full_time' ? 'Full-Time' :
+                                                job.employment_type === 'contract' ? 'Contract' : 'Temporary'}
                                         </span>
                                     )}
                                     {job.open_to_relocation && (
@@ -219,17 +218,17 @@ export default function RoleHeader({ roleId }: RoleHeaderProps) {
 
                             {/* Actions */}
                             <div className="flex flex-col gap-2">
-                                <button 
+                                <button
                                     className="btn btn-primary gap-2"
                                     onClick={() => setShowSubmitModal(true)}
                                 >
                                     <i className="fa-solid fa-user-plus"></i>
-                                    Submit Candidate
+                                    Send Proposal
                                 </button>
 
                                 {canManageRole && (
                                     <>
-                                        <Link 
+                                        <Link
                                             href={`/roles/${roleId}/edit`}
                                             className="btn btn-ghost gap-2"
                                         >
@@ -239,8 +238,8 @@ export default function RoleHeader({ roleId }: RoleHeaderProps) {
 
                                         {/* Status Management Dropdown */}
                                         <div className="dropdown dropdown-end">
-                                            <button 
-                                                tabIndex={0} 
+                                            <button
+                                                tabIndex={0}
                                                 className="btn btn-ghost gap-2 w-full"
                                                 disabled={updating}
                                             >

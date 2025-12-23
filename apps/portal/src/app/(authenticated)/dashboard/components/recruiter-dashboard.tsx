@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ApiClient } from '@/lib/api-client';
+import ProposedJobsList from './proposed-jobs-list';
 
 interface RecruiterStats {
     active_roles: number;
@@ -43,7 +44,7 @@ export default function RecruiterDashboard({ token, profile }: RecruiterDashboar
         setLoading(true);
         try {
             const api = new ApiClient(undefined, token);
-            
+
             // Load recruiter stats
             const statsResponse = await api.get<{ data: RecruiterStats }>('/recruiter/dashboard/stats');
             setStats(statsResponse.data);
@@ -195,8 +196,25 @@ export default function RecruiterDashboard({ token, profile }: RecruiterDashboar
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Recent Activity - Larger section */}
-                <div className="lg:col-span-2">
+                {/* Proposed Jobs + Recent Activity */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Proposed Jobs Preview */}
+                    <div className="card bg-base-100 shadow-sm">
+                        <div className="card-body">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="card-title">
+                                    <i className="fa-solid fa-paper-plane mr-2"></i>
+                                    Recent Proposals
+                                </h3>
+                                <Link href="/proposed-jobs" className="text-sm text-primary hover:underline">
+                                    View all →
+                                </Link>
+                            </div>
+                            <ProposedJobsList compact={true} />
+                        </div>
+                    </div>
+
+                    {/* Recent Activity */}
                     <div className="card bg-base-100 shadow-sm">
                         <div className="card-body">
                             <h3 className="card-title">
@@ -263,6 +281,10 @@ export default function RecruiterDashboard({ token, profile }: RecruiterDashboar
                                 <Link href="/candidates" className="btn btn-outline w-full justify-start">
                                     <i className="fa-solid fa-users"></i>
                                     My Candidates
+                                </Link>
+                                <Link href="/proposed-jobs" className="btn btn-outline w-full justify-start">
+                                    <i className="fa-solid fa-paper-plane"></i>
+                                    Proposed Jobs
                                 </Link>
                                 <Link href="/placements" className="btn btn-outline w-full justify-start">
                                     <i className="fa-solid fa-trophy"></i>

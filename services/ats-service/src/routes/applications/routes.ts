@@ -461,5 +461,156 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
             return reply.send({ data: application });
         }
     );
+
+    // ========================================
+    // Recruiter Submission Flow Endpoints
+    // ========================================
+
+    // Recruiter proposes job to candidate
+    app.post(
+        '/applications/recruiter-propose',
+        async (request: FastifyRequest<{
+            Body: {
+                recruiter_id?: string;
+                recruiter_user_id?: string;
+                candidate_id: string;
+                job_id: string;
+                pitch?: string;
+            };
+        }>, reply: FastifyReply) => {
+            const { candidate_id, job_id, pitch } = request.body;
+            
+            // Extract recruiter from auth context or request body
+            const recruiterId = request.body.recruiter_id || (request as any).auth?.userId;
+            const recruiterUserId = request.body.recruiter_user_id || (request as any).auth?.userId;
+
+            if (!recruiterId || !recruiterUserId) {
+                throw new BadRequestError('Recruiter ID not found in auth context');
+            }
+
+            if (!candidate_id || !job_id) {
+                throw new BadRequestError('Missing required fields: candidate_id, job_id');
+            }
+
+            const application = await service.recruiterProposeJob({
+                recruiterId,
+                recruiterUserId,
+                candidateId: candidate_id,
+                jobId: job_id,
+                pitch,
+            });
+
+            request.log.info({
+                applicationId: application.id,
+                recruiterId,
+                candidateId: candidate_id,
+                jobId: job_id,
+            }, 'Recruiter proposed job to candidate');
+
+            return reply.status(201).send({ data: application });
+        }
+    );
+
+    // Candidate approves job opportunity
+    app.post(
+        '/applications/:id/candidate-approve',
+        async (request: FastifyRequest<{
+            Params: { id: string };
+            Body: {
+                candidate_id?: string;
+                candidate_user_id?: string;
+            };
+        }>, reply: FastifyReply) => {
+            const candidateId = request.body.candidate_id;
+            const candidateUserId = request.body.candidate_user_id || (request as any).auth?.userId;
+
+            if (!candidateId || !candidateUserId) {
+                throw new BadRequestError('Candidate ID not found in request context');
+            }
+
+            const application = await service.candidateApproveOpportunity({
+                applicationId: request.params.id,
+                candidateId,
+                candidateUserId,
+            });
+
+            request.log.info({
+                applicationId: request.params.id,
+                candidateId,
+                action: 'approved_opportunity',
+            }, 'Candidate approved job opportunity');
+
+            return reply.send({ data: application });
+        }
+    );
+
+    // Candidate declines job opportunity
+    app.post(
+        '/applications/:id/candidate-decline',
+        async (request: FastifyRequest<{
+            Params: { id: string };
+            Body: {
+                candidate_id?: string;
+                candidate_user_id?: string;
+                reason?: string;
+                notes?: string;
+            };
+        }>, reply: FastifyReply) => {
+            const candidateId = request.body.candidate_id;
+            const candidateUserId = request.body.candidate_user_id || (request as any).auth?.userId;
+            const { reason, notes } = request.body;
+
+            if (!candidateId || !candidateUserId) {
+                throw new BadRequestError('Candidate ID not found in request context');
+            }
+
+            const application = await service.candidateDeclineOpportunity({
+                applicationId: request.params.id,
+                candidateId,
+                candidateUserId,
+                reason,
+                notes,
+            });
+
+            request.log.info({
+                applicationId: request.params.id,
+                candidateId,
+                action: 'declined_opportunity',
+                reason,
+            }, 'Candidate declined job opportunity');
+
+            return reply.send({ data: application });
+        }
+    );
+
+    // Get pending opportunities for candidate
+    app.get(
+        '/candidates/:candidateId/pending-opportunities',
+        async (request: FastifyRequest<{
+            Params: { candidateId: string };
+        }>, reply: FastifyReply) => {
+            const opportunities = await service.getPendingOpportunitiesForCandidate(request.params.candidateId);
+            return reply.send({ data: opportunities });
+        }
+    );
+
+    // Get proposed jobs for recruiter dashboard
+    app.get(
+        '/recruiters/:recruiterId/proposed-jobs',
+        async (request: FastifyRequest<{
+            Params: { recruiterId: string };
+            Querystring: { status?: 'pending' | 'approved' | 'declined' };
+        }>, reply: FastifyReply) => {
+            const proposedJobs = await service.getProposedJobsForRecruiter(request.params.recruiterId);
+            
+            // Filter by status if requested
+            if (request.query.status) {
+                const filtered = proposedJobs.filter(job => job.status === request.query.status);
+                return reply.send({ data: filtered });
+            }
+
+            return reply.send({ data: proposedJobs });
+        }
+    );
 }
 

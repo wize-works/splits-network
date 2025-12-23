@@ -994,4 +994,347 @@ export class ApplicationService {
 
         return updated;
     }
+
+    /**
+     * Recruiter proposes job opportunity to candidate
+     * Creates application in 'recruiter_proposed' stage
+     * Candidate must approve before proceeding to application completion
+     */
+    async recruiterProposeJob(params: {
+        recruiterId: string;
+        recruiterUserId: string;
+        candidateId: string;
+        jobId: string;
+        pitch?: string; // Optional note from recruiter
+    }): Promise<Application> {
+        const { recruiterId, recruiterUserId, candidateId, jobId, pitch } = params;
+
+        // 1. Verify job exists
+        const job = await this.repository.findJobById(jobId);
+        if (!job) {
+            throw new Error(`Job ${jobId} not found`);
+        }
+
+        // 2. Verify candidate exists
+        const candidate = await this.repository.findCandidateById(candidateId);
+        if (!candidate) {
+            throw new Error(`Candidate ${candidateId} not found`);
+        }
+
+        // 3. Check recruiter has active relationship with candidate
+        // This would be checked against network service
+        // For now, we assume this is validated at gateway level
+        // TODO: Add network service call to validate relationship
+
+        // 4. Check for existing active application (prevent duplicates)
+        const existingApplications = await this.repository.findApplications({
+            job_id: jobId,
+            candidate_id: candidateId,
+        });
+
+        const activeApplications = existingApplications.filter(
+            app => !['rejected', 'withdrawn'].includes(app.stage)
+        );
+
+        if (activeApplications.length > 0) {
+            throw new Error(`Candidate already has an active application for this job`);
+        }
+
+        // 5. Create application in recruiter_proposed stage
+        const application = await this.repository.createApplication({
+            job_id: jobId,
+            candidate_id: candidateId,
+            recruiter_id: recruiterId,
+            stage: 'recruiter_proposed',
+            recruiter_notes: pitch,
+            accepted_by_company: false,
+            ai_reviewed: false,
+        });
+
+        // 6. Create audit log entry
+        await this.repository.createAuditLog({
+            application_id: application.id,
+            action: 'recruiter_proposed_job',
+            performed_by_user_id: recruiterUserId,
+            performed_by_role: 'recruiter',
+            new_value: {
+                stage: 'recruiter_proposed',
+                recruiter_pitch: pitch,
+            },
+            metadata: {
+                job_id: jobId,
+                candidate_id: candidateId,
+                recruiter_id: recruiterId,
+            },
+        });
+
+        // 7. Publish event
+        await this.eventPublisher.publish(
+            'application.recruiter_proposed',
+            {
+                application_id: application.id,
+                recruiter_id: recruiterId,
+                recruiter_user_id: recruiterUserId,
+                candidate_id: candidateId,
+                candidate_email: candidate.email,
+                candidate_name: candidate.full_name,
+                job_id: jobId,
+                job_title: job.title,
+                company_id: job.company_id,
+                recruiter_pitch: pitch,
+            },
+            'ats-service'
+        );
+
+        return application;
+    }
+
+    /**
+     * Candidate approves job opportunity
+     * Moves application from 'recruiter_proposed' to 'draft'
+     * Candidate will then complete application form
+     */
+    async candidateApproveOpportunity(params: {
+        applicationId: string;
+        candidateId: string;
+        candidateUserId: string;
+    }): Promise<Application> {
+        const { applicationId, candidateId, candidateUserId } = params;
+
+        // 1. Get application
+        const application = await this.repository.findApplicationById(applicationId);
+        if (!application) {
+            throw new Error(`Application ${applicationId} not found`);
+        }
+
+        // 2. Verify application is in recruiter_proposed stage
+        if (application.stage !== 'recruiter_proposed') {
+            throw new Error(`Application is not in recruiter_proposed stage (current: ${application.stage})`);
+        }
+
+        // 3. Verify user is the candidate for this application
+        if (application.candidate_id !== candidateId) {
+            throw new Error('You can only respond to opportunities sent to you');
+        }
+
+        // 4. Verify job is still active
+        const job = await this.repository.findJobById(application.job_id);
+        if (!job) {
+            throw new Error(`Job ${application.job_id} not found`);
+        }
+        if (job.status !== 'active') {
+            throw new Error('This job is no longer accepting applications');
+        }
+
+        // 5. Update application stage to draft
+        const updated = await this.repository.updateApplication(applicationId, {
+            stage: 'draft',
+        });
+
+        // 6. Create audit log entry
+        await this.repository.createAuditLog({
+            application_id: applicationId,
+            action: 'candidate_approved_opportunity',
+            performed_by_user_id: candidateUserId,
+            performed_by_role: 'candidate',
+            old_value: {
+                stage: 'recruiter_proposed',
+            },
+            new_value: {
+                stage: 'draft',
+            },
+        });
+
+        // 7. Publish event
+        await this.eventPublisher.publish(
+            'application.candidate_approved',
+            {
+                application_id: applicationId,
+                candidate_id: candidateId,
+                recruiter_id: application.recruiter_id,
+                job_id: application.job_id,
+                approved_at: new Date().toISOString(),
+            },
+            'ats-service'
+        );
+
+        return updated;
+    }
+
+    /**
+     * Candidate declines job opportunity
+     * Moves application from 'recruiter_proposed' to 'rejected'
+     * Ends that specific opportunity (relationship continues)
+     */
+    async candidateDeclineOpportunity(params: {
+        applicationId: string;
+        candidateId: string;
+        candidateUserId: string;
+        reason?: string; // Decline reason code
+        notes?: string; // Additional details
+    }): Promise<Application> {
+        const { applicationId, candidateId, candidateUserId, reason, notes } = params;
+
+        // 1. Get application
+        const application = await this.repository.findApplicationById(applicationId);
+        if (!application) {
+            throw new Error(`Application ${applicationId} not found`);
+        }
+
+        // 2. Verify application is in recruiter_proposed stage
+        if (application.stage !== 'recruiter_proposed') {
+            throw new Error(`Application is not in recruiter_proposed stage (current: ${application.stage})`);
+        }
+
+        // 3. Verify user is the candidate for this application
+        if (application.candidate_id !== candidateId) {
+            throw new Error('You can only respond to opportunities sent to you');
+        }
+
+        // 4. Update application stage to rejected
+        const updated = await this.repository.updateApplication(applicationId, {
+            stage: 'rejected',
+        });
+
+        // 5. Create audit log entry with decline reason
+        await this.repository.createAuditLog({
+            application_id: applicationId,
+            action: 'candidate_declined_opportunity',
+            performed_by_user_id: candidateUserId,
+            performed_by_role: 'candidate',
+            old_value: {
+                stage: 'recruiter_proposed',
+            },
+            new_value: {
+                stage: 'rejected',
+                decline_reason: reason,
+                decline_note: notes,
+            },
+            metadata: {
+                reason,
+                notes,
+            },
+        });
+
+        // 6. Get candidate info for event
+        const candidate = await this.repository.findCandidateById(candidateId);
+
+        // 7. Publish event
+        await this.eventPublisher.publish(
+            'application.candidate_declined',
+            {
+                application_id: applicationId,
+                candidate_id: candidateId,
+                candidate_name: candidate?.full_name,
+                recruiter_id: application.recruiter_id,
+                job_id: application.job_id,
+                decline_reason: reason,
+                decline_note: notes,
+                declined_at: new Date().toISOString(),
+            },
+            'ats-service'
+        );
+
+        return updated;
+    }
+
+    /**
+     * Get pending opportunities for a candidate
+     * Returns all applications in 'recruiter_proposed' stage awaiting their decision
+     */
+    async getPendingOpportunitiesForCandidate(candidateId: string): Promise<Array<
+        Omit<Application, 'job' | 'candidate'> & {
+            job: { id: string; title: string; description?: string; location?: string };
+            recruiter: { id: string; name?: string; email?: string };
+        }
+    >> {
+        // Get all applications in recruiter_proposed stage for this candidate
+        const applications = await this.repository.findApplications({
+            candidate_id: candidateId,
+            stage: 'recruiter_proposed',
+        });
+
+        // Enrich with job and recruiter details
+        const enriched = await Promise.all(
+            applications.map(async (app) => {
+                const job = await this.repository.findJobById(app.job_id);
+                if (!job) {
+                    throw new Error(`Job ${app.job_id} not found`);
+                }
+
+                const recruiter = {
+                    id: app.recruiter_id ?? '',
+                    name: '',
+                    email: '',
+                };
+
+                return {
+                    ...(app as Omit<Application, 'job' | 'candidate'>),
+                    job: {
+                        id: job.id,
+                        title: job.title,
+                        description: job.description,
+                        location: job.location,
+                    },
+                    recruiter,
+                };
+            })
+        );
+
+        return enriched;
+    }
+
+    /**
+     * Get proposed jobs awaiting candidate response for a recruiter
+     * Returns all applications in 'recruiter_proposed' stage the recruiter sent
+     */
+    async getProposedJobsForRecruiter(recruiterId: string): Promise<Array<
+        Omit<Application, 'job' | 'candidate'> & {
+            candidate: { id: string; full_name: string; email: string };
+            job: { id: string; title: string };
+            status: 'pending' | 'approved' | 'declined';
+        }
+    >> {
+        // Get all applications this recruiter proposed
+        const applications = await this.repository.findApplications({
+            recruiter_id: recruiterId,
+        });
+
+        // Filter by stage to determine status
+        const enriched = await Promise.all(
+            applications.filter(app => ['recruiter_proposed', 'draft', 'rejected'].includes(app.stage))
+                .map(async (app) => {
+                    const candidate = await this.repository.findCandidateById(app.candidate_id);
+                    const job = await this.repository.findJobById(app.job_id);
+
+                    if (!candidate || !job) {
+                        throw new Error('Candidate or job not found');
+                    }
+
+                    // Determine status based on stage
+                    let status: 'pending' | 'approved' | 'declined' = 'pending';
+                    if (app.stage === 'draft') {
+                        status = 'approved';
+                    } else if (app.stage === 'rejected') {
+                        status = 'declined';
+                    }
+
+                    return {
+                        ...(app as Omit<Application, 'job' | 'candidate'>),
+                        candidate: {
+                            id: candidate.id,
+                            full_name: candidate.full_name,
+                            email: candidate.email,
+                        },
+                        job: {
+                            id: job.id,
+                            title: job.title,
+                        },
+                        status,
+                    };
+                })
+        );
+
+        return enriched;
+    }
 }

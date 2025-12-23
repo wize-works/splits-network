@@ -26,6 +26,8 @@ export default function SubmitCandidateModal({ roleId, onClose }: SubmitCandidat
     const [mode, setMode] = useState<'select' | 'new'>('select');
     const [existingCandidates, setExistingCandidates] = useState<ExistingCandidate[]>([]);
     const [selectedCandidateId, setSelectedCandidateId] = useState<string>('');
+    const [candidateSearch, setCandidateSearch] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [loadingCandidates, setLoadingCandidates] = useState(true);
     const [formData, setFormData] = useState({
         full_name: '',
@@ -38,8 +40,20 @@ export default function SubmitCandidateModal({ roleId, onClose }: SubmitCandidat
         notes: '',
     });
     const [resumeFile, setResumeFile] = useState<File | null>(null);
+    const [pitch, setPitch] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const filteredCandidates = existingCandidates.filter((candidate) => {
+        if (!candidateSearch.trim()) return true;
+        const term = candidateSearch.toLowerCase();
+        return (
+            candidate.full_name?.toLowerCase().includes(term) ||
+            candidate.email?.toLowerCase().includes(term) ||
+            candidate.current_title?.toLowerCase().includes(term) ||
+            candidate.current_company?.toLowerCase().includes(term)
+        );
+    });
 
     useEffect(() => {
         fetchExistingCandidates();
@@ -52,10 +66,15 @@ export default function SubmitCandidateModal({ roleId, onClose }: SubmitCandidat
                 setLoadingCandidates(false);
                 return;
             }
-
             const client = createAuthenticatedClient(token);
             const response: any = await client.get('/candidates');
-            setExistingCandidates(response.data || []);
+            const candidates = response.data || [];
+            setExistingCandidates(candidates);
+
+            // If no candidates exist, default to the new candidate flow
+            if (candidates.length === 0) {
+                setMode('new');
+            }
         } catch (err) {
             console.error('Failed to fetch candidates:', err);
         } finally {
@@ -85,6 +104,17 @@ export default function SubmitCandidateModal({ roleId, onClose }: SubmitCandidat
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+
+        if (!pitch.trim()) {
+            setError('Please provide a pitch for this opportunity');
+            return;
+        }
+
+        if (mode === 'select' && !selectedCandidateId) {
+            setError('Please select a candidate or add a new one');
+            return;
+        }
+
         setSubmitting(true);
 
         try {
@@ -94,26 +124,73 @@ export default function SubmitCandidateModal({ roleId, onClose }: SubmitCandidat
             }
 
             const client = createAuthenticatedClient(token);
-            
-            let candidateId: string;
-            let response: any;
+
+            let candidateId: string | undefined;
+            let applicationId: string | undefined;
+            let candidateFullName: string | undefined;
+            let candidateEmail: string | undefined;
 
             if (mode === 'select' && selectedCandidateId) {
-                // Submit existing candidate to the job
-                response = await client.post('/applications', {
+                const selected = existingCandidates.find(c => c.id === selectedCandidateId);
+                candidateFullName = selected?.full_name;
+                candidateEmail = selected?.email;
+
+                if (!candidateFullName || !candidateEmail) {
+                    throw new Error('Could not load selected candidate details');
+                }
+
+                const applicationResponse: any = await client.post('/applications', {
                     job_id: roleId,
                     candidate_id: selectedCandidateId,
+                    full_name: candidateFullName,
+                    email: candidateEmail,
                     notes: formData.notes,
                 });
+
                 candidateId = selectedCandidateId;
+                applicationId =
+                    applicationResponse.data?.id ||
+                    applicationResponse.data?.application?.id ||
+                    applicationResponse.id;
             } else {
-                // Create new candidate and submit
-                response = await client.submitCandidate({
+                // Create new candidate first, then create an application for the proposal
+                const createResponse: any = await client.submitCandidate({
                     job_id: roleId,
                     ...formData,
                 });
-                candidateId = response.data?.candidate?.id;
+
+                candidateId =
+                    createResponse.data?.candidate?.id ||
+                    createResponse.candidate?.id;
+                applicationId =
+                    createResponse.data?.application?.id ||
+                    createResponse.data?.id ||
+                    createResponse.application?.id;
+
+                if (!applicationId && candidateId) {
+                    const applicationResponse: any = await client.post('/applications', {
+                        job_id: roleId,
+                        candidate_id: candidateId,
+                        stage: 'recruiter_proposed',
+                        notes: formData.notes,
+                        recruiter_pitch: pitch.trim(),
+                    });
+
+                    applicationId =
+                        applicationResponse.data?.id ||
+                        applicationResponse.data?.application?.id ||
+                        applicationResponse.id;
+                }
             }
+
+            if (!applicationId) {
+                throw new Error('Could not create application for this proposal');
+            }
+
+            await client.patch(`/applications/${applicationId}/stage`, {
+                stage: 'recruiter_proposed',
+                notes: pitch.trim(),
+            });
 
             // Upload resume if provided
             if (resumeFile && candidateId) {
@@ -177,21 +254,56 @@ export default function SubmitCandidateModal({ roleId, onClose }: SubmitCandidat
                                         <span className="loading loading-spinner"></span>
                                     </div>
                                 ) : existingCandidates.length > 0 ? (
-                                    <select
-                                        className="select w-full"
-                                        value={selectedCandidateId}
-                                        onChange={(e) => setSelectedCandidateId(e.target.value)}
-                                        required
-                                    >
-                                        <option value="">Choose a candidate...</option>
-                                        {existingCandidates.map((candidate) => (
-                                            <option key={candidate.id} value={candidate.id}>
-                                                {candidate.full_name} ({candidate.email})
-                                                {candidate.current_title && ` - ${candidate.current_title}`}
-                                                {candidate.current_company && ` at ${candidate.current_company}`}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            className="input w-full"
+                                            placeholder="Search by name, email, title, or company"
+                                            value={candidateSearch}
+                                            onFocus={() => setIsDropdownOpen(true)}
+                                            onChange={(e) => {
+                                                setCandidateSearch(e.target.value);
+                                                setIsDropdownOpen(true);
+                                            }}
+                                            onBlur={() => {
+                                                // Delay closing so click events can register
+                                                setTimeout(() => setIsDropdownOpen(false), 120);
+                                            }}
+                                            required
+                                        />
+                                        <input type="hidden" value={selectedCandidateId} required readOnly />
+                                        {isDropdownOpen && (
+                                            <ul className="menu bg-base-200 rounded-box absolute z-10 mt-2 w-full max-h-60 overflow-auto shadow">
+                                                {filteredCandidates.length === 0 && (
+                                                    <li className="p-3 text-sm text-base-content/70">No matches found</li>
+                                                )}
+                                                {filteredCandidates.map((candidate) => (
+                                                    <li key={candidate.id}>
+                                                        <button
+                                                            type="button"
+                                                            className="flex flex-col items-start gap-1 p-3 text-left"
+                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            onClick={() => {
+                                                                setSelectedCandidateId(candidate.id);
+                                                                setCandidateSearch(`${candidate.full_name} (${candidate.email})`);
+                                                                setIsDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            <span className="font-medium">{candidate.full_name}</span>
+                                                            <span className="text-sm text-base-content/70">{candidate.email}</span>
+                                                            {(candidate.current_title || candidate.current_company) && (
+                                                                <span className="text-xs text-base-content/60">
+                                                                    {candidate.current_title}
+                                                                    {candidate.current_title && candidate.current_company ? ' • ' : ''}
+                                                                    {candidate.current_company}
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
                                 ) : (
                                     <div className="alert">
                                         <i className="fa-solid fa-info-circle"></i>
@@ -310,6 +422,20 @@ export default function SubmitCandidateModal({ roleId, onClose }: SubmitCandidat
                     )}
 
                     <div className="fieldset">
+                        <label className="label">Proposal Pitch *</label>
+                        <textarea
+                            className="textarea w-full h-24"
+                            value={pitch}
+                            onChange={(e) => setPitch(e.target.value)}
+                            placeholder="Share why this role is a great fit for the candidate"
+                            required
+                        />
+                        <label className="label">
+                            <span className="label-text-alt">{pitch.length} / 500 characters</span>
+                        </label>
+                    </div>
+
+                    <div className="fieldset">
                         <label className="label">
                             Resume (Optional)
                             <span className="label-text-alt text-base-content/60">PDF, DOC, DOCX, or TXT - Max 10MB</span>
@@ -317,7 +443,7 @@ export default function SubmitCandidateModal({ roleId, onClose }: SubmitCandidat
                         <input
                             type="file"
                             ref={fileInputRef}
-                            className="file-input file-input-bordered w-full"
+                            className="file-input w-full"
                             accept=".pdf,.doc,.docx,.txt"
                             onChange={handleFileChange}
                         />
@@ -353,15 +479,19 @@ export default function SubmitCandidateModal({ roleId, onClose }: SubmitCandidat
                         <button
                             type="submit"
                             className="btn btn-primary"
-                            disabled={submitting || (mode === 'select' && !selectedCandidateId && existingCandidates.length > 0)}
+                            disabled={
+                                submitting ||
+                                (mode === 'select' && !selectedCandidateId) ||
+                                !pitch.trim()
+                            }
                         >
                             {submitting ? (
                                 <>
                                     <span className="loading loading-spinner loading-sm"></span>
-                                    Submitting...
+                                    Sending...
                                 </>
                             ) : (
-                                'Submit Candidate'
+                                'Send Proposal'
                             )}
                         </button>
                     </div>

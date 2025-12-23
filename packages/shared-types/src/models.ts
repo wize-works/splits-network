@@ -138,6 +138,7 @@ export interface MaskedCandidate {
 }
 
 export type ApplicationStage = 
+    | 'recruiter_proposed'  // Recruiter sent job opportunity, awaiting candidate decision
     | 'draft'       // Application not yet complete
     | 'ai_review'   // AI evaluating candidate-job fit
     | 'screen'      // Initial phone screen (recruiter only, for represented)
@@ -152,7 +153,7 @@ export type ApplicationStage =
 export interface ApplicationAuditLog {
     id: string;
     application_id: string;
-    action: 'accepted' | 'rejected' | 'stage_changed' | 'viewed' | 'created' | 'draft_saved' | 'submitted_to_recruiter' | 'recruiter_reviewed' | 'submitted_to_company' | 'withdrawn' | 'prescreen_requested' | 'note_added' | 'ai_review_started' | 'ai_review_completed' | 'ai_review_failed';
+    action: 'accepted' | 'rejected' | 'stage_changed' | 'viewed' | 'created' | 'draft_saved' | 'submitted_to_recruiter' | 'recruiter_reviewed' | 'submitted_to_company' | 'withdrawn' | 'prescreen_requested' | 'note_added' | 'ai_review_started' | 'ai_review_completed' | 'ai_review_failed' | 'recruiter_proposed_job' | 'candidate_approved_opportunity' | 'candidate_declined_opportunity';
     performed_by_user_id?: string;
     performed_by_role?: string;
     company_id?: string;
