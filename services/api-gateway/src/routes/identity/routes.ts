@@ -87,11 +87,14 @@ export function registerIdentityRoutes(app: FastifyInstance, services: ServiceRe
         const networkService = services.get('network');
         
         // If company admin role, create company record in ATS service
-        if (body.role === 'company_admin' && body.company && result.data?.organizationId) {
+        if (body.role === 'company_admin' && body.company && result.data?.organization_id) {
             try {
                 await atsService.post('/companies', {
                     name: body.company.name,
-                    identity_organization_id: result.data.organizationId,
+                    identity_organization_id: result.data.organization_id,
+                    website: body.company.website,
+                    industry: body.company.industry,
+                    company_size: body.company.size,
                 }, correlationId);
             } catch (error) {
                 console.error('Failed to create company in ATS service:', error);
