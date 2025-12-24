@@ -3,9 +3,10 @@ import { ServiceRegistry } from '../../clients';
 import { requireRoles, AuthenticatedRequest } from '../../rbac';
 
 /**
- * Recruiters Routes
- * - Recruiter profiles and stats
- * - Recruiter-specific resources
+ * Recruiters Routes (API Gateway)
+ * 
+ * Simple proxy - no business logic, no entity resolution.
+ * Backend services handle any necessary ID resolution.
  */
 export function registerRecruitersRoutes(app: FastifyInstance, services: ServiceRegistry) {
     const networkService = () => services.get('network');
@@ -119,33 +120,10 @@ export function registerRecruitersRoutes(app: FastifyInstance, services: Service
         const { recruiterId } = request.params as { recruiterId: string };
         const correlationId = (request as any).correlationId;
         
-        // If recruiterId looks like a Clerk user ID (starts with "user_"), resolve to internal recruiter ID
-        let actualRecruiterId = recruiterId;
-        if (recruiterId.startsWith('user_')) {
-            try {
-                const recruiterData = await networkService().get(`/recruiters/by-user/${recruiterId}`, undefined, correlationId) as any;
-                actualRecruiterId = recruiterData.data?.id;
-                if (!actualRecruiterId) {
-                    return reply.status(404).send({ 
-                        error: { 
-                            code: 'RECRUITER_NOT_FOUND', 
-                            message: 'Recruiter profile not found' 
-                        } 
-                    });
-                }
-            } catch (error) {
-                request.log.error({ error, userId: recruiterId }, 'Failed to resolve recruiter ID');
-                return reply.status(404).send({ 
-                    error: { 
-                        code: 'RECRUITER_NOT_FOUND', 
-                        message: 'Recruiter profile not found' 
-                    } 
-                });
-            }
-        }
-        
+        // Pass recruiterId as-is to backend service
+        // Backend will handle resolution if recruiterId is a Clerk user ID
         const queryString = new URLSearchParams(request.query as any).toString();
-        const path = queryString ? `/recruiters/${actualRecruiterId}/proposed-jobs?${queryString}` : `/recruiters/${actualRecruiterId}/proposed-jobs`;
+        const path = queryString ? `/recruiters/${recruiterId}/proposed-jobs?${queryString}` : `/recruiters/${recruiterId}/proposed-jobs`;
         const data = await atsService().get(path, undefined, correlationId);
         return reply.send(data);
     });

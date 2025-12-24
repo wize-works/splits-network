@@ -8,23 +8,28 @@ import { AtsRepository } from '../../repository';
  * 
  * Handles all proposal workflows across the platform.
  * 
+ * Receives Clerk user ID from API Gateway (in x-clerk-user-id header)
+ * and resolves to role-specific entity IDs internally via ProposalService.
+ * 
+ * This keeps business logic in the service layer, not in the API Gateway.
+ * 
  * @see docs/guidance/unified-proposals-system.md
  */
 export async function proposalRoutes(fastify: FastifyInstance, repository: AtsRepository) {
     const proposalService = new ProposalService(repository);
 
     /**
-     * Extract user context from headers set by API Gateway
+     * Extract Clerk user context from headers set by API Gateway
      */
-    function getUserContext(request: any): { userId: string; userRole: UserRole } | null {
-        const userId = request.headers['x-user-id'];
+    function getUserContext(request: any): { clerkUserId: string; userRole: UserRole } | null {
+        const clerkUserId = request.headers['x-clerk-user-id'];
         const userRole = request.headers['x-user-role'] as UserRole;
         
-        if (!userId || !userRole) {
+        if (!clerkUserId || !userRole) {
             return null;
         }
         
-        return { userId, userRole };
+        return { clerkUserId, userRole };
     }
 
     /**
@@ -39,20 +44,22 @@ export async function proposalRoutes(fastify: FastifyInstance, repository: AtsRe
             });
         }
 
-        const { userId, userRole } = userContext;
+        const { clerkUserId, userRole } = userContext;
+        const correlationId = (request as any).correlationId;
+        const query = request.query as any;
 
         const filters: ProposalFilters = {
-            type: request.query.type as any,
-            state: request.query.state as any,
-            search: request.query.search as string,
-            sort_by: request.query.sort_by as any,
-            sort_order: request.query.sort_order as any,
-            page: request.query.page ? parseInt(request.query.page as string) : 1,
-            limit: request.query.limit ? parseInt(request.query.limit as string) : 25,
-            urgent_only: request.query.urgent_only === 'true'
+            type: query.type,
+            state: query.state,
+            search: query.search as string,
+            sort_by: query.sort_by,
+            sort_order: query.sort_order,
+            page: query.page ? parseInt(query.page) : 1,
+            limit: query.limit ? parseInt(query.limit) : 25,
+            urgent_only: query.urgent_only === 'true'
         };
 
-        const result = await proposalService.getProposalsForUser(userId, userRole, filters);
+        const result = await proposalService.getProposalsForUser(clerkUserId, userRole, filters, correlationId);
         return reply.send({ data: result });
     });
 
@@ -68,8 +75,9 @@ export async function proposalRoutes(fastify: FastifyInstance, repository: AtsRe
             });
         }
 
-        const { userId, userRole } = userContext;
-        const proposals = await proposalService.getActionableProposals(userId, userRole);
+        const { clerkUserId, userRole } = userContext;
+        const correlationId = (request as any).correlationId;
+        const proposals = await proposalService.getActionableProposals(clerkUserId, userRole, correlationId);
         return reply.send({ data: proposals });
     });
 
@@ -85,8 +93,9 @@ export async function proposalRoutes(fastify: FastifyInstance, repository: AtsRe
             });
         }
 
-        const { userId, userRole } = userContext;
-        const proposals = await proposalService.getPendingProposals(userId, userRole);
+        const { clerkUserId, userRole } = userContext;
+        const correlationId = (request as any).correlationId;
+        const proposals = await proposalService.getPendingProposals(clerkUserId, userRole, correlationId);
         return reply.send({ data: proposals });
     });
 
@@ -104,23 +113,40 @@ export async function proposalRoutes(fastify: FastifyInstance, repository: AtsRe
                 });
             }
 
-            const { userId, userRole } = userContext;
+            const { clerkUserId, userRole } = userContext;
+            const correlationId = (request as any).correlationId;
             const proposalId = request.params.id;
 
-            // Get application
-            const application = await fastify.repository.findApplicationById(proposalId);
+            // Get application via repository
+            const application = await repository.findApplicationById(proposalId);
             if (!application) {
                 return reply.code(404).send({
                     error: { code: 'NOT_FOUND', message: 'Proposal not found' }
                 });
             }
 
-            // Check access permissions
+            // Get the job to access company_id for permission check
+            const job = application.job || await repository.findJobById(application.job_id);
+            if (!job) {
+                return reply.code(404).send({
+                    error: { code: 'NOT_FOUND', message: 'Associated job not found' }
+                });
+            }
+
+            // Resolve Clerk user ID to entity ID for permission check
+            const entityId = await proposalService.resolveEntityId(clerkUserId, userRole, correlationId);
+            if (!entityId) {
+                return reply.code(403).send({
+                    error: { code: 'FORBIDDEN', message: 'Access denied' }
+                });
+            }
+
+            // Check access permissions using resolved entity ID
             const hasAccess = 
                 userRole === 'admin' ||
-                (userRole === 'recruiter' && application.recruiter_id === userId) ||
-                (userRole === 'candidate' && application.candidate_id === userId) ||
-                (userRole === 'company' && application.company_id === userId);
+                (userRole === 'recruiter' && application.recruiter_id === entityId) ||
+                (userRole === 'candidate' && application.candidate_id === entityId) ||
+                (userRole === 'company' && job.company_id === entityId);
 
             if (!hasAccess) {
                 return reply.code(403).send({
@@ -128,10 +154,10 @@ export async function proposalRoutes(fastify: FastifyInstance, repository: AtsRe
                 });
             }
 
-            // Enrich as proposal
+            // Enrich as proposal (pass entityId for permission calculations)
             const proposal = await proposalService.enrichApplicationAsProposal(
                 application,
-                userId,
+                entityId,
                 userRole
             );
 
@@ -151,12 +177,13 @@ export async function proposalRoutes(fastify: FastifyInstance, repository: AtsRe
             });
         }
 
-        const { userId, userRole } = userContext;
+        const { clerkUserId, userRole } = userContext;
+        const correlationId = (request as any).correlationId;
         // Get first page to calculate summary
-        const result = await proposalService.getProposalsForUser(userId, userRole, {
+        const result = await proposalService.getProposalsForUser(clerkUserId, userRole, {
             page: 1,
             limit: 100  // Get more items for accurate summary
-        });
+        }, correlationId);
 
         return reply.send({ data: result.summary });
     });

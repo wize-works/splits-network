@@ -3,62 +3,34 @@ import { ServiceRegistry } from '../../clients';
 import { requireRoles, AuthenticatedRequest } from '../../rbac';
 
 /**
- * Unified Proposals Routes (Phase 1A)
- * - Single interface for all proposal workflows
- * - Replaces legacy /proposed-jobs and old Phase 2 /proposals
+ * Unified Proposals Routes (Phase 1A) - API Gateway
+ * 
+ * Passes raw Clerk user ID and role to ATS Service.
+ * NO business logic here - ATS Service handles entity resolution internally.
  * 
  * @see docs/guidance/unified-proposals-system.md
  */
 
-/**
- * Determine user role based on memberships
- */
-function determineUserRole(auth: any): string {
-    const memberships = auth.memberships || [];
-    
-    // Priority order: platform_admin > company_admin/hiring_manager > recruiter
-    if (memberships.some((m: any) => m.role === 'platform_admin')) {
-        return 'admin';
-    }
-    if (memberships.some((m: any) => ['company_admin', 'hiring_manager'].includes(m.role))) {
-        return 'company';
-    }
-    if (memberships.some((m: any) => m.role === 'recruiter')) {
-        return 'recruiter';
-    }
-    
-    return 'candidate'; // Default to candidate if no other role
-}
-
 export function registerProposalsRoutes(app: FastifyInstance, services: ServiceRegistry) {
     const atsService = () => services.get('ats');
-    const networkService = () => services.get('network');
     const getCorrelationId = (request: FastifyRequest) => (request as any).correlationId;
 
     /**
-     * Resolve entity ID for user context
-     * - For recruiters: userId (Clerk) → recruiter_id (network.recruiters)
-     * - For other roles: use userId directly
+     * Determine user's primary role from Clerk memberships
      */
-    async function resolveEntityId(userId: string, userRole: string, correlationId: string): Promise<{ entityId: string; isInactive?: boolean }> {
-        if (userRole === 'recruiter') {
-            try {
-                const recruiterResponse: any = await networkService().get(
-                    `/recruiters/by-user/${userId}`,
-                    undefined,
-                    correlationId
-                );
-
-                if (recruiterResponse.data && recruiterResponse.data.status === 'active') {
-                    return { entityId: recruiterResponse.data.id }; // Use recruiter_id
-                } else {
-                    return { entityId: userId, isInactive: true }; // Inactive recruiter
-                }
-            } catch (error) {
-                throw new Error('Failed to verify recruiter status');
-            }
+    function determineUserRole(auth: any): 'candidate' | 'recruiter' | 'company' | 'admin' {
+        const memberships = auth.memberships || [];
+        
+        if (memberships.some((m: any) => m.role === 'platform_admin')) {
+            return 'admin';
         }
-        return { entityId: userId }; // Use userId directly for non-recruiters
+        if (memberships.some((m: any) => m.role === 'company_admin')) {
+            return 'company';
+        }
+        if (memberships.some((m: any) => m.role === 'recruiter')) {
+            return 'recruiter';
+        }
+        return 'candidate';
     }
 
     /**
@@ -75,22 +47,16 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
 
-        // Determine user role
+        // Determine user role (no entity resolution in gateway)
         const userRole = determineUserRole(req.auth);
-
-        // Resolve entity ID (userId → recruiter_id for recruiters)
-        const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, correlationId);
-        if (isInactive) {
-            return reply.send({ data: [], pagination: { total: 0, page: 1, limit: 25, total_pages: 0 }, summary: { actionable_count: 0, waiting_count: 0, urgent_count: 0, overdue_count: 0 } });
-        }
 
         // Forward query params directly to ATS service
         const queryString = new URLSearchParams(request.query as any).toString();
         const path = `/api/proposals?${queryString}`;
 
-        // Add user context headers for ATS service
+        // Pass raw Clerk user ID to ATS service
         const headers = {
-            'x-user-id': entityId,
+            'x-clerk-user-id': req.auth.userId,
             'x-user-role': userRole,
         };
 
@@ -113,13 +79,9 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const correlationId = getCorrelationId(request);
 
         const userRole = determineUserRole(req.auth);
-        const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, correlationId);
-        if (isInactive) {
-            return reply.send({ data: [] });
-        }
         
         const headers = {
-            'x-user-id': entityId,
+            'x-clerk-user-id': req.auth.userId,
             'x-user-role': userRole,
         };
         
@@ -142,13 +104,9 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const correlationId = getCorrelationId(request);
 
         const userRole = determineUserRole(req.auth);
-        const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, correlationId);
-        if (isInactive) {
-            return reply.send({ data: [] });
-        }
         
         const headers = {
-            'x-user-id': entityId,
+            'x-clerk-user-id': req.auth.userId,
             'x-user-role': userRole,
         };
         
@@ -171,13 +129,9 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const correlationId = getCorrelationId(request);
 
         const userRole = determineUserRole(req.auth);
-        const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, correlationId);
-        if (isInactive) {
-            return reply.send({ actionable_count: 0, waiting_count: 0, urgent_count: 0, overdue_count: 0 });
-        }
         
         const headers = {
-            'x-user-id': entityId,
+            'x-clerk-user-id': req.auth.userId,
             'x-user-role': userRole,
         };
         
@@ -201,10 +155,9 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const correlationId = getCorrelationId(request);
 
         const userRole = determineUserRole(req.auth);
-        const { entityId } = await resolveEntityId(req.auth.userId, userRole, correlationId);
         
         const headers = {
-            'x-user-id': entityId,
+            'x-clerk-user-id': req.auth.userId,
             'x-user-role': userRole,
         };
         

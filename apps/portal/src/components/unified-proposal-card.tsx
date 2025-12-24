@@ -29,7 +29,7 @@ export default function UnifiedProposalCard({
     const [responding, setResponding] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const formatDate = (date: string) => {
+    const formatDate = (date: string | Date) => {
         return new Date(date).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -126,7 +126,7 @@ export default function UnifiedProposalCard({
 
                 {/* Candidate Info */}
                 <div className="flex items-center gap-2 text-sm mb-2">
-                    <div className="avatar placeholder">
+                    <div className="avatar avatar-placeholder">
                         <div className="bg-neutral text-neutral-content rounded-full w-8">
                             <span className="text-xs">{proposal.candidate.name.charAt(0)}</span>
                         </div>
@@ -164,7 +164,7 @@ export default function UnifiedProposalCard({
                             <i className="fa-solid fa-robot"></i>
                             AI Analysis
                         </div>
-                        <p className="text-base-content/80">{proposal.ai_analysis.summary || 'Analysis available'}</p>
+                        <p className="text-base-content/80">{proposal.ai_analysis.recommendation || 'Analysis available'}</p>
                     </div>
                 )}
 

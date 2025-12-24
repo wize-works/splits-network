@@ -2,8 +2,11 @@ import { AtsRepository } from '../../repository';
 import { EventPublisher } from '../../events';
 import { Application, Candidate, MaskedCandidate, ApplicationStage } from '@splits-network/shared-types';
 import { CandidateService } from '../candidates/service';
+import { getNetworkClient } from '../../clients/network-client';
 
 export class ApplicationService {
+    private networkClient = getNetworkClient();
+    
     constructor(
         private repository: AtsRepository,
         private eventPublisher: EventPublisher,
@@ -18,19 +21,49 @@ export class ApplicationService {
         return await this.repository.findApplications(filters);
     }
 
+    /**
+     * Resolve entity ID for the authenticated user.
+     * For recruiters: Calls Network Service to get recruiter profile and returns recruiter.id
+     * For others (candidates, companies): Returns the clerkUserId directly
+     * Returns null if user is inactive
+     */
+    async resolveEntityId(
+        clerkUserId: string,
+        userRole: 'candidate' | 'recruiter' | 'company' | 'admin',
+        correlationId?: string
+    ): Promise<string | null> {
+        if (userRole === 'recruiter') {
+            console.log('[ApplicationService] Resolving recruiter entity ID for Clerk user:', clerkUserId);
+            
+            const recruiter = await this.networkClient.getRecruiterByUserId(clerkUserId);
+            
+            if (!recruiter) {
+                console.log('[ApplicationService] Recruiter not found or inactive');
+                return null;
+            }
+            
+            console.log('[ApplicationService] Resolved to recruiter_id:', recruiter.id);
+            return recruiter.id;
+        }
+        
+        // For candidates/companies/admins, the entity ID is the user ID
+        return clerkUserId;
+    }
+
     async getApplicationsPaginated(params: {
+        clerkUserId?: string;
+        userRole?: 'candidate' | 'recruiter' | 'company' | 'admin';
         page?: number;
         limit?: number;
         search?: string;
         stage?: string;
-        recruiter_id?: string;
         job_id?: string;
         job_ids?: string[];
         candidate_id?: string;
         company_id?: string;
         sort_by?: string;
         sort_order?: 'asc' | 'desc';
-    }): Promise<{
+    }, correlationId?: string): Promise<{
         data: Array<Application & {
             candidate: { id: string; full_name: string; email: string; linkedin_url?: string; _masked?: boolean };
             job: { id: string; title: string; company_id: string };
@@ -42,7 +75,46 @@ export class ApplicationService {
         limit: number;
         total_pages: number;
     }> {
-        return await this.repository.findApplicationsPaginated(params);
+        // If clerkUserId and userRole provided, resolve entity ID
+        let recruiter_id: string | undefined;
+        
+        if (params.clerkUserId && params.userRole) {
+            const entityId = await this.resolveEntityId(params.clerkUserId, params.userRole, correlationId);
+            
+            if (!entityId && params.userRole === 'recruiter') {
+                // Inactive recruiter - return empty results
+                console.log('[ApplicationService] Inactive recruiter, returning empty results');
+                return {
+                    data: [],
+                    total: 0,
+                    page: params.page || 1,
+                    limit: params.limit || 25,
+                    total_pages: 0,
+                };
+            }
+            
+            // For recruiters, use the resolved recruiter_id for filtering
+            if (params.userRole === 'recruiter' && entityId) {
+                recruiter_id = entityId;
+            }
+        }
+        
+        // Build repository query params (now with resolved recruiter_id if applicable)
+        const repositoryParams = {
+            page: params.page,
+            limit: params.limit,
+            search: params.search,
+            stage: params.stage,
+            recruiter_id: recruiter_id, // Use resolved recruiter_id
+            job_id: params.job_id,
+            job_ids: params.job_ids,
+            candidate_id: params.candidate_id,
+            company_id: params.company_id,
+            sort_by: params.sort_by,
+            sort_order: params.sort_order,
+        };
+        
+        return await this.repository.findApplicationsPaginated(repositoryParams);
     }
 
     async getApplicationById(id: string): Promise<Application> {

@@ -3,6 +3,30 @@ import { AtsService } from '../../service';
 import { BadRequestError } from '@splits-network/shared-fastify';
 import { SubmitCandidateDTO, UpdateApplicationStageDTO } from '@splits-network/shared-types';
 
+/**
+ * Applications Routes
+ * 
+ * Receives Clerk user ID from API Gateway (in x-clerk-user-id header).
+ * Services handle entity resolution internally (e.g., Clerk userId → recruiter_id).
+ */
+
+/**
+ * Extract user context from gateway-provided headers
+ */
+function getUserContext(request: FastifyRequest): { clerkUserId: string; userRole: 'candidate' | 'recruiter' | 'company' | 'admin' } {
+    const clerkUserId = request.headers['x-clerk-user-id'] as string;
+    const userRole = (request.headers['x-user-role'] as string) || 'candidate';
+    
+    if (!clerkUserId) {
+        throw new Error('Missing x-clerk-user-id header');
+    }
+    
+    return { 
+        clerkUserId, 
+        userRole: userRole as 'candidate' | 'recruiter' | 'company' | 'admin'
+    };
+}
+
 export function registerApplicationRoutes(app: FastifyInstance, service: AtsService) {
     // Get paginated applications with optional filters and search
     app.get(
@@ -13,7 +37,6 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
                 limit?: string;
                 search?: string;
                 stage?: string;
-                recruiter_id?: string;
                 job_id?: string;
                 candidate_id?: string;
                 company_id?: string;
@@ -21,29 +44,35 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
                 sort_order?: 'asc' | 'desc';
             } 
         }>, reply: FastifyReply) => {
+            const { clerkUserId, userRole } = getUserContext(request);
+            const correlationId = (request as any).correlationId;
+            
             const page = request.query.page ? parseInt(request.query.page, 10) : 1;
             const limit = request.query.limit ? parseInt(request.query.limit, 10) : 25;
             
             console.log('[DEBUG] /applications/paginated query params:', {
-                recruiter_id: request.query.recruiter_id,
+                clerkUserId,
+                userRole,
                 page,
                 limit,
                 search: request.query.search,
                 stage: request.query.stage,
             });
             
+            // Note: recruiter_id is now resolved internally by the service from clerkUserId
             const result = await service.getApplicationsPaginated({
+                clerkUserId,
+                userRole,
                 page,
                 limit,
                 search: request.query.search,
                 stage: request.query.stage,
-                recruiter_id: request.query.recruiter_id,
                 job_id: request.query.job_id,
                 candidate_id: request.query.candidate_id,
                 company_id: request.query.company_id,
                 sort_by: request.query.sort_by,
                 sort_order: request.query.sort_order,
-            });
+            }, correlationId);
             
             console.log('[DEBUG] Result:', {
                 total: result.total,

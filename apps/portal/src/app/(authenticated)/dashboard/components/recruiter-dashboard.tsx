@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ApiClient } from '@/lib/api-client';
+import ProposedJobsList from './proposed-jobs-list';
 
 interface RecruiterStats {
     active_roles: number;

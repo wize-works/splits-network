@@ -66,7 +66,7 @@ export class AtsService {
 
     // Applications
     async getApplications(filters?: { recruiter_id?: string; job_id?: string; stage?: string }) { return this.applications.getApplications(filters); }
-    async getApplicationsPaginated(params: any) { return this.applications.getApplicationsPaginated(params); }
+    async getApplicationsPaginated(params: any, correlationId?: string) { return this.applications.getApplicationsPaginated(params, correlationId); }
     async getApplicationById(id: string) { return this.applications.getApplicationById(id); }
     async getApplicationsByJobId(jobId: string) { return this.applications.getApplicationsByJobId(jobId); }
     async getApplicationsByRecruiterId(recruiterId: string) { return this.applications.getApplicationsByRecruiterId(recruiterId); }

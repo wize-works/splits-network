@@ -3,8 +3,10 @@ import { ServiceRegistry } from '../../clients';
 import { requireRoles, AuthenticatedRequest, isRecruiter, isCompanyUser } from '../../rbac';
 
 /**
- * Dashboard Routes
- * - Persona-specific dashboard stats and insights
+ * Dashboard Routes (API Gateway)
+ * 
+ * Simple proxy - no business logic, no entity resolution.
+ * Backend services handle entity resolution and data aggregation.
  */
 export function registerDashboardsRoutes(app: FastifyInstance, services: ServiceRegistry) {
     const networkService = () => services.get('network');
@@ -28,15 +30,19 @@ export function registerDashboardsRoutes(app: FastifyInstance, services: Service
         const correlationId = getCorrelationId(request);
 
         try {
-            // Get recruiter profile
-            const recruiterResponse: any = await networkService().get(
-                `/recruiters/by-user/${req.auth.userId}`,
+            // Pass Clerk user ID to Network Service for recruiter resolution
+            // Backend will handle entity resolution and inactive user check
+            const data = await networkService().get(
+                `/recruiters/by-user/${req.auth.userId}/dashboard-stats`,
                 undefined,
                 correlationId
             );
-            const recruiterId = recruiterResponse.data?.id;
-
-            if (!recruiterId) {
+            return reply.send(data);
+        } catch (error) {
+            request.log.error({ error }, 'Error fetching recruiter dashboard stats');
+            
+            // If recruiter not found, return empty stats
+            if ((error as any).response?.status === 404) {
                 return reply.send({
                     data: {
                         active_roles: 0,
@@ -49,29 +55,7 @@ export function registerDashboardsRoutes(app: FastifyInstance, services: Service
                     }
                 });
             }
-
-            // Get assigned job IDs
-            const jobsResponse: any = await networkService().get(
-                `/recruiters/${recruiterId}/jobs`,
-                undefined,
-                correlationId
-            );
-            const jobIds = jobsResponse.data || [];
-
-            // TODO: Add recruiter-specific stats endpoint in ATS service
-            const stats = {
-                active_roles: jobIds.length,
-                candidates_in_process: 0,
-                offers_pending: 0,
-                placements_this_month: 0,
-                placements_this_year: 0,
-                total_earnings_ytd: 0,
-                pending_payouts: 0,
-            };
-
-            return reply.send({ data: stats });
-        } catch (error) {
-            request.log.error({ error }, 'Error fetching recruiter dashboard stats');
+            
             return reply.status(500).send({ error: 'Failed to load dashboard stats' });
         }
     });

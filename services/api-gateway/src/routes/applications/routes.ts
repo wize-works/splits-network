@@ -3,17 +3,34 @@ import { ServiceRegistry } from '../../clients';
 import { requireRoles, AuthenticatedRequest, isRecruiter } from '../../rbac';
 
 /**
- * Applications Routes
- * - Application lifecycle management
- * - Stage transitions
- * - RBAC applied at gateway level for optimal performance
+ * Applications Routes (API Gateway)
+ * 
+ * Passes raw Clerk user ID to ATS Service.
+ * NO business logic here - ATS Service handles entity resolution internally.
  */
 export function registerApplicationsRoutes(app: FastifyInstance, services: ServiceRegistry) {
     const atsService = () => services.get('ats');
-    const networkService = () => services.get('network');
     const getCorrelationId = (request: FastifyRequest) => (request as any).correlationId;
 
-    // List applications with server-side pagination and filtering (RBAC optimized)
+    /**
+     * Determine user's primary role from Clerk memberships
+     */
+    function determineUserRole(auth: any): 'candidate' | 'recruiter' | 'company' | 'admin' {
+        const memberships = auth.memberships || [];
+        
+        if (memberships.some((m: any) => m.role === 'platform_admin')) {
+            return 'admin';
+        }
+        if (memberships.some((m: any) => m.role === 'company_admin')) {
+            return 'company';
+        }
+        if (memberships.some((m: any) => m.role === 'recruiter')) {
+            return 'recruiter';
+        }
+        return 'candidate';
+    }
+
+    // List applications with server-side pagination and filtering
     app.get('/api/applications/paginated', {
         schema: {
             description: 'List applications with pagination, search, and filters',
@@ -24,35 +41,21 @@ export function registerApplicationsRoutes(app: FastifyInstance, services: Servi
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
         
-        // Build query params
+        // Determine user role
+        const userRole = determineUserRole(req.auth);
+        
+        // Build query params - pass query filters as-is
         const queryParams = new URLSearchParams(request.query as any);
-        
-        // For recruiters: automatically add recruiter_id filter (eliminates extra API call from frontend)
-        if (isRecruiter(req.auth)) {
-            // Verify recruiter exists and is active, then add filter
-            try {
-                const recruiterResponse: any = await networkService().get(
-                    `/recruiters/by-user/${req.auth.userId}`,
-                    undefined,
-                    correlationId
-                );
-
-                if (recruiterResponse.data && recruiterResponse.data.status === 'active') {
-                    // Add recruiter_id filter automatically (using network.recruiters.id, not user_id)
-                    queryParams.set('recruiter_id', recruiterResponse.data.id);
-                } else {
-                    return reply.send({ data: [], pagination: { total: 0, page: 1, limit: 25, total_pages: 0 } });
-                }
-            } catch (error) {
-                request.log.error({ error, userId: req.auth.userId }, 'Failed to verify recruiter status');
-                return reply.status(403).send({ error: 'Failed to verify recruiter status' });
-            }
-        }
-        // For company users/admins: could add company filtering here in the future
-        
         const queryString = queryParams.toString();
         const path = `/applications/paginated?${queryString}`;
-        const data = await atsService().get(path, undefined, correlationId);
+        
+        // Pass raw Clerk user ID and role to ATS service for internal resolution
+        const headers = {
+            'x-clerk-user-id': req.auth.userId,
+            'x-user-role': userRole,
+        };
+        
+        const data = await atsService().get(path, undefined, correlationId, headers);
         return reply.send(data);
     });
 
@@ -93,31 +96,14 @@ export function registerApplicationsRoutes(app: FastifyInstance, services: Servi
         },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const req = request as AuthenticatedRequest;
-        const networkService = services.get('network');
         const correlationId = getCorrelationId(request);
 
-        // Get actual recruiter ID from network service using user ID
-        let recruiterId: string | undefined;
-        try {
-            const recruiterResponse: any = await networkService.get(
-                `/recruiters/by-user/${req.auth.userId}`,
-                undefined,
-                correlationId
-            );
-            recruiterId = recruiterResponse.data?.id;
-        } catch (error) {
-            request.log.error({ error, userId: req.auth.userId }, 'Failed to get recruiter ID');
-            return reply.status(403).send({ error: 'Active recruiter status required' });
-        }
-
-        if (!recruiterId) {
-            return reply.status(403).send({ error: 'Active recruiter status required' });
-        }
-
-        const data = await atsService().post('/applications', {
-            ...(request.body as any),
-            recruiter_id: recruiterId,
-        }, correlationId);
+        // Simple proxy - pass user context to backend
+        const userRole = determineUserRole(req.auth);
+        const data = await atsService().post('/applications', request.body, correlationId, {
+            'x-clerk-user-id': req.auth.userId,
+            'x-user-role': userRole,
+        });
         return reply.send(data);
     });
 

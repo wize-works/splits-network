@@ -2,11 +2,13 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { ServiceRegistry } from '../../clients';
 import { requireRoles, AuthenticatedRequest } from '../../rbac';
 import { registerMeRecruitersRoute } from './me-recruiters';
+import { resolveEntityId, determineUserRole } from '../../helpers/entity-resolution'; // TODO: Remove after refactoring - candidates routes have complex business logic that needs to move to ATS Service
 
 /**
- * Candidates Routes
- * - Candidate CRUD operations
- * - Candidate ownership (Phase 2)
+ * Candidates Routes (API Gateway)
+ * 
+ * TODO: This file has significant business logic (recruiter filtering, relationship checks)
+ * that should be moved to ATS Service. Requires careful refactoring.
  */
 export function registerCandidatesRoutes(app: FastifyInstance, services: ServiceRegistry) {
     // Register sub-routes
@@ -31,20 +33,17 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         
         // If recruiter, show candidates they SOURCED OR have active relationships with
         if (isRecruiter) {
-            // Get recruiter ID for this user
+            // Get recruiter ID for this user using centralized helper
             try {
-                const recruiterResponse: any = await networkService().get(
-                    `/recruiters/by-user/${req.auth.userId}`,
-                    undefined,
-                    correlationId
-                );
+                const userRole = determineUserRole(req.auth);
+                const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, services, correlationId);
                 
-                if (!recruiterResponse.data) {
+                if (isInactive) {
                     // Recruiter profile doesn't exist yet - return empty list
                     return reply.send({ data: [] });
                 }
                 
-                const recruiterId = recruiterResponse.data.id;
+                const recruiterId = entityId;
                 
                 // Get candidates SOURCED by this recruiter (permanent visibility)
                 const queryParams = new URLSearchParams(request.query as any);
@@ -194,21 +193,18 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         
         // If recruiter, create the candidate and establish relationship
         if (isRecruiter) {
-            // Get recruiter ID
+            // Get recruiter ID using centralized helper
             try {
-                const recruiterResponse: any = await networkService().get(
-                    `/recruiters/by-user/${req.auth.userId}`,
-                    undefined,
-                    correlationId
-                );
+                const userRole = determineUserRole(req.auth);
+                const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, services, correlationId);
                 
-                if (!recruiterResponse.data) {
+                if (isInactive) {
                     return reply.status(403).send({ 
                         error: 'Recruiter profile not found. Please contact an administrator to set up your recruiter profile.' 
                     });
                 }
                 
-                const recruiterId = recruiterResponse.data.id;
+                const recruiterId = entityId;
                 
                 // Add recruiter_id to body for ATS service
                 const bodyWithRecruiter = {
@@ -369,16 +365,17 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
 
-        // Get recruiter ID for this user
-        const recruiterResponse: any = await networkService().get(
-            `/recruiters/by-user/${req.auth.userId}`,
-            undefined,
-            correlationId
-        );
+        // Get recruiter ID using centralized helper
+        const userRole = determineUserRole(req.auth);
+        const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, services, correlationId);
+
+        if (isInactive) {
+            return reply.status(403).send({ error: 'Active recruiter status required' });
+        }
 
         const data = await atsService().post(`/candidates/${id}/source`, {
             ...(request.body as any),
-            recruiter_id: recruiterResponse.data.id,
+            recruiter_id: entityId,
         }, correlationId);
         return reply.send(data);
     });
@@ -410,16 +407,17 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
 
-        // Get recruiter ID for this user
-        const recruiterResponse: any = await networkService().get(
-            `/recruiters/by-user/${req.auth.userId}`,
-            undefined,
-            correlationId
-        );
+        // Get recruiter ID using centralized helper
+        const userRole = determineUserRole(req.auth);
+        const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, services, correlationId);
+
+        if (isInactive) {
+            return reply.status(403).send({ error: 'Active recruiter status required' });
+        }
 
         const data = await atsService().post(`/candidates/${id}/outreach`, {
             ...(request.body as any),
-            recruiter_id: recruiterResponse.data.id,
+            recruiter_id: entityId,
         }, correlationId);
         return reply.send(data);
     });

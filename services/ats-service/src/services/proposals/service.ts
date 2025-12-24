@@ -11,6 +11,7 @@ import {
     getPendingActionParty,
     getActionType
 } from '@splits-network/shared-types';
+import { getNetworkClient } from '../../clients/network-client';
 
 export type UserRole = 'candidate' | 'recruiter' | 'company' | 'admin';
 
@@ -20,32 +21,88 @@ export type UserRole = 'candidate' | 'recruiter' | 'company' | 'admin';
  * Manages all proposal workflows across the platform by enriching
  * applications with proposal-specific metadata and role-based permissions.
  * 
+ * Handles internal entity resolution: converts Clerk user IDs to role-specific entity IDs
+ * by calling Network Service when needed (e.g., userId → recruiter_id for recruiters).
+ * 
  * @see docs/guidance/unified-proposals-system.md
  */
 export class ProposalService {
+    private networkClient = getNetworkClient();
+
     constructor(private repository: AtsRepository) {}
 
     /**
+     * Resolve Clerk user ID to role-specific entity ID
+     * 
+     * @param clerkUserId - The Clerk user ID from authentication
+     * @param userRole - The user's role (recruiter, candidate, company, admin)
+     * @param correlationId - Optional correlation ID for tracing
+     * @returns The entity ID to use for queries, or null if user is inactive
+     */
+    async resolveEntityId(
+        clerkUserId: string,
+        userRole: UserRole,
+        correlationId?: string
+    ): Promise<string | null> {
+        // For recruiters, resolve to recruiter_id via Network Service
+        if (userRole === 'recruiter') {
+            const recruiter = await this.networkClient.getRecruiterByUserId(clerkUserId, correlationId);
+            if (!recruiter) {
+                // User is not a recruiter or recruiter is inactive
+                return null;
+            }
+            return recruiter.id;
+        }
+
+        // For candidates and companies, Clerk userId maps directly to entity ID
+        // (This assumes candidate_id and company_id in applications table match Clerk user IDs)
+        // TODO: If companies need similar resolution, add company service client here
+        return clerkUserId;
+    }
+
+    /**
      * Get all proposals for current user based on their role
+     * 
+     * @param clerkUserId - The Clerk user ID from authentication
+     * @param userRole - The user's role
+     * @param filters - Optional filters
+     * @param correlationId - Optional correlation ID for tracing
      */
     async getProposalsForUser(
-        userId: string,
+        clerkUserId: string,
         userRole: UserRole,
-        filters?: ProposalFilters
+        filters?: ProposalFilters,
+        correlationId?: string
     ): Promise<ProposalsResponse> {
         const page = filters?.page || 1;
         const limit = filters?.limit || 25;
 
+        // Resolve Clerk user ID to entity ID
+        const entityId = await this.resolveEntityId(clerkUserId, userRole, correlationId);
+        if (!entityId) {
+            // User is inactive or not authorized - return empty results
+            return {
+                data: [],
+                pagination: { total: 0, page, limit, total_pages: 0 },
+                summary: {
+                    actionable_count: 0,
+                    waiting_count: 0,
+                    urgent_count: 0,
+                    overdue_count: 0
+                }
+            };
+        }
+
         // Build query filters based on role
         const queryFilters: any = {};
 
-        // Role-specific filtering
+        // Role-specific filtering using resolved entity ID
         if (userRole === 'recruiter') {
-            queryFilters.recruiter_id = userId;
+            queryFilters.recruiter_id = entityId;
         } else if (userRole === 'candidate') {
-            queryFilters.candidate_id = userId;
+            queryFilters.candidate_id = entityId;
         } else if (userRole === 'company') {
-            queryFilters.company_id = userId;
+            queryFilters.company_id = entityId;
         }
 
         // Type filtering
@@ -56,7 +113,7 @@ export class ProposalService {
 
         // State filtering
         if (filters?.state === 'actionable') {
-            queryFilters.actionable_by = userId;
+            queryFilters.actionable_by = entityId;
         } else if (filters?.state === 'completed') {
             queryFilters.stage = ['hired', 'rejected', 'withdrawn'];
         }
@@ -71,9 +128,9 @@ export class ProposalService {
             limit
         });
 
-        // Enrich applications as proposals
+        // Enrich applications as proposals (using entityId for permission checks)
         const proposals = await Promise.all(
-            result.data.map(app => this.enrichApplicationAsProposal(app, userId, userRole))
+            result.data.map(app => this.enrichApplicationAsProposal(app, entityId, userRole))
         );
 
         // Filter by state if needed (post-query filtering for complex logic)
@@ -111,28 +168,38 @@ export class ProposalService {
 
     /**
      * Get proposals requiring user's action
+     * 
+     * @param clerkUserId - The Clerk user ID from authentication
+     * @param userRole - The user's role
+     * @param correlationId - Optional correlation ID for tracing
      */
     async getActionableProposals(
-        userId: string,
-        userRole: UserRole
+        clerkUserId: string,
+        userRole: UserRole,
+        correlationId?: string
     ): Promise<UnifiedProposal[]> {
-        const response = await this.getProposalsForUser(userId, userRole, {
+        const response = await this.getProposalsForUser(clerkUserId, userRole, {
             state: 'actionable',
             sort_by: 'urgency'
-        });
+        }, correlationId);
         return response.data;
     }
 
     /**
      * Get proposals awaiting others (user initiated, pending response)
+     * 
+     * @param clerkUserId - The Clerk user ID from authentication
+     * @param userRole - The user's role
+     * @param correlationId - Optional correlation ID for tracing
      */
     async getPendingProposals(
-        userId: string,
-        userRole: UserRole
+        clerkUserId: string,
+        userRole: UserRole,
+        correlationId?: string
     ): Promise<UnifiedProposal[]> {
-        const response = await this.getProposalsForUser(userId, userRole, {
+        const response = await this.getProposalsForUser(clerkUserId, userRole, {
             state: 'waiting'
-        });
+        }, correlationId);
         return response.data;
     }
 

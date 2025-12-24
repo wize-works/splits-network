@@ -1,11 +1,12 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { ServiceRegistry } from '../../clients';
-import { requireRoles, AuthenticatedRequest, isRecruiter } from '../../rbac';
+import { requireRoles, AuthenticatedRequest } from '../../rbac';
 
 /**
- * Jobs Routes
- * - Job CRUD operations
- * - Job-related endpoints (applications, proposals, recruiters)
+ * Jobs Routes (API Gateway)
+ * 
+ * Simple proxy - no business logic, no entity resolution.
+ * Backend services handle filtering and authorization.
  */
 export function registerJobsRoutes(app: FastifyInstance, services: ServiceRegistry) {
     const atsService = () => services.get('ats');
@@ -70,7 +71,7 @@ export function registerJobsRoutes(app: FastifyInstance, services: ServiceRegist
     });
 
     // Get applications for a job
-    // RBAC: Recruiters only see their own submissions, companies/admins see all
+    // Filtering by user role is handled by the backend service
     app.get('/api/jobs/:jobId/applications', {
         schema: {
             description: 'Get applications for a job',
@@ -82,37 +83,18 @@ export function registerJobsRoutes(app: FastifyInstance, services: ServiceRegist
         const { jobId } = request.params as { jobId: string };
         const correlationId = getCorrelationId(request);
 
-        // Get all applications from ATS
-        const applicationsResponse: any = await atsService().get(`/jobs/${jobId}/applications`, undefined, correlationId);
-        let applications = applicationsResponse.data || [];
-
-        // If user is a recruiter, filter to only their submissions
-        if (isRecruiter(req.auth)) {
-            try {
-                // Get recruiter ID for this user
-                const recruiterResponse: any = await networkService().get(
-                    `/recruiters/by-user/${req.auth.userId}`,
-                    undefined,
-                    correlationId
-                );
-
-                if (recruiterResponse.data) {
-                    const recruiterId = recruiterResponse.data.id;
-                    // Filter applications to only those submitted by this recruiter
-                    applications = applications.filter((app: any) => app.recruiter_id === recruiterId);
-                } else {
-                    // No recruiter record, return empty
-                    applications = [];
-                }
-            } catch (error) {
-                request.log.error({ error, userId: req.auth.userId }, 'Failed to get recruiter for filtering applications');
-                // On error, return empty for recruiters (fail-safe)
-                applications = [];
+        // Pass Clerk user ID to backend for filtering
+        // Backend will handle role-based filtering (recruiters see their apps, companies see all)
+        const data = await atsService().get(
+            `/jobs/${jobId}/applications`, 
+            undefined, 
+            correlationId,
+            {
+                'x-clerk-user-id': req.auth.userId,
+                'x-user-role': req.auth.memberships?.[0]?.role || 'candidate',
             }
-        }
-        // Admins and company users see all applications (no filtering)
-
-        return reply.send({ data: applications });
+        );
+        return reply.send(data);
     });
 
     // Get recruiters assigned to a job
