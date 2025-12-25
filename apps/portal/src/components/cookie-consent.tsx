@@ -33,7 +33,7 @@ export default function CookieConsent() {
                 const consentData = JSON.parse(consentStr);
                 const token = await getToken();
                 // Use NEXT_PUBLIC_API_URL (without /api suffix) to match .env.local configuration
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3000';
+                const apiUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3000';
 
                 const response = await fetch(`${apiUrl}/api/consent`, {
                     method: 'POST',
