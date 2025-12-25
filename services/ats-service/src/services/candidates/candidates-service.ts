@@ -341,12 +341,26 @@ export class CandidatesService {
             candidate_id: candidateId,
         });
 
-        // Enrich with job details
+        // Enrich with job and company details
         const enrichedApplications = await Promise.all(
             applications.map(async (app) => {
                 try {
+                    // Get job with company data
                     const job = await this.repository.findJobById(app.job_id);
-                    return { ...app, job };
+                    if (!job) {
+                        return app;
+                    }
+
+                    // Get company data
+                    const company = await this.repository.findCompanyById(job.company_id);
+
+                    return { 
+                        ...app, 
+                        job: {
+                            ...job,
+                            company: company ?? undefined
+                        }
+                    };
                 } catch (error) {
                     logger.warn({ error, jobId: app.job_id }, 'Failed to fetch job for application');
                     return app;

@@ -113,7 +113,8 @@ export class ProposalService {
 
         // State filtering
         if (filters?.state === 'actionable') {
-            queryFilters.actionable_by = entityId;
+            // Don't pre-filter at database level - will filter by can_current_user_act after enrichment
+            // The actionable proposals are determined by business logic, not a simple DB column
         } else if (filters?.state === 'completed') {
             queryFilters.stage = ['hired', 'rejected', 'withdrawn'];
         }

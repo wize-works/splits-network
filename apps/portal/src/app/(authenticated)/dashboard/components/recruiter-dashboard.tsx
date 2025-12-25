@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ApiClient } from '@/lib/api-client';
-import ProposedJobsList from './proposed-jobs-list';
+import ActionableProposalsWidget from './actionable-proposals-widget';
 
 interface RecruiterStats {
     active_roles: number;
@@ -45,9 +45,17 @@ export default function RecruiterDashboard({ token, profile }: RecruiterDashboar
         try {
             const api = new ApiClient(undefined, token);
 
-            // Load recruiter stats
-            const statsResponse = await api.get<{ data: RecruiterStats }>('/recruiter/dashboard/stats');
-            setStats(statsResponse.data);
+            // TODO: Implement /recruiter/dashboard/stats endpoint in API Gateway
+            // For now, use placeholder stats
+            setStats({
+                active_roles: 0,
+                candidates_in_process: 0,
+                offers_pending: 0,
+                placements_this_month: 0,
+                placements_this_year: 0,
+                total_earnings_ytd: 0,
+                pending_payouts: 0
+            });
 
             // Load recent activity
             const activityResponse = await api.get<{ data: RecentActivity[] }>('/recruiter/dashboard/activity');
@@ -198,19 +206,19 @@ export default function RecruiterDashboard({ token, profile }: RecruiterDashboar
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Proposed Jobs + Recent Activity */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Proposed Jobs Preview */}
+                    {/* Actionable Proposals Preview */}
                     <div className="card bg-base-100 shadow-sm">
                         <div className="card-body">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="card-title">
-                                    <i className="fa-solid fa-paper-plane mr-2"></i>
-                                    Recent Proposals
+                                    <i className="fa-solid fa-inbox mr-2"></i>
+                                    Action Required
                                 </h3>
-                                <Link href="/proposed-jobs" className="text-sm text-primary hover:underline">
+                                <Link href="/proposals" className="text-sm text-primary hover:underline">
                                     View all →
                                 </Link>
                             </div>
-                            <ProposedJobsList compact={true} />
+                            <ActionableProposalsWidget compact={true} />
                         </div>
                     </div>
 

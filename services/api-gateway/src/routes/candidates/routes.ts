@@ -234,12 +234,12 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
         
-        if (!req.auth || !req.auth.email) {
+        if (!req.auth || !req.auth.userId) {
             return reply.status(401).send({ error: 'Unauthorized' });
         }
         
         const data = await atsService().get('/candidates/me/applications', undefined, correlationId, {
-            'x-user-email': req.auth.email,
+            'x-clerk-user-id': req.auth.userId,
         });
         return reply.send(data);
     });

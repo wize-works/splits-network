@@ -37,14 +37,18 @@ export class NetworkServiceClient {
                 headers['x-correlation-id'] = correlationId;
             }
 
+            const url = `${this.baseURL}/recruiters/by-user/${userId}`;
+            
             const response = await fetch(
-                `${this.baseURL}/api/recruiters/by-user/${userId}`,
+                url,
                 {
                     method: 'GET',
                     headers,
                     signal: AbortSignal.timeout(5000),
                 }
             );
+
+            console.log('[NetworkClient] Response status:', response.status);
 
             // 404 means user is not a recruiter - this is expected
             if (response.status === 404) {
@@ -65,9 +69,10 @@ export class NetworkServiceClient {
 
             return recruiter;
         } catch (error: any) {
+            console.log('[NetworkClient] Error fetching recruiter:', error.message);
             logger.error({
                 err: error,
-                url: `/api/recruiters/by-user/${userId}`,
+                url: `/recruiters/by-user/${userId}`,
             }, 'Network service request failed');
             
             // Don't re-throw on 404
@@ -92,7 +97,7 @@ export class NetworkServiceClient {
             }
 
             const response = await fetch(
-                `${this.baseURL}/api/recruiters/${recruiterId}`,
+                `${this.baseURL}/recruiters/${recruiterId}`,
                 {
                     method: 'GET',
                     headers,
@@ -113,7 +118,7 @@ export class NetworkServiceClient {
         } catch (error: any) {
             logger.error({
                 err: error,
-                url: `/api/recruiters/${recruiterId}`,
+                url: `/recruiters/${recruiterId}`,
             }, 'Network service request failed');
             
             if (error.message?.includes('404')) {

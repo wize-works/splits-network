@@ -54,9 +54,9 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const queryString = new URLSearchParams(request.query as any).toString();
         const path = `/api/proposals?${queryString}`;
 
-        // Pass raw Clerk user ID to ATS service
+        // Pass Clerk user ID (NOT internal userId) to ATS service
         const headers = {
-            'x-clerk-user-id': req.auth.userId,
+            'x-clerk-user-id': req.auth.clerkUserId,
             'x-user-role': userRole,
         };
 
@@ -81,7 +81,7 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const userRole = determineUserRole(req.auth);
         
         const headers = {
-            'x-clerk-user-id': req.auth.userId,
+            'x-clerk-user-id': req.auth.clerkUserId,
             'x-user-role': userRole,
         };
         
@@ -106,7 +106,7 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const userRole = determineUserRole(req.auth);
         
         const headers = {
-            'x-clerk-user-id': req.auth.userId,
+            'x-clerk-user-id': req.auth.clerkUserId,
             'x-user-role': userRole,
         };
         
@@ -131,7 +131,7 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const userRole = determineUserRole(req.auth);
         
         const headers = {
-            'x-clerk-user-id': req.auth.userId,
+            'x-clerk-user-id': req.auth.clerkUserId,
             'x-user-role': userRole,
         };
         
@@ -157,7 +157,7 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const userRole = determineUserRole(req.auth);
         
         const headers = {
-            'x-clerk-user-id': req.auth.userId,
+            'x-clerk-user-id': req.auth.clerkUserId,
             'x-user-role': userRole,
         };
         
