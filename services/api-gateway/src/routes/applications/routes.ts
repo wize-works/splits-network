@@ -161,33 +161,16 @@ export function registerApplicationsRoutes(app: FastifyInstance, services: Servi
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
-        const atsService = services.get('ats');
         
         request.log.info({ 
             userId: req.auth.userId,
             body: request.body 
         }, 'Candidate submitting application');
 
-        // Get candidate ID from email - candidates are external users
-        const candidatesResponse: any = await atsService.get(
-            `/candidates?email=${encodeURIComponent(req.auth.email)}`,
-            undefined,
-            correlationId
-        );
-        const candidates = candidatesResponse.data || [];
-        
-        if (candidates.length === 0) {
-            return reply.status(404).send({ error: 'Candidate profile not found' });
-        }
-
-        const candidateId = candidates[0].id;
-
-        // Forward to ATS service with candidate_id and candidate_user_id in request
-        const data = await atsService.post('/applications/submit', {
-            ...(request.body as any),
-            candidate_id: candidateId,
-            candidate_user_id: req.auth.userId, // Pass Clerk user ID for notifications
-        }, correlationId);
+        // Pass user ID to backend for candidate lookup
+        const data = await atsService().post('/applications/submit', request.body, correlationId, {
+            'x-clerk-user-id': req.auth.userId,
+        });
         return reply.status(201).send(data);
     });
 
@@ -203,28 +186,11 @@ export function registerApplicationsRoutes(app: FastifyInstance, services: Servi
         const req = request as AuthenticatedRequest;
         const { id } = request.params as { id: string };
         const correlationId = getCorrelationId(request);
-        const atsService = services.get('ats');
 
-        // Get candidate ID from email - candidates are external users
-        const candidatesResponse: any = await atsService.get(
-            `/candidates?email=${encodeURIComponent(req.auth.email)}`,
-            undefined,
-            correlationId
-        );
-        const candidates = candidatesResponse.data || [];
-        
-        if (candidates.length === 0) {
-            return reply.status(404).send({ error: 'Candidate profile not found' });
-        }
-
-        const candidateId = candidates[0].id;
-
-        // Forward to ATS service with candidate_id and candidate_user_id in request body
-        const data = await atsService.post(`/applications/${id}/withdraw`, {
-            ...(request.body as any),
-            candidate_id: candidateId,
-            candidate_user_id: req.auth.userId, // Pass Clerk user ID for notifications
-        }, correlationId);
+        // Pass user ID to backend for candidate lookup and permission checking
+        const data = await atsService().post(`/applications/${id}/withdraw`, request.body, correlationId, {
+            'x-clerk-user-id': req.auth.userId,
+        });
         return reply.send(data);
     });
 

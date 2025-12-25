@@ -13,6 +13,7 @@ import { registerCandidateOwnershipRoutes } from './routes/candidates/ownership-
 import { registerPlacementLifecycleRoutes } from './routes/placements/lifecycle-routes';
 import { registerPlacementCollaborationRoutes } from './routes/placements/collaboration-routes';
 import { CandidateOwnershipService } from './services/candidates/ownership-service';
+import { CandidatesService } from './services/candidates/candidates-service';
 import { PlacementCollaborationService } from './services/placements/collaboration-service';
 import { PlacementLifecycleService } from './services/placements/lifecycle-service';
 import { AtsRepository } from './repository';
@@ -27,11 +28,14 @@ export function registerRoutes(
     repository: AtsRepository,
     eventPublisher: EventPublisher
 ) {
+    // Create CandidatesService instance
+    const candidatesService = new CandidatesService(repository);
+    
     // Register all domain-specific routes
     registerCompanyRoutes(app, service);
     registerJobRoutes(app, service);
     registerApplicationRoutes(app, service);
-    registerCandidateRoutes(app, service);
+    registerCandidateRoutes(app, service, candidatesService);
     registerPlacementRoutes(app, service);
     registerStatsRoutes(app, service);
     registerIntegrationRoutes(app);

@@ -92,8 +92,8 @@ export class ServiceClient {
         return this.request<T>('POST', path, data, undefined, correlationId, customHeaders);
     }
 
-    async patch<T>(path: string, data?: any, correlationId?: string): Promise<T> {
-        return this.request<T>('PATCH', path, data, undefined, correlationId);
+    async patch<T>(path: string, data?: any, correlationId?: string, customHeaders?: Record<string, string>): Promise<T> {
+        return this.request<T>('PATCH', path, data, undefined, correlationId, customHeaders);
     }
 
     async delete<T>(path: string, correlationId?: string): Promise<T> {

@@ -2,13 +2,21 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { ServiceRegistry } from '../../clients';
 import { requireRoles, AuthenticatedRequest } from '../../rbac';
 import { registerMeRecruitersRoute } from './me-recruiters';
-import { resolveEntityId, determineUserRole } from '../../helpers/entity-resolution'; // TODO: Remove after refactoring - candidates routes have complex business logic that needs to move to ATS Service
+
+function determineUserRole(auth: any): string {
+    if (auth.sessionClaims?.metadata?.role) {
+        return auth.sessionClaims.metadata.role;
+    }
+    if (auth.orgRole) {
+        return auth.orgRole;
+    }
+    return 'candidate';
+}
 
 /**
  * Candidates Routes (API Gateway)
  * 
- * TODO: This file has significant business logic (recruiter filtering, relationship checks)
- * that should be moved to ATS Service. Requires careful refactoring.
+ * Simple proxy to ATS Service - all business logic moved to backend
  */
 export function registerCandidatesRoutes(app: FastifyInstance, services: ServiceRegistry) {
     // Register sub-routes
@@ -27,90 +35,15 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
+        const userRole = determineUserRole(req.auth);
         
-        // Check if user is a recruiter (check memberships array)
-        const isRecruiter = req.auth?.memberships?.some(m => m.role === 'recruiter');
+        const queryParams = new URLSearchParams(request.query as any);
+        const path = queryParams.toString() ? `/candidates?${queryParams.toString()}` : '/candidates';
         
-        // If recruiter, show candidates they SOURCED OR have active relationships with
-        if (isRecruiter) {
-            // Get recruiter ID for this user using centralized helper
-            try {
-                const userRole = determineUserRole(req.auth);
-                const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, services, correlationId);
-                
-                if (isInactive) {
-                    // Recruiter profile doesn't exist yet - return empty list
-                    return reply.send({ data: [] });
-                }
-                
-                const recruiterId = entityId;
-                
-                // Get candidates SOURCED by this recruiter (permanent visibility)
-                const queryParams = new URLSearchParams(request.query as any);
-                queryParams.set('recruiter_id', recruiterId);
-                const sourcedCandidatesResponse: any = await atsService().get(`/candidates?${queryParams.toString()}`);
-                const sourcedCandidates = sourcedCandidatesResponse.data || [];
-                
-                // Get candidates with active relationships
-                const relationshipsResponse: any = await networkService().get(
-                    `/recruiter-candidates/recruiter/${recruiterId}`,
-                    undefined,
-                    correlationId
-                );
-                
-                const relationships = relationshipsResponse.data || [];
-                const relationshipCandidateIds = relationships
-                    .filter((rel: any) => rel.status === 'active')
-                    .map((rel: any) => rel.candidate_id);
-                
-                // Fetch relationship candidates that aren't already sourced
-                const sourcedCandidateIds = new Set(sourcedCandidates.map((c: any) => c.id));
-                const relationshipCandidatesToFetch = relationshipCandidateIds.filter(
-                    (id: string) => !sourcedCandidateIds.has(id)
-                );
-                
-                let relationshipCandidates: any[] = [];
-                if (relationshipCandidatesToFetch.length > 0) {
-                    // Fetch these candidates individually (or implement bulk fetch in ATS service)
-                    relationshipCandidates = await Promise.all(
-                        relationshipCandidatesToFetch.map(async (id: string) => {
-                            try {
-                                const response: any = await atsService().get(`/candidates/${id}`);
-                                return response.data;
-                            } catch (err) {
-                                console.error(`Failed to fetch candidate ${id}:`, err);
-                                return null;
-                            }
-                        })
-                    );
-                    relationshipCandidates = relationshipCandidates.filter(c => c !== null);
-                }
-                
-                // Combine and deduplicate
-                const allCandidates = [...sourcedCandidates, ...relationshipCandidates];
-                
-                return reply.send({ data: allCandidates });
-            } catch (err: any) {
-                // If recruiter profile not found (404), return empty list
-                if (err.message && err.message.includes('404')) {
-                    return reply.send({ data: [] });
-                }
-                // Re-throw other errors
-                throw err;
-            }
-        }
-        
-        // Platform admins see all candidates; everyone else is blocked from the global list
-        const isPlatformAdmin = req.auth?.memberships?.some(m => m.role === 'platform_admin');
-        if (!isPlatformAdmin) {
-            return reply.status(403).send({
-                error: { code: 'FORBIDDEN', message: 'Only platform_admin can list all candidates' },
-            });
-        }
-
-        const queryString = new URLSearchParams(request.query as any).toString();
-        const path = queryString ? `/candidates?${queryString}` : '/candidates';
-        const data = await atsService().get(path);
+        const data = await atsService().get(path, undefined, correlationId, {
+            'x-clerk-user-id': req.auth.userId,
+            'x-user-role': userRole,
+        });
         return reply.send(data);
     });
 
@@ -137,44 +70,14 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
         
-        if (!req.auth || !req.auth.email) {
+        if (!req.auth || !req.auth.userId) {
             return reply.status(401).send({ error: 'Unauthorized' });
         }
         
-        try {
-            // Find candidate by email from auth context
-            const candidatesResponse: any = await atsService().get(
-                `/candidates?email=${encodeURIComponent(req.auth.email)}`,
-                undefined,
-                correlationId
-            );
-            const candidates = candidatesResponse.data || [];
-            
-            if (candidates.length === 0) {
-                return reply.status(404).send({ 
-                    error: { code: 'CANDIDATE_NOT_FOUND', message: 'Candidate profile not found' } 
-                });
-            }
-
-            const candidate = candidates[0];
-            
-            // Verify this is a self-managed candidate
-            if (!candidate.user_id) {
-                return reply.status(403).send({ 
-                    error: { 
-                        code: 'NOT_SELF_MANAGED', 
-                        message: 'This candidate profile is not self-managed. Please contact your recruiter to update your profile.' 
-                    } 
-                });
-            }
-            
-            // Update candidate profile
-            const data = await atsService().patch(`/candidates/${candidate.id}?allow_self_managed=true`, request.body);
-            return reply.send(data);
-        } catch (error: any) {
-            request.log.error({ error, email: req.auth.email }, 'Failed to update candidate profile');
-            return reply.status(500).send({ error: { message: 'Failed to update profile' } });
-        }
+        const data = await atsService().patch('/candidates/me', request.body, correlationId, {
+            'x-clerk-user-id': req.auth.userId,
+        });
+        return reply.send(data);
     });
     // Create a new candidate (recruiters and platform admins only)
     app.post('/api/candidates', {
@@ -187,56 +90,12 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
+        const userRole = determineUserRole(req.auth);
         
-        // Check if user is a recruiter
-        const isRecruiter = req.auth?.memberships?.some(m => m.role === 'recruiter');
-        
-        // If recruiter, create the candidate and establish relationship
-        if (isRecruiter) {
-            // Get recruiter ID using centralized helper
-            try {
-                const userRole = determineUserRole(req.auth);
-                const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, services, correlationId);
-                
-                if (isInactive) {
-                    return reply.status(403).send({ 
-                        error: 'Recruiter profile not found. Please contact an administrator to set up your recruiter profile.' 
-                    });
-                }
-                
-                const recruiterId = entityId;
-                
-                // Add recruiter_id to body for ATS service
-                const bodyWithRecruiter = {
-                    ...(request.body as Record<string, any>),
-                    recruiter_id: recruiterId
-                };
-                
-                const candidateData: any = await atsService().post('/candidates', bodyWithRecruiter);
-                
-                // Create recruiter-candidate relationship in network service
-                if (candidateData.data?.id) {
-                    await networkService().post('/recruiter-candidates', {
-                        recruiter_id: recruiterId,
-                        candidate_id: candidateData.data.id
-                    }, undefined, correlationId);
-                }
-                
-                return reply.send(candidateData);
-            } catch (err: any) {
-                // If recruiter profile not found (404), return helpful error
-                if (err.message && err.message.includes('404')) {
-                    return reply.status(403).send({ 
-                        error: 'Recruiter profile not found. Please contact an administrator to set up your recruiter profile.' 
-                    });
-                }
-                // Re-throw other errors
-                throw err;
-            }
-        }
-        
-        // Platform admins don't create recruiter relationships
-        const data = await atsService().post('/candidates', request.body);
+        const data = await atsService().post('/candidates', request.body, correlationId, {
+            'x-clerk-user-id': req.auth.userId,
+            'x-user-role': userRole,
+        });
         return reply.send(data);
     });
 
@@ -252,70 +111,12 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         const req = request as AuthenticatedRequest;
         const { id } = request.params as { id: string };
         const correlationId = getCorrelationId(request);
+        const userRole = determineUserRole(req.auth);
         
-        // Get candidate to check if self-managed
-        const candidateResponse: any = await atsService().get(`/candidates/${id}`);
-        if (!candidateResponse.data) {
-            return reply.status(404).send({ error: 'Candidate not found' });
-        }
-        
-        const candidate = candidateResponse.data;
-        
-        // Cannot update self-managed candidates
-        if (candidate.user_id) {
-            return reply.status(403).send({ 
-                error: 'Cannot update self-managed candidate profile' 
-            });
-        }
-        
-        // Check if user is a recruiter
-        const isRecruiter = req.auth?.memberships?.some(m => m.role === 'recruiter');
-        
-        // If recruiter, verify they have an ACTIVE relationship with this candidate
-        // Note: Sourcing provides visibility only, NOT editing rights
-        if (isRecruiter) {
-            try {
-                const recruiterResponse: any = await networkService().get(
-                    `/recruiters/by-user/${req.auth.userId}`,
-                    undefined,
-                    correlationId
-                );
-                
-                if (!recruiterResponse.data) {
-                    return reply.status(403).send({ 
-                        error: 'Recruiter profile not found. Please contact an administrator to set up your recruiter profile.' 
-                    });
-                }
-                
-                const recruiterId = recruiterResponse.data.id;
-                
-                // Check for active relationship (required for editing)
-                const relationshipResponse: any = await networkService().get(
-                    `/recruiter-candidates/${recruiterId}/${id}`,
-                    undefined,
-                    correlationId
-                );
-                
-                // Must have active relationship to edit
-                if (!relationshipResponse.data || relationshipResponse.data.status !== 'active') {
-                    return reply.status(403).send({ 
-                        error: 'You do not have permission to update this candidate. An active recruiter-candidate relationship is required.' 
-                    });
-                }
-            } catch (err: any) {
-                // If recruiter profile not found (404), return helpful error
-                if (err.message && err.message.includes('404') && err.message.includes('Recruiter for user')) {
-                    return reply.status(403).send({ 
-                        error: 'Recruiter profile not found. Please contact an administrator to set up your recruiter profile.' 
-                    });
-                }
-                // Re-throw other errors
-                throw err;
-            }
-        }
-        
-        // Update candidate
-        const data = await atsService().patch(`/candidates/${id}`, request.body);
+        const data = await atsService().patch(`/candidates/${id}`, request.body, correlationId, {
+            'x-clerk-user-id': req.auth.userId,
+            'x-user-role': userRole,
+        });
         return reply.send(data);
     });
 
@@ -364,19 +165,12 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         const { id } = request.params as { id: string };
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
-
-        // Get recruiter ID using centralized helper
         const userRole = determineUserRole(req.auth);
-        const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, services, correlationId);
 
-        if (isInactive) {
-            return reply.status(403).send({ error: 'Active recruiter status required' });
-        }
-
-        const data = await atsService().post(`/candidates/${id}/source`, {
-            ...(request.body as any),
-            recruiter_id: entityId,
-        }, correlationId);
+        const data = await atsService().post(`/candidates/${id}/source`, request.body, correlationId, {
+            'x-clerk-user-id': req.auth.userId,
+            'x-user-role': userRole,
+        });
         return reply.send(data);
     });
 
@@ -406,19 +200,12 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         const { id } = request.params as { id: string };
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
-
-        // Get recruiter ID using centralized helper
         const userRole = determineUserRole(req.auth);
-        const { entityId, isInactive } = await resolveEntityId(req.auth.userId, userRole, services, correlationId);
 
-        if (isInactive) {
-            return reply.status(403).send({ error: 'Active recruiter status required' });
-        }
-
-        const data = await atsService().post(`/candidates/${id}/outreach`, {
-            ...(request.body as any),
-            recruiter_id: entityId,
-        }, correlationId);
+        const data = await atsService().post(`/candidates/${id}/outreach`, request.body, correlationId, {
+            'x-clerk-user-id': req.auth.userId,
+            'x-user-role': userRole,
+        });
         return reply.send(data);
     });
 
@@ -451,53 +238,9 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
             return reply.status(401).send({ error: 'Unauthorized' });
         }
         
-        try {
-            // Find candidate by email from auth context
-            const candidatesResponse: any = await atsService().get(
-                `/candidates?email=${encodeURIComponent(req.auth.email)}`,
-                undefined,
-                correlationId
-            );
-            const candidates = candidatesResponse.data || [];
-            
-            if (candidates.length === 0) {
-                // No candidate record yet, return empty applications
-                return reply.send({ data: [] });
-            }
-
-            const candidateId = candidates[0].id;
-            
-            // Get applications for this candidate
-            const queryString = new URLSearchParams({ 
-                candidate_id: candidateId,
-                ...(request.query as any)
-            }).toString();
-            
-            const applicationsResponse: any = await atsService().get(`/applications?${queryString}`, undefined, correlationId);
-            const applications = applicationsResponse.data || [];
-
-            // Enrich applications with job and company details
-            const enrichedApplications = await Promise.all(
-                applications.map(async (app: any) => {
-                    try {
-                        const jobResponse: any = await atsService().get(`/jobs/${app.job_id}`, undefined, correlationId);
-                        const job = jobResponse.data;
-
-                        return {
-                            ...app,
-                            job: job,
-                        };
-                    } catch (error) {
-                        request.log.warn({ error, job_id: app.job_id }, 'Failed to fetch job details for application');
-                        return app; // Return application without job details if fetch fails
-                    }
-                })
-            );
-
-            return reply.send({ data: enrichedApplications });
-        } catch (error: any) {
-            request.log.error({ error, email: req.auth.email }, 'Failed to get candidate applications');
-            return reply.status(500).send({ error: { message: 'Failed to load applications' } });
-        }
+        const data = await atsService().get('/candidates/me/applications', undefined, correlationId, {
+            'x-user-email': req.auth.email,
+        });
+        return reply.send(data);
     });
 }

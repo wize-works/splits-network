@@ -118,6 +118,132 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
         }
     );
 
+    // Candidate self-service: submit application
+    app.post(
+        '/applications/submit',
+        async (request: FastifyRequest<{
+            Body: {
+                job_id: string;
+                cover_letter?: string;
+                resume_url?: string;
+            };
+        }>, reply: FastifyReply) => {
+            const userId = request.headers['x-clerk-user-id'] as string;
+            const correlationId = (request as any).correlationId;
+            
+            if (!userId) {
+                return reply.status(401).send({ 
+                    error: { code: 'UNAUTHORIZED', message: 'Missing user ID' } 
+                });
+            }
+
+            const { job_id, cover_letter, resume_url } = request.body;
+            
+            if (!job_id) {
+                throw new BadRequestError('job_id is required');
+            }
+
+            // Look up candidate by user_id using the repository directly
+            const allCandidates = await service.getCandidates({ limit: 1000 });
+            const candidate = allCandidates.find((c: any) => c.user_id === userId);
+            
+            if (!candidate) {
+                return reply.status(404).send({ 
+                    error: { code: 'NOT_FOUND', message: 'Candidate profile not found' } 
+                });
+            }
+
+            // Check if already applied to this job
+            const existingApplications = await service.getApplications({
+                job_id,
+            });
+
+            const alreadyApplied = existingApplications.some((app: any) => app.candidate_id === candidate.id);
+            if (alreadyApplied) {
+                return reply.status(409).send({ 
+                    error: { code: 'ALREADY_APPLIED', message: 'You have already applied to this job' } 
+                });
+            }
+
+            // Use submitCandidate which will create candidate record if needed
+            const application = await service.submitCandidate(
+                job_id,
+                candidate.email,
+                candidate.full_name,
+                undefined, // Self-submitted, no recruiter yet
+                { cover_letter, resume_url }
+            );
+
+            request.log.info({
+                applicationId: application.id,
+                candidateId: candidate.id,
+                jobId: job_id,
+                userId,
+            }, 'Candidate submitted application');
+
+            return reply.status(201).send({ data: application });
+        }
+    );
+
+    // Candidate self-service: withdraw application
+    app.post(
+        '/applications/:id/withdraw',
+        async (request: FastifyRequest<{
+            Params: { id: string };
+            Body: {
+                reason?: string;
+            };
+        }>, reply: FastifyReply) => {
+            const userId = request.headers['x-clerk-user-id'] as string;
+            const correlationId = (request as any).correlationId;
+            
+            if (!userId) {
+                return reply.status(401).send({ 
+                    error: { code: 'UNAUTHORIZED', message: 'Missing user ID' } 
+                });
+            }
+
+            const { id: applicationId } = request.params;
+
+            // Look up candidate by user_id
+            const allCandidates = await service.getCandidates({ limit: 1000 });
+            const candidate = allCandidates.find((c: any) => c.user_id === userId);
+            
+            if (!candidate) {
+                return reply.status(404).send({ 
+                    error: { code: 'NOT_FOUND', message: 'Candidate profile not found' } 
+                });
+            }
+
+            // Get application and verify ownership
+            const application = await service.getApplicationById(applicationId);
+            
+            if (!application) {
+                return reply.status(404).send({ 
+                    error: { code: 'NOT_FOUND', message: 'Application not found' } 
+                });
+            }
+
+            if (application.candidate_id !== candidate.id) {
+                return reply.status(403).send({ 
+                    error: { code: 'FORBIDDEN', message: 'You can only withdraw your own applications' } 
+                });
+            }
+
+            // Update application stage to withdrawn
+            const updatedApplication = await service.updateApplicationStage(applicationId, 'withdrawn');
+
+            request.log.info({
+                applicationId,
+                candidateId: candidate.id,
+                userId,
+                reason: request.body.reason,
+            }, 'Candidate withdrew application');
+
+            return reply.send({ data: updatedApplication });
+        }
+    );
+
     // Create new application (submit candidate)
     app.post(
         '/applications',
@@ -249,32 +375,43 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
         }
     );
 
-    // Submit candidate application (new candidate-initiated flow)
+    // Submit candidate application with documents (advanced flow)
     app.post(
-        '/applications/submit',
+        '/applications/submit-advanced',
         async (request: FastifyRequest<{ Body: {
-            candidate_id: string;
-            candidate_user_id?: string;
             job_id: string;
             document_ids: string[];
             primary_resume_id: string;
             pre_screen_answers?: Array<{ question_id: string; answer: any }>;
             notes?: string;
         } }>, reply: FastifyReply) => {
-            const { candidate_id, candidate_user_id, job_id, document_ids, primary_resume_id, pre_screen_answers, notes } = request.body;
+            const { job_id, document_ids, primary_resume_id, pre_screen_answers, notes } = request.body;
+            
+            // Get candidate email and user ID from headers (passed by API Gateway)
+            const email = request.headers['x-user-email'] as string;
+            const userId = request.headers['x-clerk-user-id'] as string;
 
-            // Candidate ID should be provided by API Gateway
-            if (!candidate_id) {
-                throw new BadRequestError('Candidate ID is required');
+            if (!email) {
+                throw new BadRequestError('Candidate email is required');
             }
 
             if (!job_id || !document_ids || document_ids.length === 0 || !primary_resume_id) {
                 throw new BadRequestError('Missing required fields: job_id, document_ids, primary_resume_id');
             }
 
+            // Look up candidate by email
+            const candidates = await service.getCandidates({ search: email, limit: 10 });
+            if (candidates.length === 0) {
+                return reply.status(404).send({ 
+                    error: { code: 'CANDIDATE_NOT_FOUND', message: 'Candidate profile not found' } 
+                });
+            }
+
+            const candidate = candidates[0];
+
             const result = await service.submitCandidateApplication({
-                candidateId: candidate_id,
-                candidateUserId: candidate_user_id,
+                candidateId: candidate.id,
+                candidateUserId: userId,
                 jobId: job_id,
                 documentIds: document_ids,
                 primaryResumeId: primary_resume_id,
@@ -285,7 +422,7 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
             request.log.info({
                 applicationId: result.application.id,
                 jobId: job_id,
-                candidateId: candidate_id,
+                candidateId: candidate.id,
                 hasRecruiter: result.hasRecruiter,
                 stage: result.application.stage,
             }, 'Candidate submitted application');
@@ -299,26 +436,37 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
         '/applications/:id/withdraw',
         async (request: FastifyRequest<{
             Params: { id: string };
-            Body: { reason?: string; candidate_id?: string; candidate_user_id?: string };
+            Body: { reason?: string };
         }>, reply: FastifyReply) => {
-            // Extract candidate ID from request body (passed by API Gateway)
-            const candidateId = request.body.candidate_id || (request as any).auth?.userId;
+            // Get candidate email and user ID from headers (passed by API Gateway)
+            const email = request.headers['x-user-email'] as string;
+            const userId = request.headers['x-clerk-user-id'] as string;
 
-            if (!candidateId) {
-                throw new BadRequestError('Candidate ID not found in request');
+            if (!email) {
+                throw new BadRequestError('Candidate email is required');
             }
+
+            // Look up candidate by email
+            const candidates = await service.getCandidates({ search: email, limit: 10 });
+            if (candidates.length === 0) {
+                return reply.status(404).send({ 
+                    error: { code: 'CANDIDATE_NOT_FOUND', message: 'Candidate profile not found' } 
+                });
+            }
+
+            const candidate = candidates[0];
 
             const application = await service.withdrawApplication(
                 request.params.id,
-                candidateId,
-                request.body.candidate_user_id,
+                candidate.id,
+                userId,
                 request.body.reason
             );
 
             request.log.info({
                 applicationId: request.params.id,
-                candidateId,
-                candidateUserId: request.body.candidate_user_id,
+                candidateId: candidate.id,
+                candidateUserId: userId,
                 reason: request.body.reason,
             }, 'Application withdrawn by candidate');
 

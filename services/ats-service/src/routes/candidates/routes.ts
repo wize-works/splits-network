@@ -1,23 +1,48 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { AtsService } from '../../service';
+import { CandidatesService } from '../../services/candidates/candidates-service';
 
-export function registerCandidateRoutes(app: FastifyInstance, service: AtsService) {
+function getUserContext(request: FastifyRequest) {
+    const clerkUserId = request.headers['x-clerk-user-id'] as string;
+    const userRole = (request.headers['x-user-role'] as string) || 'candidate';
+    if (!clerkUserId) {
+        throw new Error('Missing x-clerk-user-id header');
+    }
+    return { clerkUserId, userRole: userRole as 'candidate' | 'recruiter' | 'company' | 'admin' };
+}
+
+function getCorrelationId(request: FastifyRequest): string {
+    return (request as any).correlationId || `req-${Date.now()}`;
+}
+
+export function registerCandidateRoutes(app: FastifyInstance, service: AtsService, candidatesService: CandidatesService) {
     // Get all candidates with optional filters
+    // Now accepts Clerk user ID from headers and performs entity resolution internally
     app.get(
         '/candidates',
-        async (request: FastifyRequest<{ Querystring: { search?: string; limit?: string; offset?: string; recruiter_id?: string; email?: string } }>, reply: FastifyReply) => {
-            const { search, limit, offset, recruiter_id, email } = request.query;
+        async (request: FastifyRequest<{ Querystring: { search?: string; limit?: string; offset?: string; email?: string } }>, reply: FastifyReply) => {
+            const { search, limit, offset, email } = request.query;
+            const { clerkUserId, userRole } = getUserContext(request);
+            const correlationId = getCorrelationId(request);
             
-            // If email is provided, use it as the search parameter for exact match
-            const searchParam = email || search;
-            
-            const candidates = await service.getCandidates({
-                search: searchParam,
-                limit: limit ? parseInt(limit) : undefined,
-                offset: offset ? parseInt(offset) : undefined,
-                recruiter_id,
-            });
-            return reply.send({ data: candidates });
+            try {
+                const candidates = await candidatesService.getCandidates({
+                    clerkUserId,
+                    userRole,
+                    search,
+                    email,
+                    limit: limit ? parseInt(limit) : undefined,
+                    offset: offset ? parseInt(offset) : undefined,
+                }, correlationId);
+                return reply.send({ data: candidates });
+            } catch (error: any) {
+                if (error.message.includes('Forbidden')) {
+                    return reply.status(403).send({ 
+                        error: { code: 'FORBIDDEN', message: error.message } 
+                    });
+                }
+                throw error;
+            }
         }
     );
 
@@ -40,24 +65,41 @@ export function registerCandidateRoutes(app: FastifyInstance, service: AtsServic
     );
 
     // Create a new candidate
+    // Now accepts Clerk user ID from headers for recruiters
     app.post(
         '/candidates',
         async (request: FastifyRequest<{ Body: { email: string; full_name: string; linkedin_url?: string } }>, reply: FastifyReply) => {
             const { email, full_name, linkedin_url } = request.body;
+            const { clerkUserId, userRole } = getUserContext(request);
+            const correlationId = getCorrelationId(request);
             
-            if (!email || !full_name) {
-                return reply.status(400).send({ 
-                    error: 'Missing required fields',
-                    message: 'email and full_name are required' 
-                });
+            try {
+                const candidate = await candidatesService.createCandidate({
+                    clerkUserId,
+                    userRole: userRole as 'recruiter' | 'admin',
+                    email,
+                    full_name,
+                    linkedin_url,
+                }, correlationId);
+                return reply.status(201).send({ data: candidate });
+            } catch (error: any) {
+                if (error.message.includes('required fields')) {
+                    return reply.status(400).send({ 
+                        error: { code: 'VALIDATION_ERROR', message: error.message } 
+                    });
+                }
+                if (error.message.includes('Recruiter profile')) {
+                    return reply.status(403).send({ 
+                        error: { code: 'INACTIVE_RECRUITER', message: error.message } 
+                    });
+                }
+                throw error;
             }
-            
-            const candidate = await service.findOrCreateCandidate(email, full_name, linkedin_url);
-            return reply.status(201).send({ data: candidate });
         }
     );
 
     // Update a candidate
+    // Now accepts Clerk user ID from headers and checks permissions
     app.patch(
         '/candidates/:id',
         async (request: FastifyRequest<{ 
@@ -80,11 +122,62 @@ export function registerCandidateRoutes(app: FastifyInstance, service: AtsServic
             const { id } = request.params;
             const updates = request.body;
             const allowSelfManaged = (request.query as any).allow_self_managed === 'true';
+            const { clerkUserId, userRole } = getUserContext(request);
+            const correlationId = getCorrelationId(request);
             
-            const candidate = await service.candidates.updateCandidate(id, updates, allowSelfManaged);
-            return reply.send({ data: candidate });
+            try {
+                const candidate = await candidatesService.updateCandidate({
+                    clerkUserId,
+                    userRole: userRole as 'recruiter' | 'admin',
+                    candidateId: id,
+                    updates,
+                    allowSelfManaged,
+                }, correlationId);
+                return reply.send({ data: candidate });
+            } catch (error: any) {
+                if (error.message.includes('not found')) {
+                    return reply.status(404).send({ 
+                        error: { code: 'NOT_FOUND', message: error.message } 
+                    });
+                }
+                if (error.message.includes('self-managed') || error.message.includes('permission')) {
+                    return reply.status(403).send({ 
+                        error: { code: 'FORBIDDEN', message: error.message } 
+                    });
+                }
+                if (error.message.includes('Recruiter profile')) {
+                    return reply.status(403).send({ 
+                        error: { code: 'INACTIVE_RECRUITER', message: error.message } 
+                    });
+                }
+                throw error;
+            }
         }
     );
+
+    // Get my applications (candidate self-service)
+    app.get('/candidates/me/applications', {
+        schema: {
+            description: 'Get my applications (self-service)',
+            tags: ['candidates'],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = request.headers['x-clerk-user-id'] as string;
+        const correlationId = getCorrelationId(request);
+        
+        if (!userId) {
+            return reply.status(401).send({ 
+                error: { code: 'UNAUTHORIZED', message: 'Missing user ID' } 
+            });
+        }
+        
+        try {
+            const applications = await candidatesService.getSelfApplications(userId, correlationId);
+            return reply.send({ data: applications });
+        } catch (error: any) {
+            throw error;
+        }
+    });
 
     // Link candidate to user (internal endpoint called by network service)
     app.post(
@@ -105,6 +198,132 @@ export function registerCandidateRoutes(app: FastifyInstance, service: AtsServic
             
             const candidate = await service.linkCandidateToUser(id, user_id);
             return reply.send({ data: candidate });
+        }
+    );
+
+    // Phase 2: Source candidate (mark as sourced by recruiter)
+    app.post(
+        '/candidates/:id/source',
+        async (request: FastifyRequest<{ 
+            Params: { id: string };
+            Body: Record<string, any>;
+        }>, reply: FastifyReply) => {
+            const { id } = request.params;
+            const { clerkUserId, userRole } = getUserContext(request);
+            const correlationId = getCorrelationId(request);
+            
+            try {
+                const result = await candidatesService.sourceCandidate({
+                    clerkUserId,
+                    userRole: userRole as 'recruiter',
+                    candidateId: id,
+                    sourceData: request.body,
+                }, correlationId);
+                return reply.send({ data: result });
+            } catch (error: any) {
+                if (error.message.includes('not found')) {
+                    return reply.status(404).send({ 
+                        error: { code: 'NOT_FOUND', message: error.message } 
+                    });
+                }
+                if (error.message.includes('Recruiter profile') || error.message.includes('Forbidden')) {
+                    return reply.status(403).send({ 
+                        error: { code: 'FORBIDDEN', message: error.message } 
+                    });
+                }
+                throw error;
+            }
+        }
+    );
+
+    // Phase 2: Get candidate sourcer information
+    app.get(
+        '/candidates/:id/sourcer',
+        async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+            const { id } = request.params;
+            const correlationId = getCorrelationId(request);
+            
+            try {
+                const sourcer = await candidatesService.getCandidateSourcer(id, correlationId);
+                return reply.send({ data: sourcer });
+            } catch (error: any) {
+                if (error.message.includes('not found')) {
+                    return reply.status(404).send({ 
+                        error: { code: 'NOT_FOUND', message: error.message } 
+                    });
+                }
+                throw error;
+            }
+        }
+    );
+
+    // Phase 2: Record outreach to candidate
+    app.post(
+        '/candidates/:id/outreach',
+        async (request: FastifyRequest<{ 
+            Params: { id: string };
+            Body: Record<string, any>;
+        }>, reply: FastifyReply) => {
+            const { id } = request.params;
+            const { clerkUserId, userRole } = getUserContext(request);
+            const correlationId = getCorrelationId(request);
+            
+            try {
+                const result = await candidatesService.recordOutreach({
+                    clerkUserId,
+                    userRole: userRole as 'recruiter',
+                    candidateId: id,
+                    outreachData: request.body,
+                }, correlationId);
+                return reply.send({ data: result });
+            } catch (error: any) {
+                if (error.message.includes('not found')) {
+                    return reply.status(404).send({ 
+                        error: { code: 'NOT_FOUND', message: error.message } 
+                    });
+                }
+                if (error.message.includes('Recruiter profile') || error.message.includes('Forbidden')) {
+                    return reply.status(403).send({ 
+                        error: { code: 'FORBIDDEN', message: error.message } 
+                    });
+                }
+                throw error;
+            }
+        }
+    );
+
+    // Self-service candidate update
+    app.patch(
+        '/candidates/me',
+        async (request: FastifyRequest<{ Body: Record<string, any> }>, reply: FastifyReply) => {
+            const userId = request.headers['x-clerk-user-id'] as string;
+            const correlationId = getCorrelationId(request);
+            
+            if (!userId) {
+                return reply.status(401).send({ 
+                    error: { code: 'UNAUTHORIZED', message: 'Missing user ID' } 
+                });
+            }
+            
+            try {
+                const candidate = await candidatesService.selfUpdateCandidate({
+                    userId,
+                    updates: request.body,
+                }, correlationId);
+                return reply.send({ data: candidate });
+            } catch (error: any) {
+                if (error.message.includes('not found')) {
+                    return reply.status(404).send({ 
+                        error: { code: 'NOT_FOUND', message: error.message } 
+                    });
+                }
+                if (error.message.includes('not self-managed')) {
+                    return reply.status(403).send({ 
+                        error: { code: 'FORBIDDEN', message: error.message } 
+                    });
+                }
+                throw error;
+            }
         }
     );
 }
