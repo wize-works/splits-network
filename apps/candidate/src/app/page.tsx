@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export default function CandidateHomePage() {
+export default async function CandidateHomePage() {
     return (
         <>
             {/* Hero Section with Video Background */}
