@@ -30,7 +30,11 @@ export function UserDropdown() {
 
     const handleSignOut = async () => {
         setIsOpen(false);
-        await signOut(() => router.push('/'));
+        await signOut(() => {
+            router.refresh();
+            router.push('/');
+
+        });
     };
 
     if (!user) return null;

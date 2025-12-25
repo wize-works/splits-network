@@ -10,7 +10,11 @@ export default function UserDropdown() {
     const router = useRouter();
 
     const handleSignOut = async () => {
-        await signOut(() => router.push('/'));
+        await signOut(() => {
+            router.refresh();
+            router.push('/');
+
+        });
     };
 
     const getInitials = () => {

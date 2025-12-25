@@ -35,6 +35,13 @@
                 "https://mcp.sentry.dev/mcp"
             ],
             "env": {},
+        },
+        "next-devtools": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "next-devtools-mcp@latest"
+            ]
         }
     }
 }
