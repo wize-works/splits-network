@@ -185,65 +185,6 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
         }
     );
 
-    // Candidate self-service: withdraw application
-    app.post(
-        '/applications/:id/withdraw',
-        async (request: FastifyRequest<{
-            Params: { id: string };
-            Body: {
-                reason?: string;
-            };
-        }>, reply: FastifyReply) => {
-            const userId = request.headers['x-clerk-user-id'] as string;
-            const correlationId = (request as any).correlationId;
-            
-            if (!userId) {
-                return reply.status(401).send({ 
-                    error: { code: 'UNAUTHORIZED', message: 'Missing user ID' } 
-                });
-            }
-
-            const { id: applicationId } = request.params;
-
-            // Look up candidate by user_id
-            const allCandidates = await service.getCandidates({ limit: 1000 });
-            const candidate = allCandidates.find((c: any) => c.user_id === userId);
-            
-            if (!candidate) {
-                return reply.status(404).send({ 
-                    error: { code: 'NOT_FOUND', message: 'Candidate profile not found' } 
-                });
-            }
-
-            // Get application and verify ownership
-            const application = await service.getApplicationById(applicationId);
-            
-            if (!application) {
-                return reply.status(404).send({ 
-                    error: { code: 'NOT_FOUND', message: 'Application not found' } 
-                });
-            }
-
-            if (application.candidate_id !== candidate.id) {
-                return reply.status(403).send({ 
-                    error: { code: 'FORBIDDEN', message: 'You can only withdraw your own applications' } 
-                });
-            }
-
-            // Update application stage to withdrawn
-            const updatedApplication = await service.updateApplicationStage(applicationId, 'withdrawn');
-
-            request.log.info({
-                applicationId,
-                candidateId: candidate.id,
-                userId,
-                reason: request.body.reason,
-            }, 'Candidate withdrew application');
-
-            return reply.send({ data: updatedApplication });
-        }
-    );
-
     // Create new application (submit candidate)
     app.post(
         '/applications',
