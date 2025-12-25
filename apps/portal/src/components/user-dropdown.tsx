@@ -2,11 +2,13 @@
 
 import { useUser, useClerk } from '@clerk/nextjs';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 
 export function UserDropdown() {
     const { user } = useUser();
     const { signOut } = useClerk();
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -26,9 +28,9 @@ export function UserDropdown() {
         };
     }, [isOpen]);
 
-    const handleSignOut = () => {
+    const handleSignOut = async () => {
         setIsOpen(false);
-        signOut({ redirectUrl: '/' });
+        await signOut(() => router.push('/'));
     };
 
     if (!user) return null;

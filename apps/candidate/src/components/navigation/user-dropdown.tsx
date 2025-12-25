@@ -2,13 +2,15 @@
 
 import { useUser, useClerk } from '@clerk/nextjs';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function UserDropdown() {
     const { user } = useUser();
     const { signOut } = useClerk();
+    const router = useRouter();
 
-    const handleSignOut = () => {
-        signOut({ redirectUrl: '/' });
+    const handleSignOut = async () => {
+        await signOut(() => router.push('/'));
     };
 
     const getInitials = () => {
