@@ -9,12 +9,12 @@ export default function SignInPage() {
     const { isLoaded, signIn, setActive } = useSignIn();
     const router = useRouter();
     const searchParams = useSearchParams();
-    
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    
+
     // Get redirect parameter
     const redirect = searchParams.get('redirect');
 
@@ -30,7 +30,7 @@ export default function SignInPage() {
                 identifier: email,
                 password,
             });
-            
+
             if (signInAttempt.status === 'complete') {
                 await setActive({ session: signInAttempt.createdSessionId });
                 router.push(redirect || '/dashboard');
@@ -46,7 +46,7 @@ export default function SignInPage() {
 
     const signInWithOAuth = (provider: 'oauth_google' | 'oauth_github' | 'oauth_microsoft') => {
         if (!isLoaded) return;
-        
+
         signIn.authenticateWithRedirect({
             strategy: provider,
             redirectUrl: '/sso-callback',
@@ -74,6 +74,7 @@ export default function SignInPage() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        <div id="clerk-captcha"></div>
                         <div className="fieldset">
                             <label className="label">Email</label>
                             <input

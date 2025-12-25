@@ -9,7 +9,7 @@ export default function SignUpPage() {
     const { isLoaded, signUp, setActive } = useSignUp();
     const router = useRouter();
     const searchParams = useSearchParams();
-    
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [firstName, setFirstName] = useState('');
@@ -18,7 +18,7 @@ export default function SignUpPage() {
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    
+
     // Get redirect parameter
     const redirect = searchParams.get('redirect');
 
@@ -39,7 +39,7 @@ export default function SignUpPage() {
 
             // Send email verification code
             await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-            
+
             setPendingVerification(true);
         } catch (err: any) {
             setError(err.errors?.[0]?.message || 'Failed to create account');
@@ -75,7 +75,7 @@ export default function SignUpPage() {
 
     const signUpWithOAuth = (provider: 'oauth_google' | 'oauth_github' | 'oauth_microsoft') => {
         if (!isLoaded) return;
-        
+
         signUp.authenticateWithRedirect({
             strategy: provider,
             redirectUrl: '/sso-callback',
@@ -105,6 +105,7 @@ export default function SignUpPage() {
                         )}
 
                         <form onSubmit={handleVerification} className="space-y-4">
+                            <div id="clerk-captcha"></div>
                             <div className="fieldset">
                                 <label className="label">Verification Code</label>
                                 <input

@@ -11,7 +11,7 @@ export default function SignInPage() {
     const { signOut } = useClerk();
     const router = useRouter();
     const searchParams = useSearchParams();
-    
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -38,10 +38,10 @@ export default function SignInPage() {
                 identifier: email,
                 password,
             });
-            
+
             if (signInAttempt.status === 'complete') {
                 await setActive({ session: signInAttempt.createdSessionId });
-                
+
                 // If user signed in via invitation, redirect to acceptance page
                 if (invitationId) {
                     router.push(`/accept-invitation/${invitationId}`);
@@ -60,13 +60,13 @@ export default function SignInPage() {
 
     const signInWithOAuth = (provider: 'oauth_google' | 'oauth_github' | 'oauth_microsoft') => {
         if (!isLoaded) return;
-        
+
         // Build redirect URL with invitation params if present
         const redirectUrl = '/sso-callback';
-        const redirectUrlComplete = invitationId 
+        const redirectUrlComplete = invitationId
             ? `/accept-invitation/${invitationId}`
             : '/dashboard';
-        
+
         signIn.authenticateWithRedirect({
             strategy: provider,
             redirectUrl,
@@ -141,6 +141,7 @@ export default function SignInPage() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        <div id="clerk-captcha"></div>
                         <div className="fieldset">
                             <label className="label">Email</label>
                             <input
