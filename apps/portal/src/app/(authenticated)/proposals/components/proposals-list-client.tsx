@@ -1,20 +1,78 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { createAuthenticatedClient } from '@/lib/api-client';
 import ProposalCard from '@/components/proposal-card';
 
+interface PaginationInfo {
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+}
+
+interface ProposalSummary {
+    actionable_count: number;
+    waiting_count: number;
+    urgent_count: number;
+    overdue_count: number;
+}
+
 export default function ProposalsListClient() {
     const { getToken } = useAuth();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // Initialize state from URL params
     const [proposals, setProposals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [filter, setFilter] = useState<'all' | 'pending' | 'responded'>('all');
+    const [stateFilter, setStateFilter] = useState<'all' | 'actionable' | 'waiting'>(
+        (searchParams.get('state') as 'all' | 'actionable' | 'waiting') || 'all'
+    );
+    const [pagination, setPagination] = useState<PaginationInfo>({
+        total: 0,
+        page: parseInt(searchParams.get('page') || '1'),
+        limit: 25,
+        total_pages: 0,
+    });
+    const [summary, setSummary] = useState<ProposalSummary>({
+        actionable_count: 0,
+        waiting_count: 0,
+        urgent_count: 0,
+        overdue_count: 0,
+    });
 
+    // Update URL when state changes (without navigation)
     useEffect(() => {
-        loadProposals();
-    }, [getToken]);
+        const params = new URLSearchParams();
+        if (stateFilter !== 'all') params.set('state', stateFilter);
+        if (pagination.page > 1) params.set('page', pagination.page.toString());
+
+        const newUrl = params.toString()
+            ? `/proposals?${params.toString()}`
+            : '/proposals';
+        router.replace(newUrl, { scroll: false });
+    }, [stateFilter, pagination.page, router]);
+
+    // Load proposals when filters change
+    useEffect(() => {
+        // Reset to page 1 when filter changes
+        if (pagination.page !== 1) {
+            setPagination(prev => ({ ...prev, page: 1 }));
+        } else {
+            loadProposals();
+        }
+    }, [stateFilter]);
+
+    // Load when pagination changes (but not on initial mount when triggered by filter)
+    useEffect(() => {
+        if (pagination.page > 0) {
+            loadProposals();
+        }
+    }, [pagination.page]);
 
     async function loadProposals() {
         try {
@@ -28,32 +86,37 @@ export default function ProposalsListClient() {
             }
 
             const client = createAuthenticatedClient(token);
-            
-            // Fetch proposals for current user
-            const response = await client.get('/proposals/my-proposals');
-            const proposalsData = response.data || [];
 
-            // Fetch job and candidate details for each proposal
-            const proposalsWithDetails = await Promise.all(
-                proposalsData.map(async (proposal: any) => {
-                    try {
-                        const [jobResponse, candidateResponse] = await Promise.all([
-                            client.get(`/jobs/${proposal.job_id}`).catch(() => ({ data: null })),
-                            client.get(`/candidates/${proposal.candidate_id}`).catch(() => ({ data: null }))
-                        ]);
+            // Build query parameters for server-side filtering
+            const params = new URLSearchParams({
+                page: pagination.page.toString(),
+                limit: pagination.limit.toString(),
+                sort_by: 'created_at',
+                sort_order: 'desc',
+            });
 
-                        return {
-                            ...proposal,
-                            job: jobResponse.data,
-                            candidate: candidateResponse.data
-                        };
-                    } catch {
-                        return proposal;
-                    }
-                })
-            );
+            // Add state filter
+            if (stateFilter !== 'all') {
+                params.append('state', stateFilter);
+            }
 
-            setProposals(proposalsWithDetails);
+            // Call unified proposals API with pagination
+            const response = await client.get(`/proposals?${params.toString()}`);
+
+            // Response format: { data: proposals[], pagination: {...}, summary: {...} }
+            setProposals(response.data || []);
+            setPagination(response.pagination || {
+                total: 0,
+                page: 1,
+                limit: 25,
+                total_pages: 0,
+            });
+            setSummary(response.summary || {
+                actionable_count: 0,
+                waiting_count: 0,
+                urgent_count: 0,
+                overdue_count: 0,
+            });
         } catch (err: any) {
             console.error('Failed to load proposals:', err);
             setError(err.message || 'Failed to load proposals');
@@ -68,7 +131,7 @@ export default function ProposalsListClient() {
 
         const client = createAuthenticatedClient(token);
         await client.post(`/proposals/${proposalId}/accept`, { response_notes: notes });
-        
+
         // Reload proposals
         await loadProposals();
     }
@@ -79,18 +142,14 @@ export default function ProposalsListClient() {
 
         const client = createAuthenticatedClient(token);
         await client.post(`/proposals/${proposalId}/decline`, { response_notes: notes });
-        
+
         // Reload proposals
         await loadProposals();
     }
 
-    const filteredProposals = proposals.filter((p) => {
-        if (filter === 'pending') return p.status === 'proposed';
-        if (filter === 'responded') return p.status !== 'proposed';
-        return true;
-    });
-
-    const pendingCount = proposals.filter(p => p.status === 'proposed').length;
+    const handlePageChange = (newPage: number) => {
+        setPagination(prev => ({ ...prev, page: newPage }));
+    };
 
     if (loading) {
         return (
@@ -126,38 +185,38 @@ export default function ProposalsListClient() {
             {/* Filter tabs */}
             <div className="tabs tabs-boxed w-fit">
                 <button
-                    className={`tab ${filter === 'all' ? 'tab-active' : ''}`}
-                    onClick={() => setFilter('all')}
+                    className={`tab ${stateFilter === 'all' ? 'tab-active' : ''}`}
+                    onClick={() => setStateFilter('all')}
                 >
-                    All ({proposals.length})
+                    All ({pagination.total})
                 </button>
                 <button
-                    className={`tab ${filter === 'pending' ? 'tab-active' : ''}`}
-                    onClick={() => setFilter('pending')}
+                    className={`tab ${stateFilter === 'actionable' ? 'tab-active' : ''}`}
+                    onClick={() => setStateFilter('actionable')}
                 >
-                    Pending ({pendingCount})
-                    {pendingCount > 0 && (
-                        <span className="badge badge-warning badge-sm ml-2">{pendingCount}</span>
+                    Action Required ({summary.actionable_count})
+                    {summary.actionable_count > 0 && (
+                        <span className="badge badge-warning badge-sm ml-2">{summary.actionable_count}</span>
                     )}
                 </button>
                 <button
-                    className={`tab ${filter === 'responded' ? 'tab-active' : ''}`}
-                    onClick={() => setFilter('responded')}
+                    className={`tab ${stateFilter === 'waiting' ? 'tab-active' : ''}`}
+                    onClick={() => setStateFilter('waiting')}
                 >
-                    Responded ({proposals.length - pendingCount})
+                    Waiting ({summary.waiting_count})
                 </button>
             </div>
 
             {/* Proposals list */}
-            {filteredProposals.length === 0 ? (
+            {proposals.length === 0 ? (
                 <div className="card bg-base-100 shadow-sm">
                     <div className="card-body items-center text-center py-12">
                         <i className="fa-solid fa-inbox text-6xl text-base-content/20"></i>
                         <h3 className="text-xl font-semibold mt-4">
-                            {filter === 'pending' ? 'No Pending Proposals' : 'No Proposals'}
+                            {stateFilter === 'actionable' ? 'No Pending Proposals' : 'No Proposals'}
                         </h3>
                         <p className="text-base-content/70 mt-2">
-                            {filter === 'pending' 
+                            {stateFilter === 'actionable'
                                 ? 'You have no pending proposals to review'
                                 : 'Proposals to work on candidate-role pairings will appear here'
                             }
@@ -165,19 +224,103 @@ export default function ProposalsListClient() {
                     </div>
                 </div>
             ) : (
-                <div className="space-y-4">
-                    {filteredProposals.map((proposal) => (
-                        <ProposalCard
-                            key={proposal.id}
-                            proposal={proposal}
-                            jobTitle={proposal.job?.title}
-                            candidateName={proposal.candidate?.full_name}
-                            onAccept={handleAccept}
-                            onDecline={handleDecline}
+                <>
+                    <div className="space-y-4">
+                        {proposals.map((proposal) => (
+                            <ProposalCard
+                                key={proposal.id}
+                                proposal={proposal}
+                                jobTitle={proposal.job?.title}
+                                candidateName={proposal.candidate?.full_name}
+                                onAccept={handleAccept}
+                                onDecline={handleDecline}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {pagination.total_pages > 1 && (
+                        <PaginationControls
+                            currentPage={pagination.page}
+                            totalPages={pagination.total_pages}
+                            onPageChange={handlePageChange}
                         />
-                    ))}
-                </div>
+                    )}
+                </>
             )}
+        </div>
+    );
+}
+
+interface PaginationControlsProps {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+}
+
+function PaginationControls({
+    currentPage,
+    totalPages,
+    onPageChange
+}: PaginationControlsProps) {
+    if (totalPages <= 1) return null;
+
+    const pages: (number | string)[] = [];
+
+    // Always show first page
+    pages.push(1);
+
+    // Show ellipsis and pages around current page
+    if (currentPage > 3) {
+        pages.push('...');
+    }
+
+    // Pages around current
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+    }
+
+    // Show ellipsis and last page
+    if (currentPage < totalPages - 2) {
+        pages.push('...');
+    }
+    if (totalPages > 1) {
+        pages.push(totalPages);
+    }
+
+    return (
+        <div className="flex justify-center gap-2 mt-6">
+            <button
+                className="btn btn-sm"
+                disabled={currentPage === 1}
+                onClick={() => onPageChange(currentPage - 1)}
+            >
+                <i className="fa-solid fa-chevron-left"></i>
+            </button>
+
+            {pages.map((page, index) => (
+                typeof page === 'number' ? (
+                    <button
+                        key={index}
+                        className={`btn btn-sm ${page === currentPage ? 'btn-primary' : ''}`}
+                        onClick={() => onPageChange(page)}
+                    >
+                        {page}
+                    </button>
+                ) : (
+                    <span key={index} className="px-2 flex items-center">
+                        {page}
+                    </span>
+                )
+            ))}
+
+            <button
+                className="btn btn-sm"
+                disabled={currentPage === totalPages}
+                onClick={() => onPageChange(currentPage + 1)}
+            >
+                <i className="fa-solid fa-chevron-right"></i>
+            </button>
         </div>
     );
 }

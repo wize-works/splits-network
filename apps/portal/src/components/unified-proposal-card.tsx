@@ -199,7 +199,7 @@ export default function UnifiedProposalCard({
                         <div className="fieldset">
                             <label className="label">Your Response (optional)</label>
                             <textarea
-                                className="textarea h-20"
+                                className="textarea h-20 w-full"
                                 placeholder="Add notes about your decision..."
                                 value={responseNotes}
                                 onChange={(e) => setResponseNotes(e.target.value)}

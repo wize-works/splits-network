@@ -111,13 +111,18 @@ export class ProposalService {
             queryFilters.stage = this.getStagesForProposalType(filters.type);
         }
 
-        // State filtering
-        if (filters?.state === 'actionable') {
-            // Don't pre-filter at database level - will filter by can_current_user_act after enrichment
-            // The actionable proposals are determined by business logic, not a simple DB column
-        } else if (filters?.state === 'completed') {
+        // State filtering - handle completed states at DB level
+        if (filters?.state === 'completed') {
             queryFilters.stage = ['hired', 'rejected', 'withdrawn'];
         }
+
+        // For actionable/waiting states, we need to get all results first, then filter
+        // This is because determining "actionable" requires enrichment logic
+        const shouldFilterByState = filters?.state === 'actionable' || filters?.state === 'waiting';
+        
+        // If we need to filter by state, get more items initially
+        const queryLimit = shouldFilterByState ? 100 : limit;
+        const queryPage = shouldFilterByState ? 1 : page;
 
         // Get paginated applications
         const result = await this.repository.findApplicationsPaginated({
@@ -125,8 +130,8 @@ export class ProposalService {
             search: filters?.search,
             sort_by: filters?.sort_by || 'created_at',
             sort_order: filters?.sort_order || 'desc',
-            page,
-            limit
+            page: queryPage,
+            limit: queryLimit
         });
 
         // Enrich applications as proposals (using entityId for permission checks)
@@ -134,7 +139,7 @@ export class ProposalService {
             result.data.map(app => this.enrichApplicationAsProposal(app, entityId, userRole))
         );
 
-        // Filter by state if needed (post-query filtering for complex logic)
+        // Apply state filtering BEFORE pagination (when we have all items)
         let filteredProposals = proposals;
         if (filters?.state === 'actionable') {
             filteredProposals = proposals.filter(p => p.can_current_user_act);
@@ -147,7 +152,23 @@ export class ProposalService {
             filteredProposals = filteredProposals.filter(p => p.is_urgent);
         }
 
-        // Calculate summary statistics
+        // Now apply pagination to filtered results (if we did state filtering)
+        let paginatedProposals = filteredProposals;
+        let totalCount = filteredProposals.length;
+        let totalPages = Math.ceil(totalCount / limit);
+
+        if (shouldFilterByState) {
+            // Apply pagination to filtered results
+            const startIndex = (page - 1) * limit;
+            const endIndex = startIndex + limit;
+            paginatedProposals = filteredProposals.slice(startIndex, endIndex);
+        } else {
+            // Use original pagination from DB (flat structure, not nested)
+            totalCount = result.total;
+            totalPages = result.total_pages;
+        }
+
+        // Calculate summary statistics (from all proposals, not just paginated)
         const summary = {
             actionable_count: proposals.filter(p => p.can_current_user_act).length,
             waiting_count: proposals.filter(p => !p.can_current_user_act && !this.isCompleted(p.stage)).length,
@@ -156,12 +177,12 @@ export class ProposalService {
         };
 
         return {
-            data: filteredProposals,
+            data: paginatedProposals,
             pagination: {
-                total: result.total,
-                page: result.page,
-                limit: result.limit,
-                total_pages: result.total_pages
+                total: totalCount,
+                page,
+                limit,
+                total_pages: totalPages
             },
             summary
         };
