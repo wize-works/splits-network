@@ -80,7 +80,10 @@ export default function SignInPage() {
             <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
                 <div className="card w-full max-w-md bg-base-100 shadow-xl">
                     <div className="card-body">
-                        <h2 className="card-title text-2xl font-bold justify-center mb-6">
+                        <h2 className="card-title text-2xl font-bold justify-center mb-6 flex flex-col">
+                            <Link href="/" className="mb-6">
+                                <img src="/logo.svg" alt="Applicant Network" className="h-12" />
+                            </Link>
                             Already Signed In
                         </h2>
 
@@ -129,7 +132,10 @@ export default function SignInPage() {
         <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
             <div className="card w-full max-w-md bg-base-100 shadow-xl">
                 <div className="card-body">
-                    <h2 className="card-title text-2xl font-bold justify-center mb-6">
+                    <h2 className="card-title text-2xl font-bold justify-center mb-6 flex flex-col">
+                        <Link href="/" className="mb-6">
+                            <img src="/logo.svg" alt="Applicant Network" className="h-12" />
+                        </Link>
                         Sign In to Splits Network
                     </h2>
 

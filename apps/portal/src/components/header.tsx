@@ -69,9 +69,9 @@ export function Header() {
                             </>
                         ) : (
                             <>
-                                <li><a href="#how-it-works">How It Works</a></li>
-                                <li><a href="#features">Features</a></li>
-                                <li><a href="#pricing">Pricing</a></li>
+                                <li><a href="/how-it-works">How It Works</a></li>
+                                <li><a href="/features">Features</a></li>
+                                <li><a href="/pricing">Pricing</a></li>
                             </>
                         )}
                     </ul>
@@ -85,8 +85,8 @@ export function Header() {
             <div className="navbar-center hidden lg:flex">
                 <ul className="menu menu-horizontal px-1">
                     <li><a href="#how-it-works">How It Works</a></li>
-                    <li><a href="#features">Features</a></li>
-                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="/features">Features</a></li>
+                    <li><a href="/pricing">Pricing</a></li>
                 </ul>
             </div>
 
