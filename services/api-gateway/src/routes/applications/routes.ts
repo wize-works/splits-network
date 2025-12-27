@@ -51,7 +51,7 @@ export function registerApplicationsRoutes(app: FastifyInstance, services: Servi
         
         // Pass raw Clerk user ID and role to ATS service for internal resolution
         const headers = {
-            'x-clerk-user-id': req.auth.userId,
+            'x-clerk-user-id': req.auth.clerkUserId,
             'x-user-role': userRole,
         };
         
@@ -101,7 +101,7 @@ export function registerApplicationsRoutes(app: FastifyInstance, services: Servi
         // Simple proxy - pass user context to backend
         const userRole = determineUserRole(req.auth);
         const data = await atsService().post('/applications', request.body, correlationId, {
-            'x-clerk-user-id': req.auth.userId,
+            'x-clerk-user-id': req.auth.clerkUserId,
             'x-user-role': userRole,
         });
         return reply.send(data);
@@ -169,7 +169,7 @@ export function registerApplicationsRoutes(app: FastifyInstance, services: Servi
 
         // Pass user ID to backend for candidate lookup
         const data = await atsService().post('/applications/submit', request.body, correlationId, {
-            'x-clerk-user-id': req.auth.userId,
+            'x-clerk-user-id': req.auth.clerkUserId,
         });
         return reply.status(201).send(data);
     });
@@ -189,7 +189,7 @@ export function registerApplicationsRoutes(app: FastifyInstance, services: Servi
 
         // Pass user ID to backend for candidate lookup and permission checking
         const data = await atsService().post(`/applications/${id}/withdraw`, request.body, correlationId, {
-            'x-clerk-user-id': req.auth.userId,
+            'x-clerk-user-id': req.auth.clerkUserId,
         });
         return reply.send(data);
     });

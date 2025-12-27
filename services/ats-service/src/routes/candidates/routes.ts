@@ -16,6 +16,34 @@ function getCorrelationId(request: FastifyRequest): string {
 }
 
 export function registerCandidateRoutes(app: FastifyInstance, service: AtsService, candidatesService: CandidatesService) {
+    // Get my own candidate profile (candidates only)
+    // Uses Clerk user ID from headers to look up candidate profile
+    app.get(
+        '/candidates/me',
+        async (request: FastifyRequest, reply: FastifyReply) => {
+            const { clerkUserId } = getUserContext(request);
+            const correlationId = getCorrelationId(request);
+            
+            try {
+                // Look up candidate by clerk_user_id
+                const candidate = await candidatesService.getCandidateByClerkUserId(clerkUserId, correlationId);
+                
+                if (!candidate) {
+                    return reply.status(404).send({ 
+                        error: { 
+                            code: 'CANDIDATE_NOT_FOUND', 
+                            message: 'No candidate profile found for this user' 
+                        } 
+                    });
+                }
+                
+                return reply.send({ data: candidate });
+            } catch (error: any) {
+                throw error;
+            }
+        }
+    );
+
     // Get all candidates with optional filters
     // Now accepts Clerk user ID from headers and performs entity resolution internally
     // Supports scope parameter: mine (default) = sourced + relationships, all = entire talent pool
@@ -160,17 +188,17 @@ export function registerCandidateRoutes(app: FastifyInstance, service: AtsServic
             tags: ['candidates'],
         },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
-        const userId = request.headers['x-clerk-user-id'] as string;
+        const clerkUserId = request.headers['x-clerk-user-id'] as string;
         const correlationId = getCorrelationId(request);
         
-        if (!userId) {
+        if (!clerkUserId) {
             return reply.status(401).send({ 
                 error: { code: 'UNAUTHORIZED', message: 'Missing user ID' } 
             });
         }
         
         try {
-            const applications = await candidatesService.getSelfApplications(userId, correlationId);
+            const applications = await candidatesService.getSelfApplications(clerkUserId, correlationId);
             return reply.send({ data: applications });
         } catch (error: any) {
             throw error;
@@ -203,10 +231,10 @@ export function registerCandidateRoutes(app: FastifyInstance, service: AtsServic
     app.patch(
         '/candidates/me',
         async (request: FastifyRequest<{ Body: Record<string, any> }>, reply: FastifyReply) => {
-            const userId = request.headers['x-clerk-user-id'] as string;
+            const clerkUserId = request.headers['x-clerk-user-id'] as string;
             const correlationId = getCorrelationId(request);
             
-            if (!userId) {
+            if (!clerkUserId) {
                 return reply.status(401).send({ 
                     error: { code: 'UNAUTHORIZED', message: 'Missing user ID' } 
                 });
@@ -214,7 +242,7 @@ export function registerCandidateRoutes(app: FastifyInstance, service: AtsServic
             
             try {
                 const candidate = await candidatesService.selfUpdateCandidate({
-                    userId,
+                    clerkUserId,
                     updates: request.body,
                 }, correlationId);
                 return reply.send({ data: candidate });

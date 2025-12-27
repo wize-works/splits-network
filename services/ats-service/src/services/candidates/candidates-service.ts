@@ -217,6 +217,15 @@ export class CandidatesService {
     }
 
     /**
+     * Get candidate by Clerk user ID
+     * Used by candidates to fetch their own profile
+     */
+    async getCandidateByClerkUserId(clerkUserId: string, correlationId: string) {
+        logger.info({ clerkUserId, correlationId }, 'Fetching candidate by Clerk user ID');
+        return this.repository.findCandidateByClerkUserId(clerkUserId);
+    }
+
+    /**
      * Create a candidate
      * - Recruiters: Create + establish relationship in Network Service
      * - Admins: Create only (no relationship)

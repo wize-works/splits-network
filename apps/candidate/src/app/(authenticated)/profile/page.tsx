@@ -39,7 +39,7 @@ export default function ProfilePage() {
                     throw new Error('Not authenticated');
                 }
 
-                const profile = await getMyProfile(token, user.primaryEmailAddress.emailAddress);
+                const profile = await getMyProfile(token);
                 if (profile) {
                     setCandidateId(profile.id);
                     setFormData({
@@ -58,7 +58,19 @@ export default function ProfilePage() {
                 }
             } catch (err: any) {
                 console.error('Failed to load profile:', err);
-                setError(err.message || 'Failed to load profile');
+                // Handle 404 as "no profile yet" - not an error
+                if (err.name === 'ApiError' && err.status === 404) {
+                    // No profile exists yet - show empty form
+                    console.log('No candidate profile found - showing empty form');
+                    setError(null);
+                } else {
+                    // Real error - show it
+                    if (err.name === 'ApiError') {
+                        setError(`${err.message} (Status: ${err.status}${err.code ? `, Code: ${err.code}` : ''})`);
+                    } else {
+                        setError(err.message || 'Failed to load profile');
+                    }
+                }
             } finally {
                 setLoading(false);
             }

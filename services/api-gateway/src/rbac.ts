@@ -11,6 +11,14 @@ export interface AuthenticatedRequest extends FastifyRequest {
 /**
  * RBAC middleware factory
  * Checks if the authenticated user has at least one of the required roles
+ * 
+ * Role Resolution Order:
+ * 1. Memberships (identity.memberships) - fast path for company/platform roles
+ * 2. Network service check - for 'recruiter' role (independent contractors)
+ * 3. ATS service check - for 'candidate' role (users with candidate profiles)
+ * 
+ * @param allowedRoles - Array of roles that can access this endpoint
+ * @param services - ServiceRegistry required for 'recruiter' and 'candidate' role checks
  */
 export function requireRoles(allowedRoles: UserRole[], services?: ServiceRegistry) {
     return async (request: FastifyRequest, reply: FastifyReply) => {
@@ -51,6 +59,30 @@ export function requireRoles(allowedRoles: UserRole[], services?: ServiceRegistr
                 }
             } catch (error) {
                 request.log.debug({ error, userId: req.auth.userId }, 'User is not a recruiter in network service');
+            }
+        }
+
+        // Special case: 'candidate' role requires checking ATS service for candidate profile
+        // Candidates don't have memberships - they're just authenticated users with candidate profiles
+        if (allowedRoles.includes('candidate') && services) {
+            try {
+                const correlationId = (request as any).correlationId;
+                const atsService = services.get('ats');
+                const candidateResponse: any = await atsService.get(
+                    `/candidates?email=${encodeURIComponent(req.auth.email)}`,
+                    undefined,
+                    correlationId,
+                    { 'x-clerk-user-id': req.auth.clerkUserId } // Forward user ID to ATS service
+                );
+
+                const candidates = candidateResponse?.data || [];
+                if (candidates.length > 0) {
+                    req.matchedRole = 'candidate';
+                    request.log.debug({ userId: req.auth.userId, email: req.auth.email }, 'Access granted: candidate profile found via ATS service');
+                    return;
+                }
+            } catch (error) {
+                request.log.debug({ error, userId: req.auth.userId }, 'User does not have a candidate profile in ATS service');
             }
         }
 

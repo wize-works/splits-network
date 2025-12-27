@@ -91,6 +91,28 @@ export function registerCandidatesRoutes(app: FastifyInstance, services: Service
         const data = await atsService().get(`/candidates/${id}`);
         return reply.send(data);
     });
+
+    // Get my own candidate profile (self-service for candidates)
+    app.get('/api/candidates/me', {
+        schema: {
+            description: 'Get my own candidate profile',
+            tags: ['candidates'],
+            security: [{ clerkAuth: [] }],
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const req = request as AuthenticatedRequest;
+        const correlationId = getCorrelationId(request);
+        
+        if (!req.auth || !req.auth.clerkUserId) {
+            return reply.status(401).send({ error: 'Unauthorized' });
+        }
+        
+        const data = await atsService().get('/candidates/me', undefined, correlationId, {
+            'x-clerk-user-id': req.auth.clerkUserId,
+        });
+        return reply.send(data);
+    });
+
     // Update my own candidate profile (self-service for candidates)
     app.patch('/api/candidates/me', {
         schema: {

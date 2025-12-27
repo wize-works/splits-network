@@ -90,7 +90,7 @@ export function registerJobsRoutes(app: FastifyInstance, services: ServiceRegist
             undefined, 
             correlationId,
             {
-                'x-clerk-user-id': req.auth.userId,
+                'x-clerk-user-id': req.auth.clerkUserId,
                 'x-user-role': req.auth.memberships?.[0]?.role || 'candidate',
             }
         );

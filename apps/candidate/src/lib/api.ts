@@ -44,8 +44,16 @@ async function fetchApi<T>(
         
         try {
             const errorData = await response.json();
-            errorMessage = errorData.message || errorData.error || errorMessage;
-            errorCode = errorData.error;
+            // Handle different error response formats
+            if (errorData.error && typeof errorData.error === 'object') {
+                // Error is an object with code/message (API Gateway format)
+                errorMessage = errorData.error.message || errorData.error.code || errorMessage;
+                errorCode = errorData.error.code;
+            } else {
+                // Error is a simple string or message field
+                errorMessage = errorData.message || errorData.error || errorMessage;
+                errorCode = typeof errorData.error === 'string' ? errorData.error : undefined;
+            }
         } catch {
             // If response is not JSON, use status text
             errorMessage = response.statusText || errorMessage;
@@ -261,13 +269,16 @@ export interface CandidateProfile {
     updated_at: string;
 }
 
-export async function getMyCandidateProfile(authToken: string, email: string): Promise<CandidateProfile | null> {
-    const candidates = await getCandidatesByEmail(email, authToken);
-    return candidates.length > 0 ? candidates[0] : null;
-}
-
-export async function getCandidatesByEmail(email: string, authToken: string): Promise<CandidateProfile[]> {
-    return fetchApi<CandidateProfile[]>(`/api/candidates?email=${encodeURIComponent(email)}`, {}, authToken);
+export async function getMyCandidateProfile(authToken: string): Promise<CandidateProfile | null> {
+    try {
+        return await fetchApi<CandidateProfile>('/api/candidates/me', {}, authToken);
+    } catch (error: any) {
+        // Return null if candidate profile doesn't exist yet
+        if (error.response?.status === 404) {
+            return null;
+        }
+        throw error;
+    }
 }
 
 export async function getCurrentUser(authToken: string): Promise<{ id: string; email: string; name?: string }> {
@@ -301,8 +312,8 @@ export async function getMyRecruiters(authToken: string): Promise<MyRecruitersRe
     return fetchApi<MyRecruitersResponse>('/api/candidates/me/recruiters', {}, authToken);
 }
 
-export async function getMyProfile(authToken: string, email: string): Promise<CandidateProfile | null> {
-    return getMyCandidateProfile(authToken, email);
+export async function getMyProfile(authToken: string): Promise<CandidateProfile | null> {
+    return getMyCandidateProfile(authToken);
 }
 
 export async function updateMyProfile(authToken: string, updates: Partial<CandidateProfile>): Promise<CandidateProfile> {

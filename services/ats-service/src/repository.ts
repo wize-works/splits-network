@@ -383,6 +383,21 @@ export class AtsRepository {
         return data;
     }
 
+    async findCandidateByClerkUserId(clerkUserId: string): Promise<Candidate | null> {
+        const { data, error } = await this.supabase
+            .schema('ats')
+            .from('candidates')
+            .select('*')
+            .eq('user_id', clerkUserId)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data;
+    }
+
     async createCandidate(candidate: Omit<Candidate, 'id' | 'created_at' | 'updated_at'>): Promise<Candidate> {
         const { data, error} = await this.supabase
             .schema('ats')

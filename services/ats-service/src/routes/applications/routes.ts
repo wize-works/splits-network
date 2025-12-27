@@ -128,10 +128,10 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
                 resume_url?: string;
             };
         }>, reply: FastifyReply) => {
-            const userId = request.headers['x-clerk-user-id'] as string;
+            const clerkUserId = request.headers['x-clerk-user-id'] as string;
             const correlationId = (request as any).correlationId;
             
-            if (!userId) {
+            if (!clerkUserId) {
                 return reply.status(401).send({ 
                     error: { code: 'UNAUTHORIZED', message: 'Missing user ID' } 
                 });
@@ -145,7 +145,7 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
 
             // Look up candidate by user_id using the repository directly
             const allCandidates = await service.getCandidates({ limit: 1000 });
-            const candidate = allCandidates.find((c: any) => c.user_id === userId);
+            const candidate = allCandidates.find((c: any) => c.user_id === clerkUserId);
             
             if (!candidate) {
                 return reply.status(404).send({ 
@@ -328,31 +328,28 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
         } }>, reply: FastifyReply) => {
             const { job_id, document_ids, primary_resume_id, pre_screen_answers, notes } = request.body;
             
-            // Get candidate email and user ID from headers (passed by API Gateway)
-            const email = request.headers['x-user-email'] as string;
-            const userId = request.headers['x-clerk-user-id'] as string;
+            // Get Clerk user ID from header (passed by API Gateway)
+            const clerkUserId = request.headers['x-clerk-user-id'] as string;
 
-            if (!email) {
-                throw new BadRequestError('Candidate email is required');
+            if (!clerkUserId) {
+                throw new BadRequestError('User authentication required');
             }
 
             if (!job_id || !document_ids || document_ids.length === 0 || !primary_resume_id) {
                 throw new BadRequestError('Missing required fields: job_id, document_ids, primary_resume_id');
             }
 
-            // Look up candidate by email
-            const candidates = await service.getCandidates({ search: email, limit: 10 });
-            if (candidates.length === 0) {
+            // Look up candidate by Clerk user ID
+            const candidate = await repository.findCandidateByClerkUserId(clerkUserId);
+            if (!candidate) {
                 return reply.status(404).send({ 
                     error: { code: 'CANDIDATE_NOT_FOUND', message: 'Candidate profile not found' } 
                 });
             }
 
-            const candidate = candidates[0];
-
             const result = await service.submitCandidateApplication({
                 candidateId: candidate.id,
-                candidateUserId: userId,
+                candidateUserId: clerkUserId,
                 jobId: job_id,
                 documentIds: document_ids,
                 primaryResumeId: primary_resume_id,
@@ -379,35 +376,32 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
             Params: { id: string };
             Body: { reason?: string };
         }>, reply: FastifyReply) => {
-            // Get candidate email and user ID from headers (passed by API Gateway)
-            const email = request.headers['x-user-email'] as string;
-            const userId = request.headers['x-clerk-user-id'] as string;
+            // Get Clerk user ID from header (passed by API Gateway)
+            const clerkUserId = request.headers['x-clerk-user-id'] as string;
 
-            if (!email) {
-                throw new BadRequestError('Candidate email is required');
+            if (!clerkUserId) {
+                throw new BadRequestError('User authentication required');
             }
 
-            // Look up candidate by email
-            const candidates = await service.getCandidates({ search: email, limit: 10 });
-            if (candidates.length === 0) {
+            // Look up candidate by Clerk user ID
+            const candidate = await repository.findCandidateByClerkUserId(clerkUserId);
+            if (!candidate) {
                 return reply.status(404).send({ 
                     error: { code: 'CANDIDATE_NOT_FOUND', message: 'Candidate profile not found' } 
                 });
             }
 
-            const candidate = candidates[0];
-
             const application = await service.withdrawApplication(
                 request.params.id,
                 candidate.id,
-                userId,
+                clerkUserId,
                 request.body.reason
             );
 
             request.log.info({
                 applicationId: request.params.id,
                 candidateId: candidate.id,
-                candidateUserId: userId,
+                candidateUserId: clerkUserId,
                 reason: request.body.reason,
             }, 'Application withdrawn by candidate');
 

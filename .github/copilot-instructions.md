@@ -316,11 +316,26 @@ Copilot should follow these patterns for all services:
    - Prefer referencing by ID and resolving via service calls.
    - Example: `ats.companies.identity_organization_id` references `identity.organizations.id` logically, not via DB FK.
 
-8. **Authorization & RBAC**
+8. **User Identification Standards** ⚠️ **CRITICAL**
+   - **Frontend apps** (Portal, Candidate): 
+     - Send **ONLY** Authorization Bearer token (Clerk JWT)
+     - **NEVER** manually set `x-clerk-user-id` or user ID headers
+   - **API Gateway**:
+     - Extract Clerk user ID from verified JWT
+     - **ALWAYS** use `req.auth.clerkUserId` when setting `x-clerk-user-id` header to backend services
+     - **NEVER** use `req.auth.userId` (internal ID) when setting headers
+   - **Backend Services**:
+     - Extract user ID from headers: `const clerkUserId = request.headers['x-clerk-user-id'] as string;`
+     - **ALWAYS** use variable name `clerkUserId` (not `userId`) for clarity
+     - **NEVER** use `x-user-email` header for authentication (removed - security risk)
+     - Look up candidates/recruiters by Clerk user ID, not email
+   - See `docs/guidance/user-identification-standard.md` for complete implementation guide
+
+9. **Authorization & RBAC**
    - **ALL authorization is enforced at the API Gateway level** using `services/api-gateway/src/rbac.ts`
    - **Backend services MUST NOT implement their own authorization checks**
    - Backend services should trust headers from api-gateway:
-     - `x-clerk-user-id`: The authenticated user's ID
+     - `x-clerk-user-id`: The authenticated user's Clerk ID
      - `x-user-role`: The user's role (for logging/audit)
    - Services focus on business logic, gateway handles RBAC
 
@@ -403,12 +418,15 @@ export async function candidatesRoutes(
 2. **Network service check** (for recruiters): If `'recruiter'` in allowedRoles AND services provided:
    - Query `GET /recruiters/by-user/:userId` from network service
    - If recruiter exists with `status === 'active'`, grant access
-3. **Deny**: If no match, throw `ForbiddenError`
+3. **ATS service check** (for candidates): If `'candidate'` in allowedRoles AND services provided:
+   - Query `GET /candidates?email={email}` from ATS service
+   - If candidate profile found, grant access
+4. **Deny**: If no match, throw `ForbiddenError`
 
 **Critical Rules**:
-- **ALWAYS pass `services` parameter** when allowing recruiters
-- Without services parameter, independent recruiters (no memberships) will be denied
-- Services parameter enables network service check for independent recruiters
+- **ALWAYS pass `services` parameter** when allowing recruiters or candidates
+- Without services parameter, independent recruiters and candidates (no memberships) will be denied
+- Services parameter enables network service check for recruiters and ATS service check for candidates
 
 ### 6.3 Role Helpers
 
@@ -491,6 +509,37 @@ app.get('/api/jobs', {
   preHandler: requireRoles(['recruiter', 'company_admin']),
 }, async (request, reply) => {
   // Independent recruiters will get 403 Forbidden
+});
+```
+
+### 6.4.1 Candidates
+
+Candidates are authenticated users with profiles in the ATS service but no memberships.
+
+**Storage**: `ats.candidates` table
+**Identification**: `GET /candidates?email={email}` returns candidate profile
+**Authorization**: ATS service check in `requireRoles()` grants access
+
+**Why ATS Service Check**:
+- Candidates don't have company affiliations (no memberships)
+- They need access to their profile and recruiter relationships
+- `identity.memberships` won't include them
+- Must query ATS service to verify candidate profile exists
+
+**Pattern**:
+```typescript
+// ✅ CORRECT - Services parameter enables ATS check
+app.get('/api/candidates/me/recruiters', {
+  preHandler: requireRoles(['candidate'], services),
+}, async (request, reply) => {
+  // Candidates with profiles can access this
+});
+
+// ❌ WRONG - No services parameter = candidates denied
+app.get('/api/candidates/me/recruiters', {
+  preHandler: requireRoles(['candidate']),
+}, async (request, reply) => {
+  // Candidates will get 403 Forbidden
 });
 ```
 

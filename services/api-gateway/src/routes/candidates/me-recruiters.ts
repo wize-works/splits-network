@@ -13,7 +13,7 @@ export function registerMeRecruitersRoute(app: FastifyInstance, services: Servic
     const getCorrelationId = (request: FastifyRequest) => (request as any).correlationId;
 
     app.get('/api/candidates/me/recruiters', {
-        preHandler: requireRoles(['candidate']),
+        preHandler: requireRoles(['candidate'], services),
         schema: {
             description: 'Get all recruiter relationships for authenticated candidate',
             tags: ['candidates'],
@@ -28,7 +28,8 @@ export function registerMeRecruitersRoute(app: FastifyInstance, services: Servic
             const candidateResponse: any = await atsService().get(
                 `/candidates?email=${encodeURIComponent(req.auth.email)}`,
                 undefined,
-                correlationId
+                correlationId,
+                { 'x-clerk-user-id': req.auth.clerkUserId } // Forward user ID to ATS service
             );
 
             const candidates = candidateResponse.data || [];
