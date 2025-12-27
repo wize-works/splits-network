@@ -21,8 +21,8 @@ export class RecruiterService {
         return recruiter;
     }
 
-    async getRecruiterByUserId(userId: string): Promise<Recruiter | null> {
-        return await this.repository.findRecruiterByUserId(userId);
+    async getRecruiterByClerkUserId(clerkUserId: string): Promise<Recruiter | null> {
+        return await this.repository.findRecruiterByClerkUserId(clerkUserId);
     }
 
     async getAllRecruiters(): Promise<Recruiter[]> {
@@ -30,7 +30,7 @@ export class RecruiterService {
     }
 
     async createRecruiter(
-        userId: string,
+        clerkUserId: string,
         profileData?: {
             status?: 'pending' | 'active' | 'suspended';
             bio?: string;
@@ -42,7 +42,7 @@ export class RecruiterService {
         }
     ): Promise<Recruiter> {
         return await this.repository.createRecruiter({
-            user_id: userId,
+            user_id: clerkUserId,
             status: profileData?.status || 'pending',
             bio: profileData?.bio,
             industries: profileData?.industries,

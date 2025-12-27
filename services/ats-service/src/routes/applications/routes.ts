@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { AtsService } from '../../service';
+import { AtsRepository } from '../../repository';
 import { BadRequestError } from '@splits-network/shared-fastify';
 import { SubmitCandidateDTO, UpdateApplicationStageDTO } from '@splits-network/shared-types';
 
@@ -27,7 +28,7 @@ function getUserContext(request: FastifyRequest): { clerkUserId: string; userRol
     };
 }
 
-export function registerApplicationRoutes(app: FastifyInstance, service: AtsService) {
+export function registerApplicationRoutes(app: FastifyInstance, service: AtsService, repository: AtsRepository) {
     // Get paginated applications with optional filters and search
     app.get(
         '/applications/paginated',
@@ -178,7 +179,7 @@ export function registerApplicationRoutes(app: FastifyInstance, service: AtsServ
                 applicationId: application.id,
                 candidateId: candidate.id,
                 jobId: job_id,
-                userId,
+                clerkUserId,
             }, 'Candidate submitted application');
 
             return reply.status(201).send({ data: application });

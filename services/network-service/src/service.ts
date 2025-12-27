@@ -37,8 +37,8 @@ export class NetworkService {
         return this.recruiters.getRecruiterById(id);
     }
 
-    async getRecruiterByUserId(userId: string): Promise<Recruiter | null> {
-        return this.recruiters.getRecruiterByUserId(userId);
+    async getRecruiterByClerkUserId(clerkUserId: string): Promise<Recruiter | null> {
+        return this.recruiters.getRecruiterByClerkUserId(clerkUserId);
     }
 
     async getAllRecruiters(): Promise<Recruiter[]> {
@@ -46,7 +46,7 @@ export class NetworkService {
     }
 
     async createRecruiter(
-        userId: string,
+        clerkUserId: string,
         profileData?: {
             status?: 'pending' | 'active' | 'suspended';
             bio?: string;
@@ -57,7 +57,7 @@ export class NetworkService {
             years_experience?: number;
         }
     ): Promise<Recruiter> {
-        return this.recruiters.createRecruiter(userId, profileData);
+        return this.recruiters.createRecruiter(clerkUserId, profileData);
     }
 
     async updateRecruiterStatus(id: string, status: RecruiterStatus): Promise<Recruiter> {
@@ -106,8 +106,8 @@ export class NetworkService {
     }
 
     // Helper method for checking if a user has recruiter access
-    async canUserAccessJob(userId: string, jobId: string): Promise<boolean> {
-        const recruiter = await this.getRecruiterByUserId(userId);
+    async canUserAccessJob(clerkUserId: string, jobId: string): Promise<boolean> {
+        const recruiter = await this.getRecruiterByClerkUserId(clerkUserId);
         if (!recruiter || recruiter.status !== 'active') {
             return false;
         }

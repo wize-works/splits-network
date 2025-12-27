@@ -26,12 +26,12 @@ export class NetworkClient extends BaseClient {
         return this.get(`/recruiters/${recruiterId}`);
     }
 
-    async getRecruiterByUserId(userId: string): Promise<ApiResponse<Recruiter>> {
-        return this.get(`/recruiters/user/${userId}`);
+    async getRecruiterByClerkUserId(clerkUserId: string): Promise<ApiResponse<Recruiter>> {
+        return this.get(`/recruiters/by-user/${clerkUserId}`);
     }
 
     async createRecruiter(data: {
-        user_id: string;
+        clerk_user_id: string;
         bio?: string;
         industries?: string[];
         specialties?: string[];

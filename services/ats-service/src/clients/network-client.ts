@@ -28,7 +28,7 @@ export class NetworkServiceClient {
      * Get recruiter profile by Clerk user ID
      * Returns null if user is not a recruiter or recruiter is inactive
      */
-    async getRecruiterByUserId(userId: string, correlationId?: string): Promise<RecruiterProfile | null> {
+    async getRecruiterByClerkUserId(clerkUserId: string, correlationId?: string): Promise<RecruiterProfile | null> {
         try {
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
@@ -37,7 +37,7 @@ export class NetworkServiceClient {
                 headers['x-correlation-id'] = correlationId;
             }
 
-            const url = `${this.baseURL}/recruiters/by-user/${userId}`;
+            const url = `${this.baseURL}/recruiters/by-user/${clerkUserId}`;
             
             const response = await fetch(
                 url,
@@ -72,7 +72,7 @@ export class NetworkServiceClient {
             console.log('[NetworkClient] Error fetching recruiter:', error.message);
             logger.error({
                 err: error,
-                url: `/recruiters/by-user/${userId}`,
+                url: `/recruiters/by-user/${clerkUserId}`,
             }, 'Network service request failed');
             
             // Don't re-throw on 404

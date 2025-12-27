@@ -46,7 +46,7 @@ export class ProposalService {
     ): Promise<string | null> {
         // For recruiters, resolve to recruiter_id via Network Service
         if (userRole === 'recruiter') {
-            const recruiter = await this.networkClient.getRecruiterByUserId(clerkUserId, correlationId);
+            const recruiter = await this.networkClient.getRecruiterByClerkUserId(clerkUserId, correlationId);
             if (!recruiter) {
                 // User is not a recruiter or recruiter is inactive
                 return null;

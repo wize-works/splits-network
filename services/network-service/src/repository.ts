@@ -46,18 +46,18 @@ export class NetworkRepository {
         return data;
     }
 
-    async findRecruiterByUserId(userId: string): Promise<Recruiter | null> {
-        // userId might be a Clerk user ID (e.g., "user_xxx") or internal UUID
-        // First, try to resolve it to an internal user UUID if it's a Clerk ID
-        let internalUserId = userId;
+    async findRecruiterByClerkUserId(clerkUserId: string): Promise<Recruiter | null> {
+        // clerkUserId should be a Clerk user ID (e.g., "user_xxx")
+        // Look it up to get the internal UUID
+        let internalUserId = clerkUserId;
         
-        if (userId.startsWith('user_')) {
+        if (clerkUserId.startsWith('user_')) {
             // This is a Clerk user ID, need to look up the internal UUID
             const { data: user, error: userError } = await this.supabase
                 .schema('identity')
                 .from('users')
                 .select('id')
-                .eq('clerk_user_id', userId)
+                .eq('clerk_user_id', clerkUserId)
                 .single();
             
             if (userError) {

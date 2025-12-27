@@ -84,8 +84,8 @@ export class TeamService {
   /**
    * List teams for a user
    */
-  async listUserTeams(userId: string): Promise<TeamWithStats[]> {
-    const teams = await this.repository.getTeamsByUserId(userId);
+  async listUserTeams(clerkUserId: string): Promise<TeamWithStats[]> {
+    const teams = await this.repository.getTeamsByUserId(clerkUserId);
     
     const teamsWithStats = await Promise.all(
       teams.map(async (team: Team) => {
@@ -178,7 +178,7 @@ export class TeamService {
     }
 
     // Get recruiter for user
-    const recruiter = await this.repository.getRecruiterByUserId(userId);
+    const recruiter = await this.repository.getRecruiterByClerkUserId(userId);
     if (!recruiter) {
       throw new Error('User must be a registered recruiter');
     }

@@ -49,7 +49,7 @@ export class CandidatesService {
         correlationId: string
     ): Promise<{ entityId: string | null; isInactive: boolean }> {
         if (userRole === 'recruiter') {
-            const recruiter = await this.networkClient.getRecruiterByUserId(clerkUserId, correlationId);
+            const recruiter = await this.networkClient.getRecruiterByClerkUserId(clerkUserId, correlationId);
             if (!recruiter) {
                 return { entityId: null, isInactive: true };
             }

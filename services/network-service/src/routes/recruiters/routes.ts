@@ -3,7 +3,7 @@ import { NetworkService } from '../../service';
 import { NotFoundError, BadRequestError } from '@splits-network/shared-fastify';
 
 interface CreateRecruiterBody {
-    user_id: string;
+    clerk_user_id: string;
     status?: 'pending' | 'active' | 'suspended';
     bio?: string;
     industries?: string[];
@@ -47,11 +47,11 @@ export function registerRecruiterRoutes(app: FastifyInstance, service: NetworkSe
 
     // Get recruiter by user ID (MUST come before :id route to avoid matching "by-user" as an ID)
     app.get(
-        '/recruiters/by-user/:userId',
-        async (request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) => {
-            const recruiter = await service.getRecruiterByUserId(request.params.userId);
+        '/recruiters/by-user/:clerkUserId',
+        async (request: FastifyRequest<{ Params: { clerkUserId: string } }>, reply: FastifyReply) => {
+            const recruiter = await service.getRecruiterByClerkUserId(request.params.clerkUserId);
             if (!recruiter) {
-                throw new NotFoundError('Recruiter for user', request.params.userId);
+                throw new NotFoundError('Recruiter for user', request.params.clerkUserId);
             }
             return reply.send({ data: recruiter });
         }
@@ -77,13 +77,13 @@ export function registerRecruiterRoutes(app: FastifyInstance, service: NetworkSe
     app.post(
         '/recruiters',
         async (request: FastifyRequest<{ Body: CreateRecruiterBody }>, reply: FastifyReply) => {
-            const { user_id, status, bio, industries, specialties, location, tagline, years_experience } = request.body;
+            const { clerk_user_id, status, bio, industries, specialties, location, tagline, years_experience } = request.body;
 
-            if (!user_id) {
-                throw new BadRequestError('user_id is required');
+            if (!clerk_user_id) {
+                throw new BadRequestError('clerk_user_id is required');
             }
 
-            const recruiter = await service.createRecruiter(user_id, {
+            const recruiter = await service.createRecruiter(clerk_user_id, {
                 status,
                 bio,
                 industries,

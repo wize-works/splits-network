@@ -35,7 +35,7 @@ export class ApplicationService {
         if (userRole === 'recruiter') {
             console.log('[ApplicationService] Resolving recruiter entity ID for Clerk user:', clerkUserId);
             
-            const recruiter = await this.networkClient.getRecruiterByUserId(clerkUserId);
+            const recruiter = await this.networkClient.getRecruiterByClerkUserId(clerkUserId);
             
             if (!recruiter) {
                 console.log('[ApplicationService] Recruiter not found or inactive');

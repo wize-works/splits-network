@@ -10,17 +10,17 @@ export function registerInAppNotificationRoutes(
     repository: NotificationRepository
 ) {
     /**
-     * GET /in-app-notifications/:userId - Get user's in-app notifications
+     * GET /in-app-notifications/:clerkUserId - Get user's in-app notifications
      */
     fastify.get<{
-        Params: { userId: string };
+        Params: { clerkUserId: string };
         Querystring: { unreadOnly?: string; limit?: string; offset?: string };
-    }>('/in-app-notifications/:userId', async (request, reply) => {
-        const { userId } = request.params;
+    }>('/in-app-notifications/:clerkUserId', async (request, reply) => {
+        const { clerkUserId } = request.params;
         const { unreadOnly, limit, offset } = request.query;
 
         try {
-            const notifications = await repository.findInAppNotificationsByUserId(userId, {
+            const notifications = await repository.findInAppNotificationsByUserId(clerkUserId, {
                 unreadOnly: unreadOnly === 'true',
                 limit: limit ? parseInt(limit) : 50,
                 offset: offset ? parseInt(offset) : 0,
@@ -28,7 +28,7 @@ export function registerInAppNotificationRoutes(
 
             reply.send({ data: notifications });
         } catch (error: any) {
-            fastify.log.error({ error, userId }, 'Failed to fetch in-app notifications');
+            fastify.log.error({ error, clerkUserId }, 'Failed to fetch in-app notifications');
             reply.code(500).send({
                 error: {
                     code: 'FETCH_FAILED',
@@ -39,19 +39,19 @@ export function registerInAppNotificationRoutes(
     });
 
     /**
-     * GET /in-app-notifications/:userId/unread-count - Get unread count
+     * GET /in-app-notifications/:clerkUserId/unread-count - Get unread count
      */
     fastify.get<{
-        Params: { userId: string };
-    }>('/in-app-notifications/:userId/unread-count', async (request, reply) => {
-        const { userId } = request.params;
+        Params: { clerkUserId: string };
+    }>('/in-app-notifications/:clerkUserId/unread-count', async (request, reply) => {
+        const { clerkUserId } = request.params;
 
         try {
-            const count = await repository.getUnreadCount(userId);
+            const count = await repository.getUnreadCount(clerkUserId);
 
             reply.send({ data: { count } });
         } catch (error: any) {
-            fastify.log.error({ error, userId }, 'Failed to fetch unread count');
+            fastify.log.error({ error, clerkUserId }, 'Failed to fetch unread count');
             reply.code(500).send({
                 error: {
                     code: 'COUNT_FAILED',
@@ -66,26 +66,26 @@ export function registerInAppNotificationRoutes(
      */
     fastify.patch<{
         Params: { id: string };
-        Body: { userId: string };
+        Body: { clerkUserId: string };
     }>('/in-app-notifications/:id/read', async (request, reply) => {
         const { id } = request.params;
-        const { userId } = request.body;
+        const { clerkUserId } = request.body;
 
-        if (!userId) {
+        if (!clerkUserId) {
             return reply.code(400).send({
                 error: {
                     code: 'MISSING_USER_ID',
-                    message: 'userId is required in request body',
+                    message: 'clerkUserId is required in request body',
                 },
             });
         }
 
         try {
-            const notification = await repository.markAsRead(id, userId);
+            const notification = await repository.markAsRead(id, clerkUserId);
 
             reply.send({ data: notification });
         } catch (error: any) {
-            fastify.log.error({ error, notificationId: id, userId }, 'Failed to mark as read');
+            fastify.log.error({ error, notificationId: id, clerkUserId }, 'Failed to mark as read');
             reply.code(500).send({
                 error: {
                     code: 'MARK_READ_FAILED',
@@ -99,25 +99,25 @@ export function registerInAppNotificationRoutes(
      * PATCH /in-app-notifications/mark-all-read - Mark all as read
      */
     fastify.patch<{
-        Body: { userId: string };
+        Body: { clerkUserId: string };
     }>('/in-app-notifications/mark-all-read', async (request, reply) => {
-        const { userId } = request.body;
+        const { clerkUserId } = request.body;
 
-        if (!userId) {
+        if (!clerkUserId) {
             return reply.code(400).send({
                 error: {
                     code: 'MISSING_USER_ID',
-                    message: 'userId is required in request body',
+                    message: 'clerkUserId is required in request body',
                 },
             });
         }
 
         try {
-            await repository.markAllAsRead(userId);
+            await repository.markAllAsRead(clerkUserId);
 
             reply.send({ data: { success: true } });
         } catch (error: any) {
-            fastify.log.error({ error, userId }, 'Failed to mark all as read');
+            fastify.log.error({ error, clerkUserId }, 'Failed to mark all as read');
             reply.code(500).send({
                 error: {
                     code: 'MARK_ALL_READ_FAILED',
@@ -132,26 +132,26 @@ export function registerInAppNotificationRoutes(
      */
     fastify.patch<{
         Params: { id: string };
-        Body: { userId: string };
+        Body: { clerkUserId: string };
     }>('/in-app-notifications/:id/dismiss', async (request, reply) => {
         const { id } = request.params;
-        const { userId } = request.body;
+        const { clerkUserId } = request.body;
 
-        if (!userId) {
+        if (!clerkUserId) {
             return reply.code(400).send({
                 error: {
                     code: 'MISSING_USER_ID',
-                    message: 'userId is required in request body',
+                    message: 'clerkUserId is required in request body',
                 },
             });
         }
 
         try {
-            const notification = await repository.dismissNotification(id, userId);
+            const notification = await repository.dismissNotification(id, clerkUserId);
 
             reply.send({ data: notification });
         } catch (error: any) {
-            fastify.log.error({ error, notificationId: id, userId }, 'Failed to dismiss notification');
+            fastify.log.error({ error, notificationId: id, clerkUserId }, 'Failed to dismiss notification');
             reply.code(500).send({
                 error: {
                     code: 'DISMISS_FAILED',

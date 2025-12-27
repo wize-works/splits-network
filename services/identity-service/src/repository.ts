@@ -25,7 +25,7 @@ export class IdentityRepository {
     }
 
     // User methods
-    async findUserByClerkId(clerkUserId: string): Promise<User | null> {
+    async findUserByClerkUserId(clerkUserId: string): Promise<User | null> {
         const { data, error } = await this.supabase
             .schema('identity').from('users')
             .select('*')

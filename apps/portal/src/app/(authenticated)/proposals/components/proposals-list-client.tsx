@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { createAuthenticatedClient } from '@/lib/api-client';
-import ProposalCard from '@/components/proposal-card';
+import UnifiedProposalCard from '@/components/unified-proposal-card';
 
 interface PaginationInfo {
     total: number;
@@ -249,11 +249,9 @@ export default function ProposalsListClient() {
                 <>
                     <div className="space-y-4">
                         {proposals.map((proposal) => (
-                            <ProposalCard
+                            <UnifiedProposalCard
                                 key={proposal.id}
                                 proposal={proposal}
-                                jobTitle={proposal.job?.title}
-                                candidateName={proposal.candidate?.full_name}
                                 onAccept={handleAccept}
                                 onDecline={handleDecline}
                             />

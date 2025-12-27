@@ -25,7 +25,7 @@ export class UsersService {
         name: string
     ): Promise<User> {
         // Check if user already exists
-        let user = await this.repository.findUserByClerkId(clerkUserId);
+        let user = await this.repository.findUserByClerkUserId(clerkUserId);
 
         if (user) {
             // Update if email or name changed

@@ -33,15 +33,15 @@ export async function registerTeamRoutes(server: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = (request as any).user?.id;
-        if (!userId) {
-          return reply.code(401).send({ error: 'Unauthorized' });
+        const clerkUserId = request.headers['x-clerk-user-id'] as string;
+        if (!clerkUserId) {
+          return reply.code(401).send({ error: 'Unauthorized - missing x-clerk-user-id header' });
         }
 
         const body = request.body as { name: string; billing_organization_id?: string };
         const team = await service.createTeam({
           name: body.name,
-          owner_user_id: userId,
+          owner_user_id: clerkUserId,
           billing_organization_id: body.billing_organization_id,
         });
 
@@ -64,12 +64,12 @@ export async function registerTeamRoutes(server: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = (request as any).user?.id;
-        if (!userId) {
-          return reply.code(401).send({ error: 'Unauthorized' });
+        const clerkUserId = request.headers['x-clerk-user-id'] as string;
+        if (!clerkUserId) {
+          return reply.code(401).send({ error: 'Unauthorized - missing x-clerk-user-id header' });
         }
 
-        const teams = await service.listUserTeams(userId);
+        const teams = await service.listUserTeams(clerkUserId);
         return reply.send({ teams });
       } catch (error: any) {
         server.log.error(error, 'Failed to list teams');
@@ -129,15 +129,15 @@ export async function registerTeamRoutes(server: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = (request as any).user?.id;
-        if (!userId) {
-          return reply.code(401).send({ error: 'Unauthorized' });
+        const clerkUserId = request.headers['x-clerk-user-id'] as string;
+        if (!clerkUserId) {
+          return reply.code(401).send({ error: 'Unauthorized - missing x-clerk-user-id header' });
         }
 
         const { teamId } = request.params as { teamId: string };
         const body = request.body as { name?: string; status?: 'active' | 'suspended' };
 
-        const team = await service.updateTeam(teamId, userId, body);
+        const team = await service.updateTeam(teamId, clerkUserId, body);
         return reply.send(team);
       } catch (error: any) {
         server.log.error(error, 'Failed to update team');
@@ -198,9 +198,9 @@ export async function registerTeamRoutes(server: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = (request as any).user?.id;
-        if (!userId) {
-          return reply.code(401).send({ error: 'Unauthorized' });
+        const clerkUserId = request.headers['x-clerk-user-id'] as string;
+        if (!clerkUserId) {
+          return reply.code(401).send({ error: 'Unauthorized - missing x-clerk-user-id header' });
         }
 
         const { teamId } = request.params as { teamId: string };
@@ -210,7 +210,7 @@ export async function registerTeamRoutes(server: FastifyInstance) {
           team_id: teamId,
           email: body.email,
           role: body.role,
-          invited_by: userId,
+          invited_by: clerkUserId,
         });
 
         return reply.code(201).send(invitation);
@@ -238,13 +238,13 @@ export async function registerTeamRoutes(server: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = (request as any).user?.id;
-        if (!userId) {
-          return reply.code(401).send({ error: 'Unauthorized' });
+        const clerkUserId = request.headers['x-clerk-user-id'] as string;
+        if (!clerkUserId) {
+          return reply.code(401).send({ error: 'Unauthorized - missing x-clerk-user-id header' });
         }
 
         const { token } = request.params as { token: string };
-        const member = await service.acceptInvitation(token, userId);
+        const member = await service.acceptInvitation(token, clerkUserId);
 
         return reply.send(member);
       } catch (error: any) {
@@ -279,15 +279,15 @@ export async function registerTeamRoutes(server: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = (request as any).user?.id;
-        if (!userId) {
-          return reply.code(401).send({ error: 'Unauthorized' });
+        const clerkUserId = request.headers['x-clerk-user-id'] as string;
+        if (!clerkUserId) {
+          return reply.code(401).send({ error: 'Unauthorized - missing x-clerk-user-id header' });
         }
 
         const { teamId, memberId } = request.params as { teamId: string; memberId: string };
         const body = request.body as { role: 'admin' | 'member' | 'collaborator' };
 
-        const member = await service.updateMemberRole(teamId, memberId, body.role, userId);
+        const member = await service.updateMemberRole(teamId, memberId, body.role, clerkUserId);
         return reply.send(member);
       } catch (error: any) {
         server.log.error(error, 'Failed to update member role');
@@ -314,13 +314,13 @@ export async function registerTeamRoutes(server: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = (request as any).user?.id;
-        if (!userId) {
-          return reply.code(401).send({ error: 'Unauthorized' });
+        const clerkUserId = request.headers['x-clerk-user-id'] as string;
+        if (!clerkUserId) {
+          return reply.code(401).send({ error: 'Unauthorized - missing x-clerk-user-id header' });
         }
 
         const { teamId, memberId } = request.params as { teamId: string; memberId: string };
-        await service.removeMember(teamId, memberId, userId);
+        await service.removeMember(teamId, memberId, clerkUserId);
 
         return reply.code(204).send();
       } catch (error: any) {
@@ -356,9 +356,9 @@ export async function registerTeamRoutes(server: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = (request as any).user?.id;
-        if (!userId) {
-          return reply.code(401).send({ error: 'Unauthorized' });
+        const clerkUserId = request.headers['x-clerk-user-id'] as string;
+        if (!clerkUserId) {
+          return reply.code(401).send({ error: 'Unauthorized - missing x-clerk-user-id header' });
         }
 
         const { teamId } = request.params as { teamId: string };
@@ -369,7 +369,7 @@ export async function registerTeamRoutes(server: FastifyInstance) {
           model: body.model,
           config: body.config,
           is_default: body.is_default || false,
-          user_id: userId,
+          user_id: clerkUserId,
         });
 
         return reply.code(201).send(config);

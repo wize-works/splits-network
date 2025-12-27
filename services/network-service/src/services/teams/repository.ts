@@ -509,11 +509,11 @@ export class TeamRepository {
 
   // Utility methods
 
-  async getRecruiterByUserId(userId: string): Promise<{ id: string; user_id: string } | null> {
+  async getRecruiterByClerkUserId(clerkUserId: string): Promise<{ id: string; user_id: string } | null> {
     const { data, error } = await this.supabase
       .from('network.recruiters')
       .select('id, user_id')
-      .eq('user_id', userId)
+      .eq('user_id', clerkUserId)
       .single();
 
     if (error) {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { formatDate } from '@/lib/utils';
-import { getMyDocuments, deleteDocument, getDocumentUrl, Document as ApiDocument, getMyCandidateProfile, getCandidatesByEmail, getCurrentUser } from '@/lib/api';
+import { getMyDocuments, deleteDocument, getDocumentUrl, Document as ApiDocument, getMyCandidateProfile, getCurrentUser } from '@/lib/api';
 import UploadDocumentModal from '@/components/upload-document-modal';
 
 export default function DocumentsPage() {
@@ -71,11 +71,11 @@ export default function DocumentsPage() {
                 return null;
             }
 
-            // Get candidate profile by email
-            const profile = await getMyCandidateProfile(token, userEmail);
+            // Get candidate profile
+            const profile = await getMyCandidateProfile(token);
 
             if (!profile) {
-                console.error('No candidate profile found for email:', userEmail);
+                console.error('No candidate profile found');
                 return null;
             }
 

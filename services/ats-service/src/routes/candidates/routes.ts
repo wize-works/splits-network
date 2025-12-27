@@ -242,7 +242,7 @@ export function registerCandidateRoutes(app: FastifyInstance, service: AtsServic
             
             try {
                 const candidate = await candidatesService.selfUpdateCandidate({
-                    clerkUserId,
+                    userId: clerkUserId, // Clerk user ID
                     updates: request.body,
                 }, correlationId);
                 return reply.send({ data: candidate });
