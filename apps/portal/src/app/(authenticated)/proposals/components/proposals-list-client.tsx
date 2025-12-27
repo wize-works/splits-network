@@ -25,10 +25,14 @@ export default function ProposalsListClient() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
+    // Check for success message
+    const successMessage = searchParams.get('success');
+
     // Initialize state from URL params
     const [proposals, setProposals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showSuccess, setShowSuccess] = useState<string | null>(successMessage);
     const [stateFilter, setStateFilter] = useState<'all' | 'actionable' | 'waiting'>(
         (searchParams.get('state') as 'all' | 'actionable' | 'waiting') || 'all'
     );
@@ -173,6 +177,24 @@ export default function ProposalsListClient() {
 
     return (
         <div className="space-y-6">
+            {showSuccess && (
+                <div className="alert alert-success">
+                    <i className="fa-solid fa-circle-check"></i>
+                    <span>
+                        {showSuccess === 'accepted'
+                            ? 'Proposal accepted successfully! The candidate has been assigned to you for this role.'
+                            : 'Proposal declined successfully.'
+                        }
+                    </span>
+                    <button
+                        onClick={() => setShowSuccess(null)}
+                        className="btn btn-sm btn-ghost btn-circle"
+                    >
+                        <i className="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            )}
+
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">Candidate Proposals</h1>

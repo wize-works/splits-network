@@ -171,15 +171,14 @@ export default function UnifiedProposalCard({
                 {/* Action Area */}
                 {proposal.can_current_user_act && !showResponseForm && (
                     <div className="card-actions justify-end mt-2">
-                        <button
+                        <a
+                            href={`/proposals/${proposal.id}/screen`}
                             className="btn btn-sm btn-primary"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowResponseForm(true);
-                            }}
+                            onClick={(e) => e.stopPropagation()}
                         >
-                            {proposal.action_label}
-                        </button>
+                            <i className="fa-solid fa-user-check"></i>
+                            Screen Proposal
+                        </a>
                     </div>
                 )}
 

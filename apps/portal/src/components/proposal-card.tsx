@@ -130,7 +130,7 @@ export default function ProposalCard({
 
     return (
         <div className={`card bg-base-100 border ${dueStatus?.urgent ? 'border-warning' : 'border-base-300'} shadow`}>
-            <div className="card-body">
+            <div className="card-body">THIS IS A TEST
                 <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -238,13 +238,13 @@ export default function ProposalCard({
                 {/* Show action buttons if pending and form not shown */}
                 {isPending && !showResponseForm && onAccept && onDecline && (
                     <div className="flex gap-2 mt-4">
-                        <button
+                        <a
+                            href={`/proposals/${proposal.id}/screen`}
                             className="btn btn-primary flex-1"
-                            onClick={() => setShowResponseForm(true)}
                         >
-                            <i className="fa-solid fa-reply"></i>
-                            Respond to Proposal
-                        </button>
+                            <i className="fa-solid fa-user-check"></i>
+                            Screen Proposal
+                        </a>
                     </div>
                 )}
 
