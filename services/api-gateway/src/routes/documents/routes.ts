@@ -21,26 +21,37 @@ export function registerDocumentsRoutes(app: FastifyInstance, services: ServiceR
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const req = request as any;
         const correlationId = getCorrelationId(request);
-        const userEmail = req.auth?.email;
+        const clerkUserId = req.auth?.clerkUserId;
 
-        if (!userEmail) {
+        if (!clerkUserId) {
             return reply.status(401).send({ error: 'Unauthorized' });
         }
 
         try {
-            // Find candidate by email
-            const candidatesResponse: any = await atsService().get(
-                `/candidates?email=${encodeURIComponent(userEmail)}`,
-                undefined,
-                correlationId
-            );
-            const candidates = candidatesResponse.data || [];
+            // Get candidate profile using Clerk user ID
+            let candidateResponse: any;
+            try {
+                candidateResponse = await atsService().get(
+                    '/candidates/me',
+                    undefined,
+                    correlationId,
+                    {
+                        'x-clerk-user-id': clerkUserId,
+                    }
+                );
+            } catch (error: any) {
+                // If candidate profile doesn't exist (404), return empty documents list
+                if (error.message?.includes('404')) {
+                    return reply.send({ data: [] });
+                }
+                throw error;
+            }
             
-            if (candidates.length === 0) {
+            if (!candidateResponse.data) {
                 return reply.send({ data: [] });
             }
 
-            const candidateId = candidates[0].id;
+            const candidateId = candidateResponse.data.id;
 
             // Get documents for this candidate
             const response = await documentService().get<{ documents: any[] }>(
@@ -53,7 +64,7 @@ export function registerDocumentsRoutes(app: FastifyInstance, services: ServiceR
             const documents = response.documents || [];
             return reply.send({ data: documents });
         } catch (error: any) {
-            request.log.error({ error, email: userEmail }, 'Failed to get candidate documents');
+            request.log.error({ error, clerkUserId }, 'Failed to get candidate documents');
             return reply.status(500).send({ error: 'Failed to load documents' });
         }
     });

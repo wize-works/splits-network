@@ -384,17 +384,36 @@ export class AtsRepository {
     }
 
     async findCandidateByClerkUserId(clerkUserId: string): Promise<Candidate | null> {
+        // First, find the internal user ID from clerk_user_id
+        const { data: userData, error: userError } = await this.supabase
+            .schema('identity')
+            .from('users')
+            .select('id')
+            .eq('clerk_user_id', clerkUserId)
+            .single();
+
+        if (userError) {
+            if (userError.code === 'PGRST116') return null;
+            throw userError;
+        }
+
+        if (!userData) {
+            return null;
+        }
+
+        // Then find the candidate by user_id
         const { data, error } = await this.supabase
             .schema('ats')
             .from('candidates')
             .select('*')
-            .eq('user_id', clerkUserId)
+            .eq('user_id', userData.id)
             .single();
 
         if (error) {
             if (error.code === 'PGRST116') return null;
             throw error;
         }
+        
         return data;
     }
 

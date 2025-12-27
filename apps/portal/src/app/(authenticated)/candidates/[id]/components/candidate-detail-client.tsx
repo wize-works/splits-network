@@ -99,7 +99,7 @@ export default function CandidateDetailClient({ candidateId }: CandidateDetailCl
 
                 // Fetch documents for submit modal
                 try {
-                    const docsRes = await client.get(`/candidates/${candidateId}/documents`);
+                    const docsRes = await client.get(`/documents/entity/candidate/${candidateId}`);
                     if (docsRes.data) {
                         setDocuments(docsRes.data);
                     }
