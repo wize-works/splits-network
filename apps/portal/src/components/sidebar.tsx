@@ -52,9 +52,18 @@ export function Sidebar() {
                     (m: any) => ['company_admin', 'hiring_manager'].includes(m.role)
                 );
 
-                const hasRecruiterRole = memberships.some(
-                    (m: any) => m.role === 'recruiter'
-                );
+                // Check if user is a recruiter by looking for recruiter profile in network service
+                // Recruiters don't need organization memberships - they operate independently
+                let hasRecruiterRole = false;
+                try {
+                    const recruiterResponse: any = await apiClient.get(`/recruiters/by-user/${profile.data.id}`);
+                    if (recruiterResponse?.data && recruiterResponse.data.status === 'active') {
+                        hasRecruiterRole = true;
+                    }
+                } catch (error) {
+                    // User is not a recruiter or recruiter profile doesn't exist yet
+                    hasRecruiterRole = false;
+                }
 
                 setIsAdmin(hasAdminRole);
                 setIsCompanyUser(hasCompanyRole);
