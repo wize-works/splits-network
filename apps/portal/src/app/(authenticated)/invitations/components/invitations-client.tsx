@@ -217,28 +217,41 @@ export default function InvitationsPageClient() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="stats shadow">
+                <div className="stats shadow bg-base-100">
                     <div className="stat">
+                        <div className="stat-figure">
+                            <i className="fa-solid fa-envelopes fa-2x"></i>
+                        </div>
                         <div className="stat-title">Total Invitations</div>
                         <div className="stat-value">{stats.total}</div>
+                        <div className='stat-desc'>Total number of candidate invitations</div>
                     </div>
                 </div>
-                <div className="stats shadow">
+                <div className="stats shadow bg-base-100">
                     <div className="stat">
+                        <div className="stat-figure text-info">
+                            <i className="fa-solid fa-hourglass-half fa-2x"></i>
+                        </div>
                         <div className="stat-title">Pending</div>
                         <div className="stat-value text-info">{stats.pending}</div>
+                        <div className='stat-desc'>Invitations awaiting candidate response</div>
                     </div>
                 </div>
-                <div className="stats shadow">
+                <div className="stats shadow bg-base-100">
                     <div className="stat">
+                        <div className="stat-figure text-success">
+                            <i className="fa-solid fa-check fa-2x"></i>
+                        </div>
                         <div className="stat-title">Accepted</div>
                         <div className="stat-value text-success">{stats.accepted}</div>
+                        <div className='stat-desc'>Invitations accepted by candidates</div>
                     </div>
                 </div>
-                <div className="stats shadow">
+                <div className="stats shadow bg-base-100">
                     <div className="stat">
                         <div className="stat-title">Declined</div>
                         <div className="stat-value text-error">{stats.declined}</div>
+                        <div className='stat-desc'>Invitations declined by candidates</div>
                     </div>
                 </div>
             </div>

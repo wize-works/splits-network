@@ -61,7 +61,7 @@ export function RecruiterProfileStep() {
                 <div className="fieldset">
                     <label className="label">Bio / About You</label>
                     <textarea
-                        className="textarea h-24"
+                        className="textarea h-24 w-full"
                         value={formData.bio}
                         onChange={(e) => handleChange('bio', e.target.value)}
                         placeholder="Share your recruiting experience, specializations, and what makes you great at finding talent..."
@@ -77,7 +77,7 @@ export function RecruiterProfileStep() {
                     <label className="label">Phone Number *</label>
                     <input
                         type="tel"
-                        className="input"
+                        className="input w-full"
                         value={formData.phone}
                         onChange={(e) => handleChange('phone', e.target.value)}
                         placeholder="+1 (555) 123-4567"
@@ -90,7 +90,7 @@ export function RecruiterProfileStep() {
                     <label className="label">Industries</label>
                     <input
                         type="text"
-                        className="input"
+                        className="input w-full"
                         value={formData.industries}
                         onChange={(e) => handleChange('industries', e.target.value)}
                         placeholder="e.g., Technology, Healthcare, Finance"
@@ -105,7 +105,7 @@ export function RecruiterProfileStep() {
                     <label className="label">Specialties</label>
                     <input
                         type="text"
-                        className="input"
+                        className="input w-full"
                         value={formData.specialties}
                         onChange={(e) => handleChange('specialties', e.target.value)}
                         placeholder="e.g., Software Engineering, Data Science, Product Management"
@@ -120,7 +120,7 @@ export function RecruiterProfileStep() {
                     <label className="label">Location</label>
                     <input
                         type="text"
-                        className="input"
+                        className="input w-full"
                         value={formData.location}
                         onChange={(e) => handleChange('location', e.target.value)}
                         placeholder="e.g., New York, NY"
@@ -167,7 +167,7 @@ export function RecruiterProfileStep() {
                     <label className="label">Team Invite Code (Optional)</label>
                     <input
                         type="text"
-                        className="input"
+                        className="input w-full"
                         value={formData.teamInviteCode}
                         onChange={(e) => handleChange('teamInviteCode', e.target.value.toUpperCase())}
                         placeholder="TEAM-ABC123"
