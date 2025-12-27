@@ -39,8 +39,21 @@ export default function SettingsPage() {
                 const profile: any = await apiClient.get('/me');
                 const memberships = profile.data?.memberships || [];
 
+                // Check if user is a recruiter by looking for recruiter profile in network service
+                // Recruiters don't need organization memberships - they operate independently
+                let isRecruiterRole = false;
+                try {
+                    const recruiterResponse: any = await apiClient.get(`/recruiters/by-user/${profile.data.id}`);
+                    if (recruiterResponse?.data && recruiterResponse.data.status === 'active') {
+                        isRecruiterRole = true;
+                    }
+                } catch (error) {
+                    // User is not a recruiter or recruiter profile doesn't exist yet
+                    isRecruiterRole = false;
+                }
+
                 setUserRoles({
-                    isRecruiter: memberships.some((m: any) => m.role === 'recruiter'),
+                    isRecruiter: isRecruiterRole,
                     isCompanyAdmin: memberships.some((m: any) => m.role === 'company_admin'),
                     isHiringManager: memberships.some((m: any) => m.role === 'hiring_manager'),
                     isPlatformAdmin: memberships.some((m: any) => m.role === 'platform_admin'),
