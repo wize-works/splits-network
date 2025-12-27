@@ -36,13 +36,27 @@ export default function CandidatesListClient() {
                 const profileRes = await client.get('/me');
                 const profile = profileRes.data;
 
-                // Determine user role
+                // Determine user role from memberships
                 const membership = profile?.memberships?.[0];
-                const role = membership?.role;
+                let role = membership?.role;
+
+                // Check if user is an independent recruiter (no memberships but has recruiter profile)
+                if (!role || role === 'candidate') {
+                    try {
+                        const recruiterRes = await client.get(`/recruiters/by-user/${profile.id}`);
+                        if (recruiterRes.data?.id && recruiterRes.data?.status === 'active') {
+                            role = 'recruiter';
+                            setRecruiterId(recruiterRes.data.id);
+                        }
+                    } catch (err) {
+                        // Not a recruiter, keep original role
+                    }
+                }
+
                 setUserRole(role);
 
-                // If recruiter, get their recruiter profile ID
-                if (role === 'recruiter') {
+                // If recruiter with membership, still get their recruiter profile ID
+                if (role === 'recruiter' && !recruiterId) {
                     try {
                         const recruiterRes = await client.get(`/recruiters/by-user/${profile.id}`);
                         if (recruiterRes.data?.id) {

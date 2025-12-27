@@ -5,6 +5,7 @@ import { ServiceRegistry } from './clients';
 
 export interface AuthenticatedRequest extends FastifyRequest {
     auth: AuthContext;
+    matchedRole?: UserRole; // Role that granted access via requireRoles()
 }
 
 /**
@@ -24,7 +25,10 @@ export function requireRoles(allowedRoles: UserRole[], services?: ServiceRegistr
         const hasAllowedRole = allowedRoles.some(role => userRoles.includes(role));
         
         if (hasAllowedRole) {
-            request.log.debug({ userId: req.auth.userId, role: userRoles }, 'Access granted via membership');
+            // Store the first matching role for later use
+            const matchedRole = allowedRoles.find(role => userRoles.includes(role));
+            req.matchedRole = matchedRole;
+            request.log.debug({ userId: req.auth.userId, role: userRoles, matchedRole }, 'Access granted via membership');
             return;
         }
 
@@ -41,6 +45,7 @@ export function requireRoles(allowedRoles: UserRole[], services?: ServiceRegistr
                 );
 
                 if (recruiterResponse?.data && recruiterResponse.data.status === 'active') {
+                    req.matchedRole = 'recruiter';
                     request.log.debug({ userId: req.auth.userId }, 'Access granted: active recruiter via network service');
                     return;
                 }
