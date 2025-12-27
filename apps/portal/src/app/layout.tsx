@@ -50,13 +50,7 @@ export default async function RootLayout({
         <ClerkProvider publishableKey={publishableKey}>
             <html lang="en" data-theme="splits-light">
                 <head>
-                    <link
-                        rel="stylesheet"
-                        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css"
-                        integrity="sha512-5Hs3dF2AEPkpNAR7UiOHba+lRSJNeM2ECkwxUIxC1Q/FLycGTbNapWXB4tP889k5T5Ju8fs4b1P5z/iB4nMfSQ=="
-                        crossOrigin="anonymous"
-                        referrerPolicy="no-referrer"
-                    />
+                    <script src="https://kit.fontawesome.com/728c8ddec8.js" crossOrigin="anonymous"></script>
                 </head>
                 <body className="flex flex-col min-h-screen">
                     <Header />

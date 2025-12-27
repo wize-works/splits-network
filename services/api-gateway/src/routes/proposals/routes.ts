@@ -13,12 +13,16 @@ import { requireRoles, AuthenticatedRequest } from '../../rbac';
 
 export function registerProposalsRoutes(app: FastifyInstance, services: ServiceRegistry) {
     const atsService = () => services.get('ats');
+    const networkService = () => services.get('network');
     const getCorrelationId = (request: FastifyRequest) => (request as any).correlationId;
 
     /**
-     * Determine user's primary role from Clerk memberships
+     * Determine user's primary role from Clerk memberships AND network service
+     * 
+     * Important: Recruiters are NOT in memberships - they're stored in network.recruiters table
+     * We must check network service for recruiter status
      */
-    function determineUserRole(auth: any): 'candidate' | 'recruiter' | 'company' | 'admin' {
+    async function determineUserRole(auth: any, correlationId?: string): Promise<'candidate' | 'recruiter' | 'company' | 'admin'> {
         const memberships = auth.memberships || [];
         
         if (memberships.some((m: any) => m.role === 'platform_admin')) {
@@ -27,9 +31,22 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         if (memberships.some((m: any) => m.role === 'company_admin')) {
             return 'company';
         }
-        if (memberships.some((m: any) => m.role === 'recruiter')) {
-            return 'recruiter';
+        
+        // Check if user is a recruiter by querying network service
+        try {
+            const recruiterResponse: any = await networkService().get(
+                `/recruiters/by-user/${auth.userId}`,
+                undefined,
+                correlationId
+            );
+            
+            if (recruiterResponse?.data) {
+                return 'recruiter';
+            }
+        } catch (error) {
+            // Not a recruiter - continue to candidate fallback
         }
+        
         return 'candidate';
     }
 
@@ -48,7 +65,7 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const correlationId = getCorrelationId(request);
 
         // Determine user role (no entity resolution in gateway)
-        const userRole = determineUserRole(req.auth);
+        const userRole = await determineUserRole(req.auth, correlationId);
 
         // Forward query params directly to ATS service
         const queryString = new URLSearchParams(request.query as any).toString();
@@ -78,7 +95,7 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
 
-        const userRole = determineUserRole(req.auth);
+        const userRole = await determineUserRole(req.auth, correlationId);
         
         const headers = {
             'x-clerk-user-id': req.auth.clerkUserId,
@@ -103,7 +120,7 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
 
-        const userRole = determineUserRole(req.auth);
+        const userRole = await determineUserRole(req.auth, correlationId);
         
         const headers = {
             'x-clerk-user-id': req.auth.clerkUserId,
@@ -128,7 +145,7 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const req = request as AuthenticatedRequest;
         const correlationId = getCorrelationId(request);
 
-        const userRole = determineUserRole(req.auth);
+        const userRole = await determineUserRole(req.auth, correlationId);
         
         const headers = {
             'x-clerk-user-id': req.auth.clerkUserId,
@@ -154,7 +171,7 @@ export function registerProposalsRoutes(app: FastifyInstance, services: ServiceR
         const { id } = request.params as { id: string };
         const correlationId = getCorrelationId(request);
 
-        const userRole = determineUserRole(req.auth);
+        const userRole = await determineUserRole(req.auth, correlationId);
         
         const headers = {
             'x-clerk-user-id': req.auth.clerkUserId,

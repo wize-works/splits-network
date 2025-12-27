@@ -49,13 +49,7 @@ export default function RootLayout({
         <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/">
             <html lang="en" data-theme="applicant-light">
                 <head>
-                    <link
-                        rel="stylesheet"
-                        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-                        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
-                        crossOrigin="anonymous"
-                        referrerPolicy="no-referrer"
-                    />
+                    <script src="https://kit.fontawesome.com/728c8ddec8.js" crossOrigin="anonymous"></script>
                 </head>
                 <body className="flex flex-col min-h-screen bg-base-200">
                     <Header />
